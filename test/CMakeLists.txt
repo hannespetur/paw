@@ -2,5 +2,6 @@ cmake_minimum_required (VERSION 3.2)
 
 add_executable(test_pawparser test_pawparser.cpp)
 
-enable_testing()
-add_test(NAME pawparser_catch_tests COMMAND test_pawparser)
+add_test(NAME pawparser_catch_tests COMMAND $<TARGET_FILE:test_pawparser>)
+
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose) # Use 'make check' to get verbose test results

@@ -136,6 +136,9 @@ public:
   void inline
   check_for_extra_options();
 
+  inline TParserFlags const &
+  get_flags_reference();
+
   template <typename T>
   void inline
   parse_option(T & val, char const shrt, std::string const & lng, std::string const & description);
@@ -236,6 +239,13 @@ Parser::check_for_extra_options()
     if (known_options.find(it->first) == known_options.end())
       throw ExtraOptionException(it->first);
   }
+}
+
+
+inline TParserFlags const &
+Parser::get_flags_reference()
+{
+  return flags;
 }
 
 
