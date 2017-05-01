@@ -1,3 +1,4 @@
 # build directories
 debug/
 release/
+build*/

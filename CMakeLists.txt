@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 
-project (pawparser)
+project (paw)
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_BUILD_TYPE CACHE Release STRING "Build type")

@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "pawparser.hpp"
+#include <paw/parser.hpp>
 
 
 TEST_CASE("No options parsed")
@@ -129,13 +129,60 @@ TEST_CASE("Parse argc argv with short and long options")
 }
 
 
-TEST_CASE("Parse optional values")
+struct Options
 {
-  SECTION("Valid arguments")
-  {
-    paw::parser pawparser({"program", "--int16=-1", "--uint16=-1", "--str=StRiNg", "--bool"});
+  bool my_bool = false;
+  int my_int = 0;
+  unsigned my_uint = 0;
+  double my_double = 0.0;
+  std::string my_string = "";
+  std::vector<int> my_ints;
+  std::vector<std::string> my_strings;
+};
 
+
+TEST_CASE("Parse options")
+{
+  Options options;
+
+  SECTION("Valid options are passed")
+  {
+    paw::parser pawparser(
+      {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string=StRiNg", "--bool"}
+      );
+    pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+    pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
+    pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
+    pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
+    pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
+
+    REQUIRE(options.my_bool);
+    REQUIRE(options.my_int == -1);
+    REQUIRE(options.my_uint > 0);
+    REQUIRE(options.my_uint == static_cast<unsigned int>(-1));
+    REQUIRE(options.my_double == -100.5);
+    REQUIRE(options.my_string == "StRiNg");
   }
 
+  SECTION("Missing option")
+  {
+    paw::parser pawparser({"program", "-d", "-b"});
+    REQUIRE_THROWS_AS(
+      pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
+      paw::parser::missing_value_exception
+      );
 
+    REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bol value."));
+    REQUIRE(options.my_bool);
+  }
+
+  SECTION("Valid option string list")
+  {
+    paw::parser pawparser({"program", "--files=f1.txt,f2.txt", "-ff3.txt", "main.txt"});
+    pawparser.parse_option_list(options.my_strings, 'f', "files", "Test file list");
+    REQUIRE(options.my_strings.size() == 3);
+    REQUIRE(options.my_strings[0] == std::string("f1.txt"));
+    REQUIRE(options.my_strings[1] == std::string("f2.txt"));
+    REQUIRE(options.my_strings[2] == std::string("f3.txt"));
+  }
 }
