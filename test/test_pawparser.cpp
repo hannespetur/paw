@@ -164,7 +164,7 @@ TEST_CASE("Parse options")
     REQUIRE(options.my_string == "StRiNg");
   }
 
-  SECTION("Missing option")
+  SECTION("Option with missing value")
   {
     paw::parser pawparser({"program", "-d", "-b"});
     REQUIRE_THROWS_AS(
@@ -184,5 +184,10 @@ TEST_CASE("Parse options")
     REQUIRE(options.my_strings[0] == std::string("f1.txt"));
     REQUIRE(options.my_strings[1] == std::string("f2.txt"));
     REQUIRE(options.my_strings[2] == std::string("f3.txt"));
+  }
+
+  SECTION("Option list with missing value")
+  {
+    paw::parser pawparser({"program", "--files", "f1.txt"});
   }
 }

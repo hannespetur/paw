@@ -1,5 +1,8 @@
 #pragma once
+#include <algorithm> // std::find
 #include <exception> // std::exception
+#include <iomanip> // std::setw
+#include <ios> // std::ios::failbit
 #include <map> // std::multimap
 #include <unordered_set> // std::unordered_set
 #include <sstream> // std::stringstream, std::ostringstream
@@ -12,7 +15,11 @@
  * \copyright GNU GPLv3
  */
 
-/** Top-level namespace of the paw library */
+/** \file paw/parser.hpp
+ * A single header file with the entire paw parser.
+ */
+
+/** Top-level namespace of the paw library.*/
 namespace paw
 {
 
@@ -20,26 +27,104 @@ namespace paw
 class parser
 {
   public:
+    /** \brief Data structure for command line arguments.
+     * \details Arguments in this data structure are ready for display in the 'help' page of the
+     *          program.
+     */
+    struct Arg
+    {
+      public:
+        char shrt; /**< Short option for the 'help' page.
+                   *< No option shown if it is paw::parser::NO_SHORT_OPTION.
+                   */
+        std::string lng; /**< Long option for the 'help' page.*/
+        std::string description; /**< Description of the argument to display in the 'help' page.*/
+        std::string meta_string; /**< String to represent the value with in the 'help' page.*/
+        std::string default_value; /**< The default value to display in the 'help' page.*/
+
+        /** Default constructor is disabled.*/
+        Arg() = delete;
+    };
+
+
+    /** Type definition of the container used to store the arguments.*/
+    using Args = std::vector<Arg>;
+
     /* READ ONLY VARIABLES */
     /** Specifies how to represent arguments that have no short option.*/
-    const char static NO_SHORT_OPTION = ' ';
+    static const char NO_SHORT_OPTION = ' ';
     /** Specifies how the default seperator that splits argument lists.*/
-    const char static DEFAULT_LIST_DELIMITER = ',';
+    static const char DEFAULT_LIST_DELIMITER = ',';
 
     /* EXCEPTIONS */
+    /** Exception indicating that the user passed the help argument.*/
+    class help_exception : public std::exception
+    {
+      private:
+        std::string help_message; /**< Message to display when exception is thrown.*/
+
+        /** Constructs the help exception message.*/
+      public:
+        help_exception(const Args& args);
+
+        /** Gets the help message.
+         * \returns Help message.
+         */
+        virtual const char * what() const throw();
+    };
+
     /** Exception indicating that the user passed an argument that isn't available.
      * E.g. user parser a "-t" option but no "-t" argument is defiend by the program.
      */
     class invalid_option_exception : public std::exception
     {
       private:
-        std::string error_message; /**< Message to display when exception is thrown. */
+        std::string error_message; /**< Message to display when exception is thrown.*/
 
       public:
         /** Constructs an invalid option exception.
          * \param[in] invalid_option the parsed invalid option.
          */
         invalid_option_exception(const std::string& invalid_option);
+        /** Gets the error message of this exception.
+         * \returns Error message.
+         */
+        virtual const char * what() const throw();
+    };
+
+    /** Exception indicating that the user passed an argument with value of the incorrect type.
+     * E.g. user parser a "-ta" option but t takes in an integer.
+     */
+    class invalid_option_value_exception : public std::exception
+    {
+      private:
+        std::string error_message; /**< Message to display when exception is thrown. */
+
+      public:
+        /** Constructs an invalid option value exception.
+         * \param[in] invalid_option_value the parsed invalid option value.
+         */
+        invalid_option_value_exception(const char shrt,
+                                       const std::string& lng,
+                                       const std::string& invalid_option_value
+                                       );
+        /** Gets the error message of this exception.
+         * \returns Error message.
+         */
+        virtual const char * what() const throw();
+    };
+
+    /** Exception indicating that the user passed a positional argument of the incorrect type.*/
+    class invalid_positional_exception : public std::exception
+    {
+      private:
+        std::string error_message; /**< Message to display when exception is thrown. */
+
+      public:
+        /** Constructs an invalid positional exception.
+         * \param[in] invalid_positional the parsed invalid positional value.
+         */
+        invalid_positional_exception(const std::string& invalid_positional);
         /** Gets the error message of this exception.
          * \returns Error message.
          */
@@ -98,11 +183,13 @@ class parser
      * \param[in] argc length of the argv array.
      * \param[in] argv arguments passed, including the name of the executable.
      * \returns paw parser object.
+     * \exception None.
      */
     parser(int argc, char ** argv);
     /** Constructor that parses a vector of strings.
      * \param[in] args Dynamic vector with all arguments.
      * \returns paw parser object.
+     * \exception None.
      */
     parser(const std::vector<std::string>& args);
 
@@ -112,7 +199,17 @@ class parser
     inline void
     check_for_invalid_options();
 
-    /** Get a reference to the data structure containing all flags the user passed.*/
+    /** \brief Finalizes the parser.
+     * \details Parses help flag and checks for invalid options.
+     * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
+     */
+    inline void
+    finalize();
+
+    /** Get a reference to the multimap containing all the flags the user passed.
+     * \returns Multimap with flags.
+     * \exception None.
+     */
     inline const FlagMap &
     get_flag_map_reference();
 
@@ -177,7 +274,7 @@ class parser
                 const unsigned MINOR
                 );
 
-    /** Sets the version of the program using a string.
+    /** Sets the version of the program using a std::string.
      * \param version version of the program.
      * \exception None.
      */
@@ -186,47 +283,31 @@ class parser
 
 
   private:
-    /* NESTED DATA STRUCTURES */
-    /** \brief Data structure for command line arguments.
-     * \details Arguments in this data structure are ready for display in the 'help' page of the
-     *          program.
-     */
-    struct Arg
-    {
-      public:
-        char shrt; /**< Short option for the 'help' page.
-                   *< No option shown if it is paw::parser::NO_SHORT_OPTION.
-                   */
-        std::string lng; /**< Long option for the 'help' page.*/
-        std::string description; /**< Description of the argument to display in the 'help' page.*/
-        std::string meta_string; /**< String to represent the value with in the 'help' page.*/
-        std::string default_value; /**< The default value to display in the 'help' page.*/
+    /** Type definition for the container to use for positional arguments.*/
+    using Positional = std::vector<std::string>;
 
-        /** Default constructor is disabled.*/
-        Arg() = delete;
-    };
+    /** Vector of all arguments.*/
+    Args args;
 
-    using Args = std::vector<Arg>; /**< Type definition of the container used to store the
-                                    *< arguments.
-                                    */
-    using Positional = std::vector<std::string>; /**< Type definition for the container to use for
-                                                  *< positional arguments.
-                                                  */
-    Args args; /**< Vector of all arguments. */
-    std::string version; /**< The version of the program */
-    FlagMap flag_map; /**< Keys that maps options (or 'flags') to their given values as given by
-                       *< the user.
-                       */
-    Positional positional; /**< Vector of all values of positional arguments, in the same order as
-                            *< they were inserted.
-                            */
-    Positional::iterator next_positional; /**< Iterator that points to the next positional
-                                           *< argument.
-                                           */
-    std::vector<std::string> raw_args; /**< Copy of the arguments parsed */
+    /** The version of the program. */
+    std::string version;
 
-    /** Private method that finds flag in parsed argument options.
-     * Returns iterator pointing to the end if not found.
+    /** Keys that maps options (or 'flags') to their given values as given by the user.*/
+    FlagMap flag_map;
+
+    /** Vector of all values of positional arguments, in the same order as they were inserted.*/
+    Positional positional;
+
+    /** Iterator that points to the next positional argument.*/
+    Positional::iterator next_positional;
+
+    /** Copy of the arguments parsed.*/
+    std::vector<std::string> raw_args;
+
+    /** \brief Finds flag in parsed argument options.
+     * \details Returns iterator pointing to the end if not found.
+     * \returns Iterator to the flag
+     * \exception None.
      */
     inline FlagMap::iterator
     find_flag(const char shrt, const std::string& lng);
@@ -234,16 +315,128 @@ class parser
 };
 
 /* EXCEPTIONS */
+parser::help_exception::help_exception(const Args& arguments)
+{
+  //std::vector<std::string> left_column;
+  //std::vector<std::string> right_column;
+  std::ostringstream ss;
+  size_t constexpr INDENT = 4;
+  size_t constexpr MAX_WIDTH = 100;
+
+  for (const auto& arg : arguments)
+  {
+    if (arg.shrt != paw::parser::NO_SHORT_OPTION)
+    {
+      ss << "-" << arg.shrt;
+
+      if (arg.meta_string.size() > 0)
+        ss << arg.meta_string;
+
+      ss << ", ";
+    }
+
+    ss << "--" << arg.lng;
+
+    if (arg.meta_string.size() > 0)
+      ss << "=" << arg.meta_string;
+
+    std::ostringstream word_ss;
+
+    for (size_t i = 0; i < arg.description.size(); ++i)
+    {
+      if (i % (MAX_WIDTH - INDENT) == 0)
+        ss << "\n" << std::string(INDENT, ' ');
+
+      if (arg.description[i] == ' ')
+      {
+        ss << word_ss.str() << " "; // Print word
+        word_ss.str(std::string()); // Clears the stringstream
+      }
+      else
+      {
+        word_ss << arg.description[i];
+      }
+    }
+
+    const std::string& word = word_ss.str();
+
+    // TODO fix this
+    if (word.size() + arg.description.size() > (MAX_WIDTH - INDENT))
+    {
+      ss << "\n" << std::string(INDENT, ' ') << word << "\n\n";
+    }
+    else
+    {
+      ss << word << "\n\n";
+    }
+
+  }
+
+  help_message = ss.str();
+}
+
+const char *
+parser::help_exception::what() const throw()
+{
+  return help_message.c_str();
+}
+
 /* Invalid option exception */
 parser::invalid_option_exception::invalid_option_exception(std::string const& invalid_option)
 {
   std::ostringstream ss;
-  ss << "[pawparser::InvalidOption] No option '" << invalid_option << "' is invalid.";
+  ss << "[paw::parser::InvalidOption] No option '" << invalid_option << "' is invalid.";
   error_message = ss.str();
 }
 
 const char *
 parser::invalid_option_exception::what() const throw()
+{
+  return error_message.c_str();
+}
+
+/* Invalid option value exception */
+parser::invalid_option_value_exception::invalid_option_value_exception(
+  const char shrt,
+  const std::string& lng,
+  std::string const& invalid_option_value
+  )
+{
+  std::ostringstream ss;
+
+  if (shrt != paw::parser::NO_SHORT_OPTION)
+  {
+    ss << "[paw::parser::InvalidOptionValue] Value '" << invalid_option_value
+       << "' for option '" << lng << "=value' (or '-" << shrt << "value') is invalid.";
+  }
+  else
+  {
+    ss << "[paw::parser::InvalidOptionValue] Value '" << invalid_option_value
+       << "' for option '" << lng << "=value' is invalid.";
+  }
+
+  error_message = ss.str();
+}
+
+const char *
+parser::invalid_option_value_exception::what() const throw()
+{
+  return error_message.c_str();
+}
+
+/* Invalid positional exception */
+parser::invalid_positional_exception::invalid_positional_exception(
+  std::string const& invalid_positional
+  )
+{
+  std::ostringstream ss;
+  ss << "[paw::parser::InvalidPositional] No positional option '" << invalid_positional
+     << "' is of invalid type.";
+  error_message = ss.str();
+}
+
+const char *
+parser::invalid_positional_exception::what() const throw()
 {
   return error_message.c_str();
 }
@@ -257,13 +450,13 @@ parser::missing_value_exception::missing_value_exception(const char shrt,
 
   if (shrt != NO_SHORT_OPTION)
   {
-    ss << "[pawparser::MissingValue] Flag '--"
+    ss << "[paw::parser::MissingValue] Option '--"
        << lng << "=value' (or '-"
        << shrt << "value') requires a value, but was not passed any.";
   }
   else
   {
-    ss << "[pawparser::MissingValue] Flag '--"
+    ss << "[paw::parser::MissingValue] Flag '--"
        << lng << "=value' was not passed any value.";
   }
 
@@ -283,7 +476,7 @@ parser::missing_positional_argument_exception::missing_positional_argument_excep
   )
 {
   std::ostringstream ss;
-  ss << "[pawparser::MissingPositionalArgument] Positional argument at index "
+  ss << "[paw::parser::MissingPositionalArgument] Positional argument at index "
      << index << " '" << meta_string << "' was expected but is missing.";
   error_message = ss.str();
 }
@@ -374,7 +567,7 @@ parser::parse_option(T& val,
                      )
 {
   {
-    std::ostringstream ss;
+    std::stringstream ss;
     ss << val;
     paw::parser::Arg arg = {shrt, lng, description, "value", ss.str()};
     args.push_back(std::move(arg));
@@ -390,6 +583,10 @@ parser::parse_option(T& val,
     std::stringstream ss;
     ss << flag_it->second;
     ss >> val;
+
+    // Check if there were any logical errors
+    if ((ss.rdstate() & std::ios::failbit) != 0)
+      throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
   }
 }
 
@@ -441,6 +638,11 @@ parser::parse_option_list(T& list,
             std::stringstream ss;
             ss << std::string(begin, delim);
             ss >> val;
+
+            // Check if there were any logical errors
+            if ((ss.rdstate() & std::ios::failbit) != 0)
+              throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
+
             list.insert(list.end(), val); // insert new value back to list
           }
 
@@ -472,18 +674,26 @@ parser::parse_positional_argument(T& val,
                                   )
 {
   args.push_back({paw::parser::NO_SHORT_OPTION, "", description, meta_string, ""});
+  const std::size_t N = std::distance(positional.begin(), next_positional);
 
   if (next_positional == positional.end())
   {
-    throw paw::parser::missing_positional_argument_exception
-            (std::distance(positional.begin(), next_positional),
-            meta_string
-            );
+    throw paw::parser::missing_positional_argument_exception(N, meta_string);
   }
 
   std::stringstream ss;
   ss << *next_positional;
   ss >> val;
+
+  // Check if there were any logical errors
+  if ((ss.rdstate() & std::ios::failbit) != 0)
+  {
+    throw paw::parser::invalid_option_value_exception(paw::parser::NO_SHORT_OPTION,
+                                                      std::to_string(N),
+                                                      ss.str()
+                                                      );
+  }
+
   ++next_positional;
 }
 
@@ -517,6 +727,19 @@ inline void
 parser::set_version(const std::string& version)
 {
   this->version = version;
+}
+
+inline void
+parser::finalize()
+{
+  // Parse help argument
+  bool help_flag = false;
+  this->parse_option(help_flag, 'h', "help", "Show this help.");
+
+  if (help_flag)
+    throw paw::parser::help_exception(this->args);
+
+  this->check_for_invalid_options();
 }
 
 /* PRIVATE METHODS */
