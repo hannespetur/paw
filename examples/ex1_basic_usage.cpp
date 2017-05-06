@@ -20,13 +20,24 @@ struct Options
 int
 main(int argc, char ** argv)
 {
-  std::cout << "Paw parser example 1.\n";
+  //std::cout << "Paw parser example 1.\n";
   Options options;
 
   try
   {
     paw::parser parser(argc, argv);
-    parser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+    parser.set_name("Example 1 - An example program for Paw parser.");
+    parser.set_version("3.14.15");
+    parser.parse_option(options.my_bool,
+                        'b',
+                        "bool",
+                        "Test boolean value. Lorem ipsum dolor sit amet, consectetur adipiscing "
+                        "elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
+                        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi "
+                        "ut aliquip ex ea commodo consequat. Duis aute irure dolor in "
+                        "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "
+                        "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa "
+                        "qui officia deserunt mollit anim id est laborum.");
     parser.parse_option(options.my_int, 'i', "int", "Test int value.");
     parser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
     parser.parse_option(options.my_double, 'd', "double", "Test double value.");

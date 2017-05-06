@@ -63,9 +63,16 @@ class parser
       private:
         std::string help_message; /**< Message to display when exception is thrown.*/
 
-        /** Constructs the help exception message.*/
+        /** Constructs the help exception message.
+          * \param program_name Name of the program.
+          * \param binary_name Name of the binary.
+          * \param args Arguments to display in help page.
+          */
       public:
-        help_exception(const Args& args);
+        help_exception(const std::string& program_name,
+                       const std::string& binary_name,
+                       const Args& args
+                       );
 
         /** Gets the help message.
          * \returns Help message.
@@ -264,6 +271,13 @@ class parser
                                          const std::string& description
                                          );
 
+    /** Sets the name of the program
+     * \param name Name to set.
+     * \exception None.
+     */
+    inline void
+    set_name(const std::string& name);
+
     /** Sets the version of the program using two unsigned integers.
      * \param MAJOR major version.
      * \param MINOR minor version.
@@ -288,6 +302,9 @@ class parser
 
     /** Vector of all arguments.*/
     Args args;
+
+    /** The name of the program. */
+    std::string program_name;
 
     /** The version of the program. */
     std::string version;
@@ -314,20 +331,104 @@ class parser
 
 };
 
+
 /* EXCEPTIONS */
-parser::help_exception::help_exception(const Args& arguments)
+parser::help_exception::help_exception(const std::string& program_name,
+                                       const std::string& binary_name,
+                                       const Args& arguments)
 {
-  //std::vector<std::string> left_column;
-  //std::vector<std::string> right_column;
   std::ostringstream ss;
   size_t constexpr INDENT = 4;
   size_t constexpr MAX_WIDTH = 100;
 
+  auto print_string =
+    [&](const std::string& str, const size_t base_indent)
+    {
+      // Write indentation
+      ss << "\n" << std::string(base_indent, ' ');
+      size_t LINE_SIZE = base_indent;
+      auto str_it = str.begin();
+
+      while (str_it != str.end())
+      {
+        auto whitespace_it = std::find(str_it, str.end(), ' ');
+        auto newline_it = std::find(str_it, str.end(), '\n');
+
+        // If newline comes first, print until the newline
+        if (std::distance(str_it, newline_it) <
+            std::distance(str_it, whitespace_it)
+            )
+        {
+          whitespace_it = newline_it;
+        }
+
+        if (std::distance(str_it, whitespace_it) + LINE_SIZE < MAX_WIDTH)
+        {
+          ss << std::string(str_it, whitespace_it);
+          LINE_SIZE += std::distance(str_it, whitespace_it);
+        }
+        else
+        {
+          ss << "\n" << std::string(base_indent, ' ')
+             << std::string(str_it, whitespace_it);
+          LINE_SIZE = base_indent + std::distance(str_it, whitespace_it);
+        }
+
+        str_it = whitespace_it;
+
+        if (str_it != str.end())
+        {
+          if (*str_it == '\n')
+          {
+            ss << '\n' << std::string(base_indent, ' ');
+            LINE_SIZE = base_indent;
+          }
+          else
+          {
+            ss << ' ';
+            ++LINE_SIZE;
+          }
+
+          ++str_it;
+        }
+      }
+    };
+
+  // Name section
+  if (program_name.size() > 0)
+  {
+    ss << "NAME";
+    print_string(program_name, INDENT);
+    ss << "\n\n";
+  }
+
+  // Usage section
+  ss << "USAGE";
+
+  {
+    std::ostringstream usage_ss;
+    const std::size_t slash = binary_name.rfind('/');
+
+    if (slash == std::string::npos)
+      usage_ss << binary_name;
+    else
+      usage_ss << std::string(binary_name.begin() + slash + 1, binary_name.end());
+
+    usage_ss << " [OPTIONS]";
+    print_string(usage_ss.str(), INDENT);
+    ss << '\n';
+  }
+
+  // Options section
+  ss << "\nOPTIONS";
+
   for (const auto& arg : arguments)
   {
+    ss << "\n" << std::string(INDENT, ' ');
+
     if (arg.shrt != paw::parser::NO_SHORT_OPTION)
     {
-      ss << "-" << arg.shrt;
+      ss << '-' << arg.shrt;
 
       if (arg.meta_string.size() > 0)
         ss << arg.meta_string;
@@ -340,36 +441,8 @@ parser::help_exception::help_exception(const Args& arguments)
     if (arg.meta_string.size() > 0)
       ss << "=" << arg.meta_string;
 
-    std::ostringstream word_ss;
-
-    for (size_t i = 0; i < arg.description.size(); ++i)
-    {
-      if (i % (MAX_WIDTH - INDENT) == 0)
-        ss << "\n" << std::string(INDENT, ' ');
-
-      if (arg.description[i] == ' ')
-      {
-        ss << word_ss.str() << " "; // Print word
-        word_ss.str(std::string()); // Clears the stringstream
-      }
-      else
-      {
-        word_ss << arg.description[i];
-      }
-    }
-
-    const std::string& word = word_ss.str();
-
-    // TODO fix this
-    if (word.size() + arg.description.size() > (MAX_WIDTH - INDENT))
-    {
-      ss << "\n" << std::string(INDENT, ' ') << word << "\n\n";
-    }
-    else
-    {
-      ss << word << "\n\n";
-    }
-
+    print_string(arg.description, INDENT * 2);
+    ss << "\n";
   }
 
   help_message = ss.str();
@@ -489,13 +562,15 @@ parser::missing_positional_argument_exception::what() const throw()
 
 /* PUBLIC METHODS */
 parser::parser(int argc, char ** argv) :
-  parser(std::vector<std::string>(argv + 1, argv + argc))
+  parser(std::vector<std::string>(argv, argv + argc))
 {}
 
 
 parser::parser(const std::vector<std::string>& arguments)
 {
-  for (auto arg_it = arguments.cbegin(); arg_it != arguments.cend(); ++arg_it)
+  raw_args = std::vector<std::string>(arguments);
+
+  for (auto arg_it = arguments.cbegin() + 1; arg_it != arguments.cend(); ++arg_it)
   {
     if (arg_it->size() <= 1 || (*arg_it)[0] != '-')
     {
@@ -716,6 +791,12 @@ parser::parse_remaining_positional_arguments(T& list,
 }
 
 inline void
+parser::set_name(const std::string& name)
+{
+  program_name = name;
+}
+
+inline void
 parser::set_version(const unsigned major, const unsigned minor)
 {
   std::ostringstream ss;
@@ -737,7 +818,7 @@ parser::finalize()
   this->parse_option(help_flag, 'h', "help", "Show this help.");
 
   if (help_flag)
-    throw paw::parser::help_exception(this->args);
+    throw paw::parser::help_exception(this->program_name, this->raw_args[0], this->args);
 
   this->check_for_invalid_options();
 }
