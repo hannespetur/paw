@@ -23,6 +23,69 @@
 namespace paw
 {
 
+/** Namespace for internal variables and function used by the paw library. */
+namespace internal
+{
+
+void
+print_string(std::ostringstream& ss,
+             const std::string& str,
+             const size_t base_indent,
+             const size_t MAX_WIDTH
+             )
+{
+  // Write indentation
+  ss << "\n" << std::string(base_indent, ' ');
+  size_t LINE_SIZE = base_indent;
+  auto str_it = str.begin();
+
+  while (str_it != str.end())
+  {
+    auto whitespace_it = std::find(str_it, str.end(), ' ');
+    auto newline_it = std::find(str_it, str.end(), '\n');
+
+    // If newline comes first, print until the newline
+    if (std::distance(str_it, newline_it) <
+        std::distance(str_it, whitespace_it)
+        )
+    {
+      whitespace_it = newline_it;
+    }
+
+    if (std::distance(str_it, whitespace_it) + LINE_SIZE < MAX_WIDTH)
+    {
+      ss << std::string(str_it, whitespace_it);
+      LINE_SIZE += std::distance(str_it, whitespace_it);
+    }
+    else
+    {
+      ss << "\n" << std::string(base_indent, ' ')
+         << std::string(str_it, whitespace_it);
+      LINE_SIZE = base_indent + std::distance(str_it, whitespace_it);
+    }
+
+    str_it = whitespace_it;
+
+    if (str_it != str.end())
+    {
+      if (*str_it == '\n')
+      {
+        ss << '\n' << std::string(base_indent, ' ');
+        LINE_SIZE = base_indent;
+      }
+      else
+      {
+        ss << ' ';
+        ++LINE_SIZE;
+      }
+
+      ++str_it;
+    }
+  }
+}
+
+} // internal
+
 /** Main Data Structure for paw parser.*/
 class parser
 {
@@ -70,13 +133,15 @@ class parser
           * \param[in] opt_args Options to display in help page.
           * \param[in] pos_args Positional arguments to display in help page.
           * \param[in] version Version of the program.
+          * \param[in] subcommand Subcommand used, if any.
           */
       public:
         help_exception(const std::string& program_name,
                        const std::string& binary_name,
                        const Args& opt_args,
                        const Args& pos_args,
-                       const std::string& version
+                       const std::string& version,
+                       const std::string& subcommand = ""
                        );
 
         /** Gets the help message.
@@ -114,8 +179,8 @@ class parser
 
       public:
         /** Constructs an invalid option value exception.
-         * \param[in] Short option.
-         * \param[in] Long option.
+         * \param[in] shrt Short option.
+         * \param[in] lng Long option.
          * \param[in] invalid_option_value the parsed invalid option value.
          */
         invalid_option_value_exception(const char shrt,
@@ -142,6 +207,18 @@ class parser
         /** Gets the error message of this exception.
          * \returns Error message.
          */
+        virtual const char * what() const throw();
+    };
+
+    /** Exception indicating an invalid subcommand
+     * Thrown when the user passes a subcommand which had not been defined.
+     */
+    class invalid_subcommand_exception : public std::exception
+    {
+      std::string error_message; /**< Message to display when exception is thrown. */
+
+      public:
+        invalid_subcommand_exception(const std::string& subcommand);
         virtual const char * what() const throw();
     };
 
@@ -175,12 +252,10 @@ class parser
 
       public:
         /** Constructs a missing positional argument exception
-         * \param[in] index index of the positional argument.
          * \param[in] meta_string Meta string of the positional argument.
          */
-        missing_positional_argument_exception(const size_t index,
-                                              const std::string& meta_string
-                                              );
+        missing_positional_argument_exception(const std::string& meta_string);
+
         /** Gets the error message of this exception.
          * \returns Error message.
          */
@@ -193,19 +268,32 @@ class parser
     using FlagMap = std::multimap<std::string, std::string>;
 
   public:
-    /** Constructor uses the argc and argv variables passed to the 'main' function of the program.
+    /** \brief Construction of a paw parser instance.
+     * \details This constructor uses the argc and argv variables that are passed to the 'main'
+     *          function of the program.
      * \param[in] argc length of the argv array.
      * \param[in] argv arguments passed, including the name of the executable.
      * \returns paw parser object.
      * \exception None.
      */
     parser(int argc, char ** argv);
-    /** Constructor that parses a vector of strings.
+
+    /** \brief Construction of a paw parser instance.
+     * \details This constructor parses a vector of strings that should include the programs name.
      * \param[in] args Dynamic vector with all arguments.
      * \returns paw parser object.
      * \exception None.
      */
     parser(const std::vector<std::string>& args);
+
+    /** \brief Adds an subcommand to the parse.
+     * \details Add subcommand and use the paw::parser::parse_subcommand() to parse them.
+     * \param[in] subcommand_name Name of the subcommand.
+     * \param[in] description Description of the subcommand.
+     * \exception None.
+     */
+    inline void
+    add_subcommand(const std::string& subcommand_name, const std::string& description);
 
     /** Checks if the user passed invalid options.
      * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
@@ -293,7 +381,15 @@ class parser
                                          const std::string& description
                                          );
 
-    /** Sets the name of the program
+    /** Parses the subcommand for the program.
+     * \param[in,out] subcommand Subcommand to parse.
+     * \exception paw::parser::invalid_subcommand_exception when the users does not pass a valid
+     *            subcommand.
+     */
+    inline void
+    parse_subcommand(std::string& subcommand);
+
+    /** Changes the name of the program.
      * \param[in] name Name to set.
      * \exception None.
      */
@@ -349,6 +445,11 @@ class parser
     /** Copy of the arguments parsed.*/
     std::vector<std::string> raw_args;
 
+    /** Vector of all subcommands of the program. The subcommands are added using the
+     * paw::parser::add_subcommands() method.
+     */
+    std::vector<std::pair<std::string, std::string> > subcommands;
+
     /** \brief Finds flag in parsed argument options.
      * \details Returns iterator pointing to the end if not found.
      * \returns Iterator to the flag
@@ -365,71 +466,21 @@ parser::help_exception::help_exception(const std::string& program_name,
                                        const std::string& binary_name,
                                        const Args& opt_args,
                                        const Args& pos_args,
-                                       const std::string& version
+                                       const std::string& version,
+                                       const std::string& subcommand
                                        )
 {
+  using paw::internal::print_string;
+
   std::ostringstream ss;
   size_t constexpr INDENT = 3;
   size_t constexpr MAX_WIDTH = 80;
 
-  auto print_string =
-    [&](const std::string& str, const size_t base_indent)
-    {
-      // Write indentation
-      ss << "\n" << std::string(base_indent, ' ');
-      size_t LINE_SIZE = base_indent;
-      auto str_it = str.begin();
-
-      while (str_it != str.end())
-      {
-        auto whitespace_it = std::find(str_it, str.end(), ' ');
-        auto newline_it = std::find(str_it, str.end(), '\n');
-
-        // If newline comes first, print until the newline
-        if (std::distance(str_it, newline_it) <
-            std::distance(str_it, whitespace_it)
-            )
-        {
-          whitespace_it = newline_it;
-        }
-
-        if (std::distance(str_it, whitespace_it) + LINE_SIZE < MAX_WIDTH)
-        {
-          ss << std::string(str_it, whitespace_it);
-          LINE_SIZE += std::distance(str_it, whitespace_it);
-        }
-        else
-        {
-          ss << "\n" << std::string(base_indent, ' ')
-             << std::string(str_it, whitespace_it);
-          LINE_SIZE = base_indent + std::distance(str_it, whitespace_it);
-        }
-
-        str_it = whitespace_it;
-
-        if (str_it != str.end())
-        {
-          if (*str_it == '\n')
-          {
-            ss << '\n' << std::string(base_indent, ' ');
-            LINE_SIZE = base_indent;
-          }
-          else
-          {
-            ss << ' ';
-            ++LINE_SIZE;
-          }
-
-          ++str_it;
-        }
-      }
-    };
-
   // Name section
   if (program_name.size() > 0)
   {
-    ss << "NAME";
-    print_string(program_name, INDENT);
+    ss << "\nNAME";
+    print_string(ss, program_name, INDENT, MAX_WIDTH);
     ss << "\n\n";
   }
 
@@ -438,12 +489,17 @@ parser::help_exception::help_exception(const std::string& program_name,
 
   {
     std::ostringstream usage_ss;
-    usage_ss << binary_name << " [OPTIONS]";
+    usage_ss << binary_name;
+
+    if (subcommand.size() > 0)
+      usage_ss << " " << subcommand;
+
+    usage_ss << " [OPTIONS]";
 
     for (const auto& pos_arg : pos_args)
       usage_ss << " <" << pos_arg.meta_string << ">";
 
-    print_string(usage_ss.str(), INDENT);
+    print_string(ss, usage_ss.str(), INDENT, MAX_WIDTH);
   }
 
   ss << "\n";
@@ -454,7 +510,7 @@ parser::help_exception::help_exception(const std::string& program_name,
       continue;
 
     ss << "\n" << std::string(INDENT, ' ') << "<" << pos_arg.meta_string << ">";
-    print_string(pos_arg.description, INDENT * 2);
+    print_string(ss, pos_arg.description, INDENT * 2, MAX_WIDTH);
     ss << "\n";
   }
 
@@ -472,8 +528,8 @@ parser::help_exception::help_exception(const std::string& program_name,
     if (arg.shrt != paw::parser::NO_SHORT_OPTION)
       opt_ss << " or -" << arg.shrt << arg.meta_string;
 
-    print_string(opt_ss.str(), INDENT);
-    print_string(arg.description, INDENT * 2);
+    print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
+    print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
     ss << "\n";
   }
 
@@ -494,7 +550,7 @@ parser::help_exception::what() const throw()
 parser::invalid_option_exception::invalid_option_exception(std::string const& invalid_option)
 {
   std::ostringstream ss;
-  ss << "[paw::parser::InvalidOption] No option '" << invalid_option << "' is invalid.";
+  ss << "[paw::parser::InvalidOption] Option '" << invalid_option << "' is invalid.";
   error_message = ss.str();
 }
 
@@ -515,13 +571,21 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
 
   if (shrt != paw::parser::NO_SHORT_OPTION)
   {
-    ss << "[paw::parser::InvalidOptionValue] Value '" << invalid_option_value
-       << "' for option '" << lng << "=value' (or '-" << shrt << "value') is invalid.";
+    ss << "[paw::parser::InvalidOptionValue] Value '"
+       << invalid_option_value
+       << "' for option '"
+       << lng
+       << "=value' (or '-"
+       << shrt
+       << "value') is invalid.";
   }
   else
   {
-    ss << "[paw::parser::InvalidOptionValue] Value '" << invalid_option_value
-       << "' for option '" << lng << "=value' is invalid.";
+    ss << "[paw::parser::InvalidOptionValue] Value '"
+       << invalid_option_value
+       << "' for option '"
+       << lng
+       << "=value' is invalid.";
   }
 
   error_message = ss.str();
@@ -539,13 +603,31 @@ parser::invalid_positional_exception::invalid_positional_exception(
   )
 {
   std::ostringstream ss;
-  ss << "[paw::parser::InvalidPositional] No positional option '" << invalid_positional
+  ss << "[paw::parser::InvalidPositional] Positional option '"
+     << invalid_positional
      << "' is of invalid type.";
   error_message = ss.str();
 }
 
 const char *
 parser::invalid_positional_exception::what() const throw()
+{
+  return error_message.c_str();
+}
+
+/* Invalid subcommand exception */
+parser::invalid_subcommand_exception::invalid_subcommand_exception(const std::string& subcommand)
+{
+  std::ostringstream ss;
+  ss << "[paw::parser::InvalidSubcommand] Subcommand '"
+     << subcommand
+     << "' is invalid.";
+
+  error_message = ss.str();
+}
+
+const char *
+parser::invalid_subcommand_exception::what() const throw()
 {
   return error_message.c_str();
 }
@@ -560,13 +642,16 @@ parser::missing_value_exception::missing_value_exception(const char shrt,
   if (shrt != NO_SHORT_OPTION)
   {
     ss << "[paw::parser::MissingValue] Option '--"
-       << lng << "=value' (or '-"
-       << shrt << "value') requires a value, but was not passed any.";
+       << lng
+       << "=value' (or '-"
+       << shrt
+       << "value') requires a value, but was not passed any.";
   }
   else
   {
     ss << "[paw::parser::MissingValue] Flag '--"
-       << lng << "=value' was not passed any value.";
+       << lng
+       << "=value' was not passed any value.";
   }
 
   error_message = ss.str();
@@ -579,14 +664,14 @@ parser::missing_value_exception::what() const throw()
 }
 
 /* Missing positional argument exception */
-parser::missing_positional_argument_exception::missing_positional_argument_exception
-  (const size_t index,
-  const std::string& meta_string
-  )
+parser::missing_positional_argument_exception::missing_positional_argument_exception(
+  const std::string& meta_string)
 {
   std::ostringstream ss;
   ss << "[paw::parser::MissingPositionalArgument] Positional argument '"
-     << meta_string << "' at index " << index << " was expected but is missing.";
+     << meta_string
+     << "' is missing.";
+
   error_message = ss.str();
 }
 
@@ -605,6 +690,10 @@ parser::parser(int argc, char ** argv) :
 parser::parser(const std::vector<std::string>& arguments)
 {
   raw_args = std::vector<std::string>(arguments);
+
+  // raw_args is assumed to be never empty
+  if (raw_args.size() == 0)
+    raw_args.push_back("<program>");
 
   for (auto arg_it = arguments.cbegin() + 1; arg_it != arguments.cend(); ++arg_it)
   {
@@ -639,6 +728,12 @@ parser::parser(const std::vector<std::string>& arguments)
   }
 
   next_positional = positional.begin();
+}
+
+inline void
+parser::add_subcommand(const std::string& subcommand_name, const std::string& description)
+{
+  subcommands.push_back({subcommand_name, description});
 }
 
 inline void
@@ -838,6 +933,36 @@ parser::parse_remaining_positional_arguments(T& list,
 }
 
 inline void
+parser::parse_subcommand(std::string& subcommand)
+{
+  parse_positional_argument(subcommand, "subcommand", "Subcommand to execute.");
+  bool help_flag = false;
+  parse_option(help_flag, 'h', "help", "Show this help.");
+
+  if (subcommand.size() == 0 or help_flag)
+  {
+    throw paw::parser::help_exception(this->program_name,
+                                      this->raw_args[0],
+                                      this->opt_args,
+                                      this->pos_args,
+                                      this->version,
+                                      subcommand
+                                      );
+  }
+
+  auto find_subcommand_it =
+    std::find_if(subcommands.cbegin(),
+                 subcommands.cend(),
+                 [&subcommand](const std::pair<std::string, std::string>& cmd)
+    {
+      return cmd.first == subcommand;
+    });
+
+  if (find_subcommand_it == subcommands.cend())
+    throw paw::parser::invalid_subcommand_exception(subcommand);
+}
+
+inline void
 parser::set_name(const std::string& name)
 {
   program_name = name;
@@ -877,7 +1002,7 @@ parser::finalize()
   const std::size_t N = std::distance(positional.begin(), next_positional);
 
   if (missing_positional_argument)
-    throw paw::parser::missing_positional_argument_exception(N, pos_args[N].meta_string);
+    throw paw::parser::missing_positional_argument_exception(pos_args[N].meta_string);
 
   this->check_for_invalid_options();
 }

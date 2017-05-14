@@ -23,13 +23,13 @@ int
 main(int argc, char ** argv)
 {
   Options options;
-  paw::parser parser(argc, argv);
-  parser.set_name("Example 2 - A simple program that uses Paw parser.");
-  parser.set_version("3.14.15");
 
   // Parse arguments
   try
   {
+    paw::parser parser(argc, argv);
+    parser.set_name("Example 2 - A simple program that uses Paw parser.");
+    parser.set_version("3.14.15");
     parser.parse_option(options.my_bool,
                         'b',
                         "bool",
