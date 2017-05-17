@@ -113,6 +113,7 @@ class parser
 
     /** Type definition of the container used to store the arguments.*/
     using Args = std::vector<Arg>;
+    using Subcommands = std::vector<std::pair<std::string, std::string> >;
 
     /* READ ONLY VARIABLES */
     /** Specifies how to represent arguments that have no short option.*/
@@ -133,6 +134,7 @@ class parser
           * \param[in] opt_args Options to display in help page.
           * \param[in] pos_args Positional arguments to display in help page.
           * \param[in] version Version of the program.
+          * \param[in] subcommands Available subcommands.
           * \param[in] subcommand Subcommand used, if any.
           */
       public:
@@ -141,6 +143,7 @@ class parser
                        const Args& opt_args,
                        const Args& pos_args,
                        const std::string& version,
+                       const Subcommands& subcommands,
                        const std::string& subcommand = ""
                        );
 
@@ -450,6 +453,9 @@ class parser
      */
     std::vector<std::pair<std::string, std::string> > subcommands;
 
+    /** Copy of the subcommand used */
+    std::string subcommand;
+
     /** \brief Finds flag in parsed argument options.
      * \details Returns iterator pointing to the end if not found.
      * \returns Iterator to the flag
@@ -467,6 +473,7 @@ parser::help_exception::help_exception(const std::string& program_name,
                                        const Args& opt_args,
                                        const Args& pos_args,
                                        const std::string& version,
+                                       const Subcommands& subcommands,
                                        const std::string& subcommand
                                        )
 {
@@ -491,46 +498,89 @@ parser::help_exception::help_exception(const std::string& program_name,
     std::ostringstream usage_ss;
     usage_ss << binary_name;
 
-    if (subcommand.size() > 0)
-      usage_ss << " " << subcommand;
+    if (subcommands.size() > 0)
+    {
+      if (subcommand.size() > 0)
+        usage_ss << " " << subcommand;
+      else
+        usage_ss << " " << "<subcommand>";
+    }
 
     usage_ss << " [OPTIONS]";
 
-    for (const auto& pos_arg : pos_args)
-      usage_ss << " <" << pos_arg.meta_string << ">";
+    if (pos_args.size() > 0)
+    {
+      auto pos_arg_it = pos_args.cbegin();
+
+      if (subcommands.size() > 0)
+        ++pos_arg_it;
+
+      while (pos_arg_it != pos_args.cend())
+      {
+        usage_ss << " <" << pos_arg_it->meta_string << ">";
+        ++pos_arg_it;
+      }
+    }
 
     print_string(ss, usage_ss.str(), INDENT, MAX_WIDTH);
   }
 
   ss << "\n";
 
-  for (const auto& pos_arg : pos_args)
+  // Positional arguments
+  if (pos_args.size() > 0)
   {
-    if (pos_arg.description.size() == 0)
-      continue;
+    auto pos_arg_it = pos_args.cbegin();
 
-    ss << "\n" << std::string(INDENT, ' ') << "<" << pos_arg.meta_string << ">";
-    print_string(ss, pos_arg.description, INDENT * 2, MAX_WIDTH);
-    ss << "\n";
+    // If a subcommand was used, skip the first positional argument
+    if (subcommand.size() > 0)
+      ++pos_arg_it;
+
+    while (pos_arg_it != pos_args.end())
+    {
+      if (pos_arg_it->description.size() == 0)
+        continue;
+
+      ss << "\n" << std::string(INDENT, ' ') << "<" << pos_arg_it->meta_string << ">";
+      print_string(ss, pos_arg_it->description, INDENT * 2, MAX_WIDTH);
+      ss << "\n";
+      ++pos_arg_it;
+    }
+  }
+
+  // Subcommands section
+  if (subcommand.size() == 0)
+  {
+    ss << "\nSUBCOMMANDS";
+
+    for (const auto& subcmd : subcommands)
+    {
+      print_string(ss, subcmd.first, INDENT, MAX_WIDTH);
+      print_string(ss, subcmd.second, INDENT * 2, MAX_WIDTH);
+      ss << "\n";
+    }
   }
 
   // Options section
-  ss << "\nOPTIONS";
-
-  for (const auto& arg : opt_args)
+  if (opt_args.size() > 0)
   {
-    std::ostringstream opt_ss;
-    opt_ss << "--" << arg.lng;
+    ss << "\nOPTIONS";
 
-    if (arg.meta_string.size() > 0)
-      opt_ss << "=" << arg.meta_string;
+    for (const auto& arg : opt_args)
+    {
+      std::ostringstream opt_ss;
+      opt_ss << "--" << arg.lng;
 
-    if (arg.shrt != paw::parser::NO_SHORT_OPTION)
-      opt_ss << " or -" << arg.shrt << arg.meta_string;
+      if (arg.meta_string.size() > 0)
+        opt_ss << "=" << arg.meta_string;
 
-    print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
-    print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
-    ss << "\n";
+      if (arg.shrt != paw::parser::NO_SHORT_OPTION)
+        opt_ss << " or -" << arg.shrt << arg.meta_string;
+
+      print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
+      print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
+      ss << "\n";
+    }
   }
 
   // Version number
@@ -935,17 +985,21 @@ parser::parse_remaining_positional_arguments(T& list,
 inline void
 parser::parse_subcommand(std::string& subcommand)
 {
-  parse_positional_argument(subcommand, "subcommand", "Subcommand to execute.");
-  bool help_flag = false;
-  parse_option(help_flag, 'h', "help", "Show this help.");
+  parse_positional_argument(subcommand,
+                            "subcommand",
+                            "Subcommand to execute. See available subcommands below."
+                            );
 
-  if (subcommand.size() == 0 or help_flag)
+  if (subcommand.size() == 0)
   {
+    bool help_flag = false;
+    this->parse_option(help_flag, 'h', "help", "Show this help.");
     throw paw::parser::help_exception(this->program_name,
                                       this->raw_args[0],
                                       this->opt_args,
                                       this->pos_args,
                                       this->version,
+                                      this->subcommands, /*has subcommands*/
                                       subcommand
                                       );
   }
@@ -960,6 +1014,8 @@ parser::parse_subcommand(std::string& subcommand)
 
   if (find_subcommand_it == subcommands.cend())
     throw paw::parser::invalid_subcommand_exception(subcommand);
+
+  this->subcommand = subcommand;
 }
 
 inline void
@@ -988,6 +1044,7 @@ parser::finalize()
   // Parse help argument
   bool help_flag = false;
   this->parse_option(help_flag, 'h', "help", "Show this help.");
+  std::cerr << "Help? " << help_flag << std::endl;
 
   if (help_flag)
   {
@@ -995,7 +1052,9 @@ parser::finalize()
                                       this->raw_args[0],
                                       this->opt_args,
                                       this->pos_args,
-                                      this->version
+                                      this->version,
+                                      this->subcommands,
+                                      this->subcommand
                                       );
   }
 
