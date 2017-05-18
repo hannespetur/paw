@@ -84,6 +84,7 @@ print_string(std::ostringstream& ss,
   }
 }
 
+
 } // internal
 
 /** Main Data Structure for paw parser.*/
@@ -306,10 +307,12 @@ class parser
 
     /** \brief Finalizes the parser.
      * \details Parses help flag and checks for invalid options.
+     * \param[in] allow_no_arguments Set if the parser should not throw help when no arguments
+     *                               are passed.
      * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
      */
     inline void
-    finalize();
+    finalize(const bool allow_no_arguments = false);
 
     /** Get a reference to the multimap containing all the flags the user passed.
      * \returns Multimap with flags.
@@ -416,6 +419,10 @@ class parser
     inline void
     set_version(const std::string& version);
 
+    /** Throw exceptions with help message */
+    inline void
+    throw_help() const;
+
 
   private:
     /** Type definition for the container to use for positional arguments.*/
@@ -438,6 +445,9 @@ class parser
 
     /** Indicator whether there was a missing positional argument. */
     bool missing_positional_argument = false;
+
+    /** Indicator whether the program has subcommands. */
+    bool has_subcommands = false;
 
     /** Vector of all values of positional arguments, in the same order as they were inserted.*/
     Positional positional;
@@ -590,11 +600,13 @@ parser::help_exception::help_exception(const std::string& program_name,
   help_message = ss.str();
 }
 
+
 const char *
 parser::help_exception::what() const throw()
 {
   return help_message.c_str();
 }
+
 
 /* Invalid option exception */
 parser::invalid_option_exception::invalid_option_exception(std::string const& invalid_option)
@@ -604,11 +616,13 @@ parser::invalid_option_exception::invalid_option_exception(std::string const& in
   error_message = ss.str();
 }
 
+
 const char *
 parser::invalid_option_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* Invalid option value exception */
 parser::invalid_option_value_exception::invalid_option_value_exception(
@@ -641,11 +655,13 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
   error_message = ss.str();
 }
 
+
 const char *
 parser::invalid_option_value_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* Invalid positional exception */
 parser::invalid_positional_exception::invalid_positional_exception(
@@ -659,11 +675,13 @@ parser::invalid_positional_exception::invalid_positional_exception(
   error_message = ss.str();
 }
 
+
 const char *
 parser::invalid_positional_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* Invalid subcommand exception */
 parser::invalid_subcommand_exception::invalid_subcommand_exception(const std::string& subcommand)
@@ -676,11 +694,13 @@ parser::invalid_subcommand_exception::invalid_subcommand_exception(const std::st
   error_message = ss.str();
 }
 
+
 const char *
 parser::invalid_subcommand_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* Missing value exception */
 parser::missing_value_exception::missing_value_exception(const char shrt,
@@ -707,11 +727,13 @@ parser::missing_value_exception::missing_value_exception(const char shrt,
   error_message = ss.str();
 }
 
+
 const char *
 parser::missing_value_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* Missing positional argument exception */
 parser::missing_positional_argument_exception::missing_positional_argument_exception(
@@ -725,11 +747,13 @@ parser::missing_positional_argument_exception::missing_positional_argument_excep
   error_message = ss.str();
 }
 
+
 const char *
 parser::missing_positional_argument_exception::what() const throw()
 {
   return error_message.c_str();
 }
+
 
 /* PUBLIC METHODS */
 parser::parser(int argc, char ** argv) :
@@ -780,11 +804,13 @@ parser::parser(const std::vector<std::string>& arguments)
   next_positional = positional.begin();
 }
 
+
 inline void
 parser::add_subcommand(const std::string& subcommand_name, const std::string& description)
 {
   subcommands.push_back({subcommand_name, description});
 }
+
 
 inline void
 parser::check_for_invalid_options()
@@ -808,11 +834,13 @@ parser::check_for_invalid_options()
   }
 }
 
+
 inline const parser::FlagMap &
 parser::get_flag_map_reference()
 {
   return flag_map;
 }
+
 
 template <typename T>
 inline void
@@ -847,6 +875,7 @@ parser::parse_option(T& val,
   }
 }
 
+
 /** Explicit specialization of paw::parser::parse_option() with T as type bool.
  * Here we only check if the argument was passed or not and except no value.
  */
@@ -865,6 +894,7 @@ parser::parse_option(bool& val,
   if (flag_it != flag_map.end())
     val ^= true; // Flips value
 }
+
 
 template <typename T>
 inline void
@@ -925,6 +955,7 @@ parser::parse_option_list(T& list,
   parse_option_range_to_list_lambda(flag_map.equal_range(std::string(1, shrt)));
 }
 
+
 template <typename T>
 inline void
 parser::parse_positional_argument(T& val,
@@ -957,6 +988,7 @@ parser::parse_positional_argument(T& val,
   ++next_positional;
 }
 
+
 template <typename T>
 inline void
 parser::parse_remaining_positional_arguments(T& list,
@@ -978,51 +1010,44 @@ parser::parse_remaining_positional_arguments(T& list,
     ss << *next_positional;
     ss >> val;
     list.insert(list.end(), val);
+
+    if ((ss.rdstate() & std::ios::failbit) != 0)
+    {
+      const std::size_t N = std::distance(positional.begin(), next_positional);
+      // TODO Change this exception
+      throw paw::parser::invalid_option_value_exception(paw::parser::NO_SHORT_OPTION,
+                                                        std::to_string(N),
+                                                        ss.str()
+                                                        );
+    }
+
     ++next_positional;
   }
 }
+
 
 inline void
 parser::parse_subcommand(std::string& subcommand)
 {
   parse_positional_argument(subcommand,
                             "subcommand",
-                            "Subcommand to execute. See available subcommands below."
+                            "Subcommand to execute. "
+                            "List of available subcommands are shown in the following section."
                             );
 
-  if (subcommand.size() == 0)
-  {
-    bool help_flag = false;
-    this->parse_option(help_flag, 'h', "help", "Show this help.");
-    throw paw::parser::help_exception(this->program_name,
-                                      this->raw_args[0],
-                                      this->opt_args,
-                                      this->pos_args,
-                                      this->version,
-                                      this->subcommands, /*has subcommands*/
-                                      subcommand
-                                      );
-  }
-
-  auto find_subcommand_it =
-    std::find_if(subcommands.cbegin(),
-                 subcommands.cend(),
-                 [&subcommand](const std::pair<std::string, std::string>& cmd)
-    {
-      return cmd.first == subcommand;
-    });
-
-  if (find_subcommand_it == subcommands.cend())
+  if (subcommands.size() == 0)
     throw paw::parser::invalid_subcommand_exception(subcommand);
 
   this->subcommand = subcommand;
 }
+
 
 inline void
 parser::set_name(const std::string& name)
 {
   program_name = name;
 }
+
 
 inline void
 parser::set_version(const unsigned major, const unsigned minor)
@@ -1032,30 +1057,37 @@ parser::set_version(const unsigned major, const unsigned minor)
   version = ss.str();
 }
 
+
 inline void
 parser::set_version(const std::string& version)
 {
   this->version = version;
 }
 
+
 inline void
-parser::finalize()
+parser::finalize(const bool allow_no_arguments)
 {
   // Parse help argument
   bool help_flag = false;
   this->parse_option(help_flag, 'h', "help", "Show this help.");
-  std::cerr << "Help? " << help_flag << std::endl;
 
-  if (help_flag)
+  if (help_flag || (!allow_no_arguments && raw_args.size() <= 1))
+    throw_help();
+
+  // Check if there are missing subcommands
+  if (subcommands.size() > 0 && subcommand.size() > 0)
   {
-    throw paw::parser::help_exception(this->program_name,
-                                      this->raw_args[0],
-                                      this->opt_args,
-                                      this->pos_args,
-                                      this->version,
-                                      this->subcommands,
-                                      this->subcommand
-                                      );
+    auto find_subcommand_it =
+      std::find_if(subcommands.cbegin(),
+                   subcommands.cend(),
+                   [this](const std::pair<std::string, std::string>& cmd)
+      {
+        return cmd.first == this->subcommand;
+      });
+
+    if (find_subcommand_it == subcommands.cend())
+      throw paw::parser::invalid_subcommand_exception(subcommand);
   }
 
   const std::size_t N = std::distance(positional.begin(), next_positional);
@@ -1065,6 +1097,21 @@ parser::finalize()
 
   this->check_for_invalid_options();
 }
+
+
+inline void
+parser::throw_help() const
+{
+  throw paw::parser::help_exception(this->program_name,
+                                    this->raw_args[0],
+                                    this->opt_args,
+                                    this->pos_args,
+                                    this->version,
+                                    this->subcommands,
+                                    this->subcommand
+                                    );
+}
+
 
 /* PRIVATE METHODS */
 inline parser::FlagMap::iterator
@@ -1079,5 +1126,6 @@ parser::find_flag(const char shrt, const std::string& lng)
   // Then check short option
   return flag_map.find(std::string(1, shrt));
 }
+
 
 } // namespace paw
