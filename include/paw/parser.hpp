@@ -669,7 +669,7 @@ parser::invalid_positional_exception::invalid_positional_exception(
   )
 {
   std::ostringstream ss;
-  ss << "[paw::parser::InvalidPositional] Positional option '"
+  ss << "[paw::parser::InvalidPositional] Positional argument '"
      << invalid_positional
      << "' is of invalid type.";
   error_message = ss.str();
@@ -964,7 +964,6 @@ parser::parse_positional_argument(T& val,
                                   )
 {
   pos_args.push_back({paw::parser::NO_SHORT_OPTION, "", description, meta_string, ""});
-  const std::size_t N = std::distance(positional.begin(), next_positional);
 
   if (next_positional == positional.end())
   {
@@ -978,12 +977,7 @@ parser::parse_positional_argument(T& val,
 
   // Check if there were any logical errors
   if ((ss.rdstate() & std::ios::failbit) != 0)
-  {
-    throw paw::parser::invalid_option_value_exception(paw::parser::NO_SHORT_OPTION,
-                                                      std::to_string(N),
-                                                      ss.str()
-                                                      );
-  }
+    throw paw::parser::invalid_positional_exception(ss.str());
 
   ++next_positional;
 }
@@ -1011,15 +1005,9 @@ parser::parse_remaining_positional_arguments(T& list,
     ss >> val;
     list.insert(list.end(), val);
 
+    // Check if there were any logical errors
     if ((ss.rdstate() & std::ios::failbit) != 0)
-    {
-      const std::size_t N = std::distance(positional.begin(), next_positional);
-      // TODO Change this exception
-      throw paw::parser::invalid_option_value_exception(paw::parser::NO_SHORT_OPTION,
-                                                        std::to_string(N),
-                                                        ss.str()
-                                                        );
-    }
+      throw paw::parser::invalid_positional_exception(ss.str());
 
     ++next_positional;
   }
