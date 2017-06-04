@@ -13,11 +13,10 @@ include:
           - ubuntu-toolchain-r-test
         packages:
           - g++-4.9
-    env:
-       - CC=gcc-4.9
-       - CXX=g++-4.9
 
 script:
+  - export CC=gcc-4.9
+  - export CXX=g++-4.9
   - mkdir build
   - cd build
   - cmake .. && make && make test
