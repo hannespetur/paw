@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 2.8)
 
 project (paw)
 
-set (CMAKE_CXX_STANDARD 11)
-
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose: Debug or Release." FORCE)
@@ -15,10 +13,10 @@ message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
   message(STATUS "Building in debug mode")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG -pg -W -Wall -Wextra -Wfatal-errors -pedantic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DDEBUG -pg -W -Wall -Wextra -Wfatal-errors -pedantic")
 else ()
   message(STATUS "Building in release mode")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -flto")
 endif ()
 
 include_directories(include)
