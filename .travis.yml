@@ -1,0 +1,22 @@
+# Enable C++ support
+language: cpp
+
+# Compiler selection
+compiler:
+  - gcc
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+
+script:
+  - export CC=gcc-5
+  - export CXX=g++-5
+  - mkdir build && cd build
+  - cmake ..
+  - VERBOSE=1 make
+  - make test
