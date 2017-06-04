@@ -18,5 +18,5 @@ script:
   - export CXX=g++-5
   - mkdir build && cd build
   - cmake ..
-  - make
+  - VERBOSE=1 make
   - make test
