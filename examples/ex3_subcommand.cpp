@@ -48,30 +48,30 @@ main(int argc, char ** argv)
   {
     parser.set_name("Example 3 - Program with subcommands.");
     parser.set_version("1.0");
-    parser.parse_option(options.use_double, 'd', "double", "Parse numbers as doubles.");
     parser.add_subcommand("sum", "Subcommand that finds the sum of stuff.");
     parser.add_subcommand("sort", "Subcommand that sorts stuff.");
     parser.parse_subcommand(options.subcmd);
+    parser.parse_option(options.use_double, 'd', "double", "Parse numbers as doubles.");
 
     // Parse as ints if no '--double' option was passed
     if (options.use_double)
     {
       parser.parse_remaining_positional_arguments(options.my_doubles,
-                                                  "remaining args...",
+                                                  "args...",
                                                   "Other remaining stuff."
                                                   );
     }
     else
     {
       parser.parse_remaining_positional_arguments(options.my_ints,
-                                                  "remaining args...",
+                                                  "args...",
                                                   "Other remaining stuff."
                                                   );
     }
 
     parser.finalize();
   }
-  catch (const std::exception& e)
+  catch (const std::exception & e)
   {
     std::cerr << e.what() << "\n";
     return EXIT_FAILURE;

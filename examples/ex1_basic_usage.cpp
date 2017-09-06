@@ -21,12 +21,12 @@ main(int argc, char ** argv)
 
   try
   {
+    parser.parse_positional_argument(options.my_pos_arg, "positional", "Description of pos arg.");
     parser.parse_option(options.my_bool, 'b', "bool", "Description of the option.");
     parser.parse_option(options.my_uint, 'u', "uint", "Description of the option.", "N");
-    parser.parse_positional_argument(options.my_pos_arg, "positional", "Description of pos arg.");
     parser.finalize();
   }
-  catch (const std::exception& e)
+  catch (const std::exception & e)
   {
     std::cerr << e.what() << "\n";
     return EXIT_FAILURE;
