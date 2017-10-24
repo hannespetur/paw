@@ -565,7 +565,7 @@ parser::help_exception::help_exception(const std::string & program_name,
   }
 
   // Subcommands section
-  if (subcommand.size() == 0)
+  if (subcommand.size() > 0)
   {
     ss << "\nSUBCOMMANDS";
 
@@ -592,6 +592,9 @@ parser::help_exception::help_exception(const std::string & program_name,
 
       if (arg.shrt != paw::parser::NO_SHORT_OPTION)
         opt_ss << " or -" << arg.shrt << arg.meta_string;
+
+      if (arg.default_value.size() > 0)
+        opt_ss << " [" << arg.default_value << "]";
 
       print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
       print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
