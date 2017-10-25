@@ -805,23 +805,41 @@ parser::parser(const std::vector<std::string> & arguments)
         // No equal sign used, check if the next argument starts with '-'
         auto next_it = std::next(arg_it);
 
-        if (next_it != arguments.cend() && next_it->size() > 0 && (*next_it)[0] != '-')
+        if (next_it == arguments.cend() || next_it->size() == 0)
         {
-          flag_map.emplace(std::move(flag), std::string(*next_it));
-          arg_it = next_it;
+          flag_map.emplace(std::move(flag), std::string(""));
         }
         else
         {
-          flag_map.emplace(std::move(flag), std::string(""));
+          flag_map.emplace(std::move(flag), std::string(*next_it));
+          arg_it = next_it;
         }
       }
     }
     else
     {
+      std::string flag(std::string(arg_it->begin() + 1, arg_it->begin() + 2));
+
       // short option flag was used, e.g. '-d' or with value '-dtab'
-      flag_map.emplace(std::string(arg_it->begin() + 1, arg_it->begin() + 2),
-                       std::string(arg_it->begin() + 2, arg_it->end())
-                       );
+      if (arg_it->size() > 2)
+      {
+        flag_map.emplace(std::move(flag), std::string(arg_it->begin() + 2, arg_it->end()));
+      }
+      else
+      {
+        // No equal sign used, check if the next argument starts with '-'
+        auto next_it = std::next(arg_it);
+
+        if (next_it == arguments.cend() || next_it->size() == 0)
+        {
+          flag_map.emplace(std::move(flag), std::string(""));
+        }
+        else
+        {
+          flag_map.emplace(std::move(flag), std::string(*next_it));
+          arg_it = next_it;
+        }
+      }
     }
   }
 
