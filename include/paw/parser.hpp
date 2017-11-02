@@ -27,7 +27,7 @@ namespace paw
 namespace internal
 {
 
-void
+void inline
 print_string(std::ostringstream & ss,
              const std::string & str,
              const size_t base_indent,
@@ -485,6 +485,7 @@ private:
 
 
 /* EXCEPTIONS */
+inline
 parser::help_exception::help_exception(const std::string & program_name,
                                        const std::string & binary_name,
                                        const Args & opt_args,
@@ -610,6 +611,7 @@ parser::help_exception::help_exception(const std::string & program_name,
 }
 
 
+inline
 const char *
 parser::help_exception::what() const throw()
 {
@@ -618,6 +620,7 @@ parser::help_exception::what() const throw()
 
 
 /* Invalid option exception */
+inline
 parser::invalid_option_exception::invalid_option_exception(std::string const & invalid_option)
 {
   std::ostringstream ss;
@@ -626,6 +629,7 @@ parser::invalid_option_exception::invalid_option_exception(std::string const & i
 }
 
 
+inline
 const char *
 parser::invalid_option_exception::what() const throw()
 {
@@ -634,6 +638,7 @@ parser::invalid_option_exception::what() const throw()
 
 
 /* Invalid option value exception */
+inline
 parser::invalid_option_value_exception::invalid_option_value_exception(
   const char shrt,
   const std::string & lng,
@@ -665,6 +670,7 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
 }
 
 
+inline
 const char *
 parser::invalid_option_value_exception::what() const throw()
 {
@@ -673,6 +679,7 @@ parser::invalid_option_value_exception::what() const throw()
 
 
 /* Invalid positional exception */
+inline
 parser::invalid_positional_exception::invalid_positional_exception(
   std::string const & invalid_positional
   )
@@ -685,6 +692,7 @@ parser::invalid_positional_exception::invalid_positional_exception(
 }
 
 
+inline
 const char *
 parser::invalid_positional_exception::what() const throw()
 {
@@ -693,6 +701,7 @@ parser::invalid_positional_exception::what() const throw()
 
 
 /* Invalid subcommand exception */
+inline
 parser::invalid_subcommand_exception::invalid_subcommand_exception(const std::string & subcommand)
 {
   std::ostringstream ss;
@@ -704,6 +713,7 @@ parser::invalid_subcommand_exception::invalid_subcommand_exception(const std::st
 }
 
 
+inline
 const char *
 parser::invalid_subcommand_exception::what() const throw()
 {
@@ -712,6 +722,7 @@ parser::invalid_subcommand_exception::what() const throw()
 
 
 /* Missing value exception */
+inline
 parser::missing_value_exception::missing_value_exception(const char shrt,
                                                          const std::string & lng
                                                          )
@@ -737,6 +748,7 @@ parser::missing_value_exception::missing_value_exception(const char shrt,
 }
 
 
+inline
 const char *
 parser::missing_value_exception::what() const throw()
 {
@@ -745,6 +757,7 @@ parser::missing_value_exception::what() const throw()
 
 
 /* Missing positional argument exception */
+inline
 parser::missing_positional_argument_exception::missing_positional_argument_exception(
   const std::string & meta_string)
 {
@@ -757,6 +770,7 @@ parser::missing_positional_argument_exception::missing_positional_argument_excep
 }
 
 
+inline
 const char *
 parser::missing_positional_argument_exception::what() const throw()
 {
@@ -765,11 +779,13 @@ parser::missing_positional_argument_exception::what() const throw()
 
 
 /* PUBLIC METHODS */
+inline
 parser::parser(int argc, char ** argv) :
   parser(std::vector<std::string>(argv, argv + argc))
 {}
 
 
+inline
 parser::parser(const std::vector<std::string> & arguments)
 {
   raw_args = std::vector<std::string>(arguments);
@@ -847,14 +863,16 @@ parser::parser(const std::vector<std::string> & arguments)
 }
 
 
-inline void
+inline
+void
 parser::add_subcommand(const std::string & subcommand_name, const std::string & description)
 {
   subcommands.push_back({subcommand_name, description});
 }
 
 
-inline void
+inline
+void
 parser::check_for_invalid_options()
 {
   // Find all known options
@@ -877,7 +895,8 @@ parser::check_for_invalid_options()
 }
 
 
-inline const parser::FlagMap &
+inline
+const parser::FlagMap &
 parser::get_flag_map_reference()
 {
   return flag_map;
@@ -885,7 +904,8 @@ parser::get_flag_map_reference()
 
 
 template <typename T>
-inline void
+inline
+void
 parser::parse_option(T & val,
                      const char shrt,
                      const std::string & lng,
