@@ -93,7 +93,7 @@ class parser
 {
   public:
     /** \brief Data structure for command line arguments.
-     * \details Arguments in this data structure are ready for display in the 'help' page of the
+     *  \details Arguments in this data structure are ready for display in the 'help' page of the
      *          program.
      */
     struct Arg
@@ -125,8 +125,7 @@ class parser
 
     /* EXCEPTIONS */
     /** Exception indicating that the user passed the help argument.*/
-    class help_exception :
-      public std::exception
+    class help_exception : public std::exception
     {
       private:
         std::string help_message; /**< Message to display when exception is thrown.*/
@@ -159,8 +158,7 @@ class parser
     /** Exception indicating that the user passed an argument that isn't available.
      * E.g. user parser a "-t" option but no "-t" argument is defiend by the program.
      */
-    class invalid_option_exception :
-      public std::exception
+    class invalid_option_exception : public std::exception
     {
       private:
         std::string error_message; /**< Message to display when exception is thrown.*/
@@ -179,8 +177,7 @@ class parser
     /** Exception indicating that the user passed an argument with value of the incorrect type.
      * E.g. user parser a "-ta" option but t takes in an integer.
      */
-    class invalid_option_value_exception :
-      public std::exception
+    class invalid_option_value_exception : public std::exception
     {
       private:
         std::string error_message; /**< Message to display when exception is thrown. */
@@ -202,8 +199,7 @@ class parser
     };
 
     /** Exception indicating that the user passed a positional argument of the incorrect type.*/
-    class invalid_positional_exception :
-      public std::exception
+    class invalid_positional_exception : public std::exception
     {
       private:
         std::string error_message; /**< Message to display when exception is thrown. */
@@ -222,8 +218,7 @@ class parser
     /** Exception indicating an invalid subcommand
      * Thrown when the user passes a subcommand which had not been defined.
      */
-    class invalid_subcommand_exception :
-      public std::exception
+    class invalid_subcommand_exception : public std::exception
     {
       std::string error_message; /**< Message to display when exception is thrown. */
 
@@ -235,8 +230,7 @@ class parser
     /** Exception indicating a missing value.
      * Thrown when the user passes an argument without a value, but the argument requires it.
      */
-    class missing_value_exception :
-      public std::exception
+    class missing_value_exception : public std::exception
     {
       std::string error_message; /**< Message to display when exception is thrown. */
 
@@ -256,8 +250,7 @@ class parser
     /** Exception indicating that the parser was expecting a postional argument,
      * but was not passed any.
      */
-    class missing_positional_argument_exception :
-      public std::exception
+    class missing_positional_argument_exception : public std::exception
     {
       private:
         std::string error_message; /**< Message to display when exception is thrown. */
@@ -654,9 +647,9 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
        << invalid_option_value
        << "' for option '"
        << lng
-       << "=value' (or '-"
+       << "' (or '-"
        << shrt
-       << "value') is invalid.";
+       << "') is invalid.";
   }
   else
   {
@@ -664,7 +657,7 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
        << invalid_option_value
        << "' for option '"
        << lng
-       << "=value' is invalid.";
+       << "' is invalid.";
   }
 
   error_message = ss.str();
@@ -939,7 +932,7 @@ parser::parse_option(T & val,
     ss >> val;
 
     // Check if there were any logical errors
-    if ((ss.rdstate() & std::ios::failbit) != 0)
+    if ((ss.rdstate() & std::ios::failbit) != 0 || !ss.eof())
       throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
   }
 }

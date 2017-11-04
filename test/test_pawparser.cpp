@@ -6,7 +6,7 @@
 TEST_CASE("No options parsed")
 {
   paw::parser pawparser({"program"});
-  const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+  const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
   REQUIRE(flag_map.size() == 0);
 }
 
@@ -16,7 +16,7 @@ TEST_CASE("Parse argc argv with short options")
   SECTION("Short option used once")
   {
     paw::parser pawparser({"program", "-t"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
 
     REQUIRE(flag_map.count("t") == 1);
     REQUIRE(flag_map.size() == 1);
@@ -25,7 +25,7 @@ TEST_CASE("Parse argc argv with short options")
   SECTION("Short option used twice")
   {
     paw::parser pawparser({"program", "-t", "-t"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 2);
     REQUIRE(flag_map.size() == 2);
   }
@@ -33,7 +33,7 @@ TEST_CASE("Parse argc argv with short options")
   SECTION("Short option with value")
   {
     paw::parser pawparser({"program", "-t4"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 1);
     REQUIRE(flag_map.size() == 1);
     auto range_it = flag_map.equal_range("t");
@@ -46,7 +46,7 @@ TEST_CASE("Parse argc argv with short options")
   SECTION("Multiple short options with values")
   {
     paw::parser pawparser({"program", "-t4", "-t84", "-t42"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 3);
     REQUIRE(flag_map.size() == 3);
     auto range_it = flag_map.equal_range("t");
@@ -69,7 +69,7 @@ TEST_CASE("Parse argc argv with long options")
   SECTION("Long option used once")
   {
     paw::parser pawparser({"program", "--test"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 1);
     REQUIRE(flag_map.size() == 1);
   }
@@ -77,7 +77,7 @@ TEST_CASE("Parse argc argv with long options")
   SECTION("Long option used multiple times with value")
   {
     paw::parser pawparser({"program", "--test=1", "--test=3", "--test=2"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 3);
     REQUIRE(flag_map.size() == 3);
     auto range_it = flag_map.equal_range("test");
@@ -100,7 +100,7 @@ TEST_CASE("Parse argc argv with short and long options")
   SECTION("Mixture of multiple short and long options")
   {
     paw::parser pawparser({"program", "-t42", "--test=3", "-t1", "--test=2", "--test=4"});
-    const paw::parser::FlagMap& flag_map = pawparser.get_flag_map_reference();
+    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 3);
     REQUIRE(flag_map.count("t") == 2);
     REQUIRE(flag_map.size() == 5);
@@ -164,6 +164,23 @@ TEST_CASE("Parse options")
     REQUIRE(options.my_string == "StRiNg");
   }
 
+  SECTION("Pass invalid numbers")
+  {
+    paw::parser pawparser(
+      {"program", "--double=0.5a", "--int=-1b"}
+      );
+
+    REQUIRE_THROWS_AS(
+      pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
+      paw::parser::invalid_option_value_exception
+      );
+
+    REQUIRE_THROWS_AS(
+      pawparser.parse_option(options.my_int, 'i', "int", "Test int value."),
+      paw::parser::invalid_option_value_exception
+      );
+  }
+
   SECTION("Option with missing value")
   {
     paw::parser pawparser({"program", "-d", "-b"});
@@ -172,7 +189,7 @@ TEST_CASE("Parse options")
       paw::parser::missing_value_exception
       );
 
-    REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bol value."));
+    REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bool value."));
     REQUIRE(options.my_bool);
   }
 
