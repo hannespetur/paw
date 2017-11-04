@@ -1,5 +1,6 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
+
+#define PAW_INTERFACE_ONLY
 #include <paw/parser.hpp>
 
 
@@ -8,6 +9,7 @@ TEST_CASE("No options parsed")
   paw::parser pawparser({"program"});
   const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
   REQUIRE(flag_map.size() == 0);
+  pawparser.set_name("program2");
 }
 
 
