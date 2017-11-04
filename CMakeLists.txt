@@ -2,26 +2,33 @@ cmake_minimum_required (VERSION 2.8)
 
 project (paw)
 
-
-if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose: Debug or Release." FORCE)
+## Set to release by default
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "RELEASE" CACHE FORCE)
 endif()
 
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
-#set (CMAKE_BUILD_TYPE CACHE RELEASE STRING "Build type")
+## Setup compile flags
+set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_FLAGS_COMMON "-g -Wall -Wextra -Wfatal-errors")
 
-if (CMAKE_BUILD_TYPE STREQUAL Debug)
-  message(STATUS "Building in debug mode")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DDEBUG -pg -W -Wall -Wextra -Wfatal-errors -pedantic")
-else ()
-  message(STATUS "Building in release mode")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -flto")
-endif ()
+if(NOT PORTABLE)
+  set (CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -march=native")
+endif()
 
-include_directories(include)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON} -O3 -DNDEBUG")
 
-# Examples
+## Build libraries in /lib and binaries in /bin
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+## Include paw
+include_directories("${PROJECT_SOURCE_DIR}/include")
+
+## Examples
 add_subdirectory(examples)
 
 # Documentation
@@ -48,6 +55,6 @@ if(BUILD_DOCUMENTATION)
   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
 
-# Testing
+## Testing
 enable_testing()
 add_subdirectory(test)
