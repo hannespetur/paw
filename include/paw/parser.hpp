@@ -932,7 +932,7 @@ parser::parse_option(T & val,
     ss >> val;
 
     // Check if there were any logical errors
-    if ((ss.rdstate() & std::ios::failbit) != 0 || !ss.eof())
+    if (ss.fail() || !ss.eof())
       throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
   }
 }
@@ -991,7 +991,7 @@ parser::parse_option_list(T & list,
             ss >> val;
 
             // Check if there were any logical errors
-            if ((ss.rdstate() & std::ios::failbit) != 0)
+            if (ss.fail() || !ss.eof())
               throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
 
             list.insert(list.end(), val); // insert new value back to list
@@ -1038,7 +1038,7 @@ parser::parse_positional_argument(T & val,
   ss >> val;
 
   // Check if there were any logical errors
-  if ((ss.rdstate() & std::ios::failbit) != 0)
+  if (ss.fail() || !ss.eof())
     throw paw::parser::invalid_positional_exception(ss.str());
 
   ++next_positional;
@@ -1068,7 +1068,7 @@ parser::parse_remaining_positional_arguments(T & list,
     list.insert(list.end(), val);
 
     // Check if there were any logical errors
-    if ((ss.rdstate() & std::ios::failbit) != 0)
+    if (ss.fail() || !ss.eof())
       throw paw::parser::invalid_positional_exception(ss.str());
 
     ++next_positional;
