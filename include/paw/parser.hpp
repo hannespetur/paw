@@ -57,9 +57,6 @@ class parser
         std::string description; /**< Description of the argument to display in the 'help' page.*/
         std::string meta_string; /**< String to represent the value with in the 'help' page.*/
         std::string default_value; /**< The default value to display in the 'help' page.*/
-
-        /** Default constructor is disabled.*/
-        Arg() = delete;
     };
 
 
@@ -472,10 +469,16 @@ parser::parse_option(bool & val,
                      char const shrt,
                      std::string const & lng,
                      std::string const & description,
-                     std::string const & /*meta_string*/
+                     std::string const & meta_string
                      )
 {
-  opt_args.push_back({shrt, lng, description, "", ""});
+  Arg arg; // = {shrt, lng, description, meta_string, std::string("")};
+  arg.shrt = shrt;
+  arg.lng = lng;
+  arg.description = description;
+  arg.meta_string = meta_string;
+  arg.default_value = "";
+  opt_args.push_back(std::move(arg));
   auto flag_it = find_flag(shrt, lng);
 
   if (flag_it != flag_map.end())
