@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hannespetur/paw.svg?branch=master)](https://travis-ci.org/hannespetur/paw)
+
 ## Paw
 The paw library is a header-only C++11 library.
 Its main design goal is to be very simple and convenient to use.
