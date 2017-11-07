@@ -10,8 +10,7 @@ endif()
 message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
 ## Setup compile flags
-set (CMAKE_CXX_STANDARD 11)
-set (CMAKE_CXX_FLAGS_COMMON "-g -Wall -Wextra -Wfatal-errors")
+set (CMAKE_CXX_FLAGS_COMMON "-g -std=gnu++11 -Wall -Wextra -Wfatal-errors")
 
 if(NOT PORTABLE)
   set (CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -march=native")
