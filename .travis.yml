@@ -8,5 +8,5 @@ compiler:
 script:
   - mkdir build && cd build
   - cmake ..
-  - VERBOSE=1 make
-  - make test
+  - VERBOSE=1 make -j4
+  - make check
