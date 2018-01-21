@@ -72,8 +72,7 @@ public:
 
   /* EXCEPTIONS */
   /** Exception indicating that the user passed the help argument.*/
-  class help_exception :
-    public std::exception
+  class help_exception : public std::exception
   {
 private:
     std::string help_message;     /**< Message to display when exception is thrown.*/
@@ -106,8 +105,7 @@ public:
   /** Exception indicating that the user passed an argument that isn't available.
    * E.g. user parser a "-t" option but no "-t" argument is defiend by the program.
    */
-  class invalid_option_exception :
-    public std::exception
+  class invalid_option_exception : public std::exception
   {
 private:
     std::string error_message;     /**< Message to display when exception is thrown.*/
@@ -126,8 +124,7 @@ public:
   /** Exception indicating that the user passed an argument with value of the incorrect type.
    * E.g. user parser a "-ta" option but t takes in an integer.
    */
-  class invalid_option_value_exception :
-    public std::exception
+  class invalid_option_value_exception : public std::exception
   {
 private:
     std::string error_message;     /**< Message to display when exception is thrown. */
@@ -149,8 +146,7 @@ public:
   };
 
   /** Exception indicating that the user passed a positional argument of the incorrect type.*/
-  class invalid_positional_exception :
-    public std::exception
+  class invalid_positional_exception : public std::exception
   {
 private:
     std::string error_message;     /**< Message to display when exception is thrown. */
@@ -169,8 +165,7 @@ public:
   /** Exception indicating an invalid subcommand
    * Thrown when the user passes a subcommand which had not been defined.
    */
-  class invalid_subcommand_exception :
-    public std::exception
+  class invalid_subcommand_exception : public std::exception
   {
     std::string error_message;   /**< Message to display when exception is thrown. */
 
@@ -182,8 +177,7 @@ public:
   /** Exception indicating a missing value.
    * Thrown when the user passes an argument without a value, but the argument requires it.
    */
-  class missing_value_exception :
-    public std::exception
+  class missing_value_exception : public std::exception
   {
     std::string error_message;   /**< Message to display when exception is thrown. */
 
@@ -203,8 +197,7 @@ public:
   /** Exception indicating that the parser was expecting a postional argument,
    * but was not passed any.
    */
-  class missing_positional_argument_exception :
-    public std::exception
+  class missing_positional_argument_exception : public std::exception
   {
 private:
     std::string error_message;     /**< Message to display when exception is thrown. */
@@ -265,6 +258,7 @@ public:
    * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
    */
   void finalize(bool const allow_no_arguments = true);
+
 
   /** Get a reference to the multimap containing all the flags the user passed.
    * \returns Multimap with flags.
