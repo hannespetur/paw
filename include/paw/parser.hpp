@@ -41,380 +41,387 @@ print_string(std::ostringstream & ss,
 /** Main Data Structure for paw parser.*/
 class parser
 {
-  public:
-    /** \brief Data structure for command line arguments.
-     *  \details Arguments in this data structure are ready for display in the 'help' page of the
-     *          program.
+public:
+  /** \brief Data structure for command line arguments.
+   *  \details Arguments in this data structure are ready for display in the 'help' page of the
+   *          program.
+   */
+  struct Arg
+  {
+public:
+    /** Short option for the 'help' page.
+     * No option shown if it is paw::parser::NO_SHORT_OPTION.
      */
-    struct Arg
-    {
-      public:
-        /** Short option for the 'help' page.
-         * No option shown if it is paw::parser::NO_SHORT_OPTION.
-         */
-        char shrt;
-        std::string lng; /**< Long option for the 'help' page.*/
-        std::string description; /**< Description of the argument to display in the 'help' page.*/
-        std::string meta_string; /**< String to represent the value with in the 'help' page.*/
-        std::string default_value; /**< The default value to display in the 'help' page.*/
-    };
+    char shrt;
+    std::string lng;     /**< Long option for the 'help' page.*/
+    std::string description;     /**< Description of the argument to display in the 'help' page.*/
+    std::string meta_string;     /**< String to represent the value with in the 'help' page.*/
+    std::string default_value;     /**< The default value to display in the 'help' page.*/
+  };
 
 
-    /** Type definition of the container used to store the arguments.*/
-    using Args = std::vector<Arg>;
-    using Subcommands = std::vector<std::pair<std::string, std::string> >;
+  /** Type definition of the container used to store the arguments.*/
+  using Args = std::vector<Arg>;
+  using Subcommands = std::vector<std::pair<std::string, std::string> >;
 
-    /* READ ONLY VARIABLES */
-    /** Specifies how to represent arguments that have no short option.*/
-    char static const NO_SHORT_OPTION = ' ';
-    /** Specifies how the default seperator that splits argument lists.*/
-    char static const DEFAULT_LIST_DELIMITER = ',';
+  /* READ ONLY VARIABLES */
+  /** Specifies how to represent arguments that have no short option.*/
+  char static const NO_SHORT_OPTION = ' ';
+  /** Specifies how the default seperator that splits argument lists.*/
+  char static const DEFAULT_LIST_DELIMITER = ',';
 
-    /* EXCEPTIONS */
-    /** Exception indicating that the user passed the help argument.*/
-    class help_exception : public std::exception
-    {
-      private:
-        std::string help_message; /**< Message to display when exception is thrown.*/
+  /* EXCEPTIONS */
+  /** Exception indicating that the user passed the help argument.*/
+  class help_exception :
+    public std::exception
+  {
+private:
+    std::string help_message;     /**< Message to display when exception is thrown.*/
 
-        /** Constructs the help exception message.
-          * \param[in] program_name Name of the program.
-          * \param[in] binary_name Name of the binary.
-          * \param[in] opt_args Options to display in help page.
-          * \param[in] pos_args Positional arguments to display in help page.
-          * \param[in] version Version of the program.
-          * \param[in] subcommands Available subcommands.
-          * \param[in] subcommand Subcommand used, if any.
-          */
-      public:
-        help_exception(std::string const & program_name,
-                       std::string const & binary_name,
-                       Args const & opt_args,
-                       Args const & pos_args,
-                       std::string const & version,
-                       Subcommands const & subcommands,
-                       std::string const & subcommand = ""
-                       );
+    /** Constructs the help exception message.
+      * \param[in] program_name Name of the program.
+      * \param[in] binary_name Name of the binary.
+      * \param[in] opt_args Options to display in help page.
+      * \param[in] pos_args Positional arguments to display in help page.
+      * \param[in] version Version of the program.
+      * \param[in] subcommands Available subcommands.
+      * \param[in] subcommand Subcommand used, if any.
+      */
+public:
+    help_exception(std::string const & program_name,
+                   std::string const & binary_name,
+                   Args const & opt_args,
+                   Args const & pos_args,
+                   std::string const & version,
+                   Subcommands const & subcommands,
+                   std::string const & subcommand = ""
+                   );
 
-        /** Gets the help message.
-         * \returns Help message.
-         */
-        virtual const char * what() const throw();
-    };
-
-    /** Exception indicating that the user passed an argument that isn't available.
-     * E.g. user parser a "-t" option but no "-t" argument is defiend by the program.
+    /** Gets the help message.
+     * \returns Help message.
      */
-    class invalid_option_exception : public std::exception
-    {
-      private:
-        std::string error_message; /**< Message to display when exception is thrown.*/
+    virtual const char * what() const throw();
+  };
 
-      public:
-        /** Constructs an invalid option exception.
-         * \param[in] invalid_option the parsed invalid option.
-         */
-        invalid_option_exception(std::string const & invalid_option);
-        /** Gets the error message of this exception.
-         * \returns Error message.
-         */
-        virtual const char * what() const throw();
-    };
+  /** Exception indicating that the user passed an argument that isn't available.
+   * E.g. user parser a "-t" option but no "-t" argument is defiend by the program.
+   */
+  class invalid_option_exception :
+    public std::exception
+  {
+private:
+    std::string error_message;     /**< Message to display when exception is thrown.*/
 
-    /** Exception indicating that the user passed an argument with value of the incorrect type.
-     * E.g. user parser a "-ta" option but t takes in an integer.
+public:
+    /** Constructs an invalid option exception.
+     * \param[in] invalid_option the parsed invalid option.
      */
-    class invalid_option_value_exception : public std::exception
-    {
-      private:
-        std::string error_message; /**< Message to display when exception is thrown. */
+    invalid_option_exception(std::string const & invalid_option);
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
+    virtual const char * what() const throw();
+  };
 
-      public:
-        /** Constructs an invalid option value exception.
-         * \param[in] shrt Short option.
-         * \param[in] lng Long option.
-         * \param[in] invalid_option_value the parsed invalid option value.
-         */
-        invalid_option_value_exception(char const shrt,
-                                       std::string const & lng,
-                                       std::string const & invalid_option_value
+  /** Exception indicating that the user passed an argument with value of the incorrect type.
+   * E.g. user parser a "-ta" option but t takes in an integer.
+   */
+  class invalid_option_value_exception :
+    public std::exception
+  {
+private:
+    std::string error_message;     /**< Message to display when exception is thrown. */
+
+public:
+    /** Constructs an invalid option value exception.
+     * \param[in] shrt Short option.
+     * \param[in] lng Long option.
+     * \param[in] invalid_option_value the parsed invalid option value.
+     */
+    invalid_option_value_exception(char const shrt,
+                                   std::string const & lng,
+                                   std::string const & invalid_option_value
+                                   );
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
+    virtual const char * what() const throw();
+  };
+
+  /** Exception indicating that the user passed a positional argument of the incorrect type.*/
+  class invalid_positional_exception :
+    public std::exception
+  {
+private:
+    std::string error_message;     /**< Message to display when exception is thrown. */
+
+public:
+    /** Constructs an invalid positional exception.
+     * \param[in] invalid_positional the parsed invalid positional value.
+     */
+    invalid_positional_exception(std::string const & invalid_positional);
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
+    virtual const char * what() const throw();
+  };
+
+  /** Exception indicating an invalid subcommand
+   * Thrown when the user passes a subcommand which had not been defined.
+   */
+  class invalid_subcommand_exception :
+    public std::exception
+  {
+    std::string error_message;   /**< Message to display when exception is thrown. */
+
+public:
+    invalid_subcommand_exception(std::string const & subcommand);
+    virtual const char * what() const throw();
+  };
+
+  /** Exception indicating a missing value.
+   * Thrown when the user passes an argument without a value, but the argument requires it.
+   */
+  class missing_value_exception :
+    public std::exception
+  {
+    std::string error_message;   /**< Message to display when exception is thrown. */
+
+public:
+    /** Constructs a missing value exception.
+     * \param[in] shrt short option.
+     * \param[in] lng long option.
+     */
+    missing_value_exception(char const shrt, std::string const & lng);
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
+    virtual const char * what() const throw();
+  };
+
+
+  /** Exception indicating that the parser was expecting a postional argument,
+   * but was not passed any.
+   */
+  class missing_positional_argument_exception :
+    public std::exception
+  {
+private:
+    std::string error_message;     /**< Message to display when exception is thrown. */
+
+public:
+    /** Constructs a missing positional argument exception
+     * \param[in] meta_string Meta string of the positional argument.
+     */
+    missing_positional_argument_exception(std::string const & meta_string);
+
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
+    virtual const char * what() const throw();
+
+  };
+
+  /* TYPE DEFINITIONS */
+  /** Type definition for the hash table container to use for parsing arguments.*/
+  using FlagMap = std::multimap<std::string, std::string>;
+
+public:
+  /** \brief Construction of a paw parser instance.
+   * \details This constructor uses the argc and argv variables that are passed to the 'main'
+   *          function of the program.
+   * \param[in] argc length of the argv array.
+   * \param[in] argv arguments passed, including the name of the executable.
+   * \returns paw parser object.
+   * \exception None.
+   */
+  parser(int argc, char ** argv);
+
+  /** \brief Construction of a paw parser instance.
+   * \details This constructor parses a vector of strings that should include the programs name.
+   * \param[in] args Dynamic vector with all arguments.
+   * \returns paw parser object.
+   * \exception None.
+   */
+  parser(std::vector<std::string> const & args);
+
+  /** \brief Adds an subcommand to the parse.
+   * \details Add subcommand and use the paw::parser::parse_subcommand() to parse them.
+   * \param[in] subcommand_name Name of the subcommand.
+   * \param[in] description Description of the subcommand.
+   * \exception None.
+   */
+  void add_subcommand(std::string const & subcommand_name, std::string const & description);
+
+  /** Checks if the user passed invalid options.
+   * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
+   */
+  void check_for_invalid_options();
+
+  /** \brief Finalizes the parser.
+   * \details Parses help flag and checks for invalid options.
+   * \param[in] allow_no_arguments Set if the parser should not throw help when no arguments
+   *                               are passed.
+   * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
+   */
+  void finalize(bool const allow_no_arguments = true);
+
+  /** Get a reference to the multimap containing all the flags the user passed.
+   * \returns Multimap with flags.
+   * \exception None.
+   */
+  FlagMap const &
+  get_flag_map_reference();
+
+  /** Parses an option that was passed by the user.
+   * If 'T' is not a boolean, we expect that the argument has a single value.
+   * \param[in,out] val Reference to the value to change if the option was parsed.
+   * \param[in] shrt Short option.
+   * \param[in] lng Long option.
+   * \param[in] description Short description of the option.
+   * \param[in] meta_string Meta string for the option's value.
+   * \exception paw::parser::missing_value_exception thrown when option was parsed
+   *            but without a value.
+   */
+  template <typename T>
+  inline void
+  parse_option(T & val,
+               char const shrt,
+               std::string const & lng,
+               std::string const & description,
+               std::string const & meta_string = "value"
+               );
+
+  /** Parses an argument with a list of values.
+   * \param[in,out] list Reference to the list to change if the option was parsed.
+   * \param[in] shrt Short option.
+   * \param[in] lng Long option.
+   * \param[in] description Short description of the option.
+   * \param[in] delimiter Delimiter between items in the list.
+   * \param[in] meta_string Meta string for the option's value.
+   * \exception paw::parser::missing_value_exception thrown when option list was parsed,
+   *            but without a value.
+   */
+  template <typename T>
+  inline void
+  parse_option_list(T & list,
+                    char const shrt,
+                    std::string const & lng,
+                    std::string const & description,
+                    char const delimiter = DEFAULT_LIST_DELIMITER,
+                    std::string const & meta_string = "value1,..."
+                    );
+
+  /** Parses the next positional argument.
+   * \param[in,out] val Reference to the value to change if the option was parsed.
+   * \param[in] meta_string Meta string for the option's value.
+   * \param[in] description Short description of the option.
+   * \exception paw::parser::missing_positional_argument_exception thrown when there was no
+   *            positional argument passed.
+   */
+  template <typename T>
+  inline void
+  parse_positional_argument(T & val,
+                            std::string const & meta_string,
+                            std::string const & description
+                            );
+
+  /** Parse all remaining positional arguments.
+   * \param[in,out] list Reference to the list to change if the option was parsed.
+   * \param[in] meta_string Meta string for the option's values.
+   * \param[in] description Short description of the option.
+   * \exception None.
+   */
+  template <typename T>
+  inline void
+  parse_remaining_positional_arguments(T & list,
+                                       std::string const & meta_string,
+                                       std::string const & description
                                        );
-        /** Gets the error message of this exception.
-         * \returns Error message.
-         */
-        virtual const char * what() const throw();
-    };
 
-    /** Exception indicating that the user passed a positional argument of the incorrect type.*/
-    class invalid_positional_exception : public std::exception
-    {
-      private:
-        std::string error_message; /**< Message to display when exception is thrown. */
+  /** Parses the subcommand for the program.
+   * \param[in,out] subcommand Subcommand to parse.
+   * \exception paw::parser::invalid_subcommand_exception when the users does not pass a valid
+   *            subcommand.
+   */
+  void
+  parse_subcommand(std::string & subcommand);
 
-      public:
-        /** Constructs an invalid positional exception.
-         * \param[in] invalid_positional the parsed invalid positional value.
-         */
-        invalid_positional_exception(std::string const & invalid_positional);
-        /** Gets the error message of this exception.
-         * \returns Error message.
-         */
-        virtual const char * what() const throw();
-    };
+  /** Changes the name of the program.
+   * \param[in] name Name to set.
+   * \exception None.
+   */
+  void
+  set_name(std::string const & name);
 
-    /** Exception indicating an invalid subcommand
-     * Thrown when the user passes a subcommand which had not been defined.
-     */
-    class invalid_subcommand_exception : public std::exception
-    {
-      std::string error_message; /**< Message to display when exception is thrown. */
+  /** Sets the version of the program using two unsigned integers.
+   * \param[in] MAJOR major version.
+   * \param[in] MINOR minor version.
+   * \exception None.
+   */
+  void
+  set_version(unsigned const MAJOR,
+              unsigned const MINOR
+              );
 
-      public:
-        invalid_subcommand_exception(std::string const & subcommand);
-        virtual const char * what() const throw();
-    };
+  /** Sets the version of the program using a std::string.
+   * \param[in] version Version of the program.
+   * \exception None.
+   */
+  void set_version(std::string const & version);
 
-    /** Exception indicating a missing value.
-     * Thrown when the user passes an argument without a value, but the argument requires it.
-     */
-    class missing_value_exception : public std::exception
-    {
-      std::string error_message; /**< Message to display when exception is thrown. */
-
-      public:
-        /** Constructs a missing value exception.
-         * \param[in] shrt short option.
-         * \param[in] lng long option.
-         */
-        missing_value_exception(char const shrt, std::string const & lng);
-        /** Gets the error message of this exception.
-         * \returns Error message.
-         */
-        virtual const char * what() const throw();
-    };
+  /** Throw exceptions with help message */
+  void throw_help() const;
 
 
-    /** Exception indicating that the parser was expecting a postional argument,
-     * but was not passed any.
-     */
-    class missing_positional_argument_exception : public std::exception
-    {
-      private:
-        std::string error_message; /**< Message to display when exception is thrown. */
+private:
+  /** Type definition for the container to use for positional arguments.*/
+  using Positional = std::vector<std::string>;
 
-      public:
-        /** Constructs a missing positional argument exception
-         * \param[in] meta_string Meta string of the positional argument.
-         */
-        missing_positional_argument_exception(std::string const & meta_string);
+  /** Vector of all optional arguments.*/
+  Args opt_args;
 
-        /** Gets the error message of this exception.
-         * \returns Error message.
-         */
-        virtual const char * what() const throw();
+  /** Vector of all positional arguments. */
+  Args pos_args;
 
-    };
+  /** The name of the program. */
+  std::string program_name;
 
-    /* TYPE DEFINITIONS */
-    /** Type definition for the hash table container to use for parsing arguments.*/
-    using FlagMap = std::multimap<std::string, std::string>;
+  /** The version of the program. */
+  std::string version;
 
-  public:
-    /** \brief Construction of a paw parser instance.
-     * \details This constructor uses the argc and argv variables that are passed to the 'main'
-     *          function of the program.
-     * \param[in] argc length of the argv array.
-     * \param[in] argv arguments passed, including the name of the executable.
-     * \returns paw parser object.
-     * \exception None.
-     */
-    parser(int argc, char ** argv);
+  /** Keys that maps options (or 'flags') to their given values as given by the user.*/
+  FlagMap flag_map;
 
-    /** \brief Construction of a paw parser instance.
-     * \details This constructor parses a vector of strings that should include the programs name.
-     * \param[in] args Dynamic vector with all arguments.
-     * \returns paw parser object.
-     * \exception None.
-     */
-    parser(std::vector<std::string> const & args);
+  /** Indicator whether there was a missing positional argument. */
+  bool missing_positional_argument = false;
 
-    /** \brief Adds an subcommand to the parse.
-     * \details Add subcommand and use the paw::parser::parse_subcommand() to parse them.
-     * \param[in] subcommand_name Name of the subcommand.
-     * \param[in] description Description of the subcommand.
-     * \exception None.
-     */
-    void add_subcommand(std::string const & subcommand_name, std::string const & description);
+  /** Indicator whether the program has subcommands. */
+  bool has_subcommands = false;
 
-    /** Checks if the user passed invalid options.
-     * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
-     */
-    void check_for_invalid_options();
+  /** Vector of all values of positional arguments, in the same order as they were inserted.*/
+  Positional positional;
 
-    /** \brief Finalizes the parser.
-     * \details Parses help flag and checks for invalid options.
-     * \param[in] allow_no_arguments Set if the parser should not throw help when no arguments
-     *                               are passed.
-     * \exception paw::parser::invalid_option_exception thrown if user passed an invalid option.
-     */
-    void finalize(bool const allow_no_arguments = false);
+  /** Iterator that points to the next positional argument.*/
+  Positional::iterator next_positional;
 
-    /** Get a reference to the multimap containing all the flags the user passed.
-     * \returns Multimap with flags.
-     * \exception None.
-     */
-    FlagMap const &
-    get_flag_map_reference();
+  /** Copy of the arguments parsed.*/
+  std::vector<std::string> raw_args;
 
-    /** Parses an option that was passed by the user.
-     * If 'T' is not a boolean, we expect that the argument has a single value.
-     * \param[in,out] val Reference to the value to change if the option was parsed.
-     * \param[in] shrt Short option.
-     * \param[in] lng Long option.
-     * \param[in] description Short description of the option.
-     * \param[in] meta_string Meta string for the option's value.
-     * \exception paw::parser::missing_value_exception thrown when option was parsed
-     *            but without a value.
-     */
-    template <typename T>
-    inline void
-    parse_option(T & val,
-                 char const shrt,
-                 std::string const & lng,
-                 std::string const & description,
-                 std::string const & meta_string = "value"
-                 );
+  /** Vector of all subcommands of the program. The subcommands are added using the
+   * paw::parser::add_subcommands() method.
+   */
+  std::vector<std::pair<std::string, std::string> > subcommands;
 
-    /** Parses an argument with a list of values.
-     * \param[in,out] list Reference to the list to change if the option was parsed.
-     * \param[in] shrt Short option.
-     * \param[in] lng Long option.
-     * \param[in] description Short description of the option.
-     * \param[in] delimiter Delimiter between items in the list.
-     * \param[in] meta_string Meta string for the option's value.
-     * \exception paw::parser::missing_value_exception thrown when option list was parsed,
-     *            but without a value.
-     */
-    template <typename T>
-    inline void
-    parse_option_list(T & list,
-                      char const shrt,
-                      std::string const & lng,
-                      std::string const & description,
-                      char const delimiter = DEFAULT_LIST_DELIMITER,
-                      std::string const & meta_string = "value1,..."
-                      );
+  /** Copy of the subcommand used */
+  std::string subcommand;
 
-    /** Parses the next positional argument.
-     * \param[in,out] val Reference to the value to change if the option was parsed.
-     * \param[in] meta_string Meta string for the option's value.
-     * \param[in] description Short description of the option.
-     * \exception paw::parser::missing_positional_argument_exception thrown when there was no
-     *            positional argument passed.
-     */
-    template <typename T>
-    inline void
-    parse_positional_argument(T & val,
-                              std::string const & meta_string,
-                              std::string const & description
-                              );
-
-    /** Parse all remaining positional arguments.
-     * \param[in,out] list Reference to the list to change if the option was parsed.
-     * \param[in] meta_string Meta string for the option's values.
-     * \param[in] description Short description of the option.
-     * \exception None.
-     */
-    template <typename T>
-    inline void
-    parse_remaining_positional_arguments(T & list,
-                                         std::string const & meta_string,
-                                         std::string const & description
-                                         );
-
-    /** Parses the subcommand for the program.
-     * \param[in,out] subcommand Subcommand to parse.
-     * \exception paw::parser::invalid_subcommand_exception when the users does not pass a valid
-     *            subcommand.
-     */
-    void
-    parse_subcommand(std::string & subcommand);
-
-    /** Changes the name of the program.
-     * \param[in] name Name to set.
-     * \exception None.
-     */
-    void
-    set_name(std::string const & name);
-
-    /** Sets the version of the program using two unsigned integers.
-     * \param[in] MAJOR major version.
-     * \param[in] MINOR minor version.
-     * \exception None.
-     */
-    void
-    set_version(unsigned const MAJOR,
-                unsigned const MINOR
-                );
-
-    /** Sets the version of the program using a std::string.
-     * \param[in] version Version of the program.
-     * \exception None.
-     */
-    void set_version(std::string const & version);
-
-    /** Throw exceptions with help message */
-    void throw_help() const;
-
-
-  private:
-    /** Type definition for the container to use for positional arguments.*/
-    using Positional = std::vector<std::string>;
-
-    /** Vector of all optional arguments.*/
-    Args opt_args;
-
-    /** Vector of all positional arguments. */
-    Args pos_args;
-
-    /** The name of the program. */
-    std::string program_name;
-
-    /** The version of the program. */
-    std::string version;
-
-    /** Keys that maps options (or 'flags') to their given values as given by the user.*/
-    FlagMap flag_map;
-
-    /** Indicator whether there was a missing positional argument. */
-    bool missing_positional_argument = false;
-
-    /** Indicator whether the program has subcommands. */
-    bool has_subcommands = false;
-
-    /** Vector of all values of positional arguments, in the same order as they were inserted.*/
-    Positional positional;
-
-    /** Iterator that points to the next positional argument.*/
-    Positional::iterator next_positional;
-
-    /** Copy of the arguments parsed.*/
-    std::vector<std::string> raw_args;
-
-    /** Vector of all subcommands of the program. The subcommands are added using the
-     * paw::parser::add_subcommands() method.
-     */
-    std::vector<std::pair<std::string, std::string> > subcommands;
-
-    /** Copy of the subcommand used */
-    std::string subcommand;
-
-    /** \brief Finds flag in parsed argument options.
-     * \details Returns iterator pointing to the end if not found.
-     * \returns Iterator to the flag
-     * \exception None.
-     */
-    FlagMap::iterator find_flag(char const shrt, std::string const & lng);
+  /** \brief Finds flag in parsed argument options.
+   * \details Returns iterator pointing to the end if not found.
+   * \returns Iterator to the flag
+   * \exception None.
+   */
+  FlagMap::iterator find_flag(char const shrt, std::string const & lng);
 
 };
 
@@ -448,7 +455,7 @@ parser::parse_option(T & val,
     if (flag_it->second.size() == 0)
       throw paw::parser::missing_value_exception(shrt, lng);
 
-    std::istringstream ss{
+    std::istringstream ss {
       flag_it->second
     };
     ss >> val;
@@ -514,7 +521,7 @@ parser::parse_option_list(T & list,
         {
           {
             typename T::value_type val;
-            std::istringstream ss{
+            std::istringstream ss {
               std::string(begin, delim)
             };
             ss >> val;
@@ -562,7 +569,7 @@ parser::parse_positional_argument(T & val,
     return;
   }
 
-  std::istringstream ss{
+  std::istringstream ss {
     *next_positional
   };
   ss >> val;
@@ -592,7 +599,7 @@ parser::parse_remaining_positional_arguments(T & list,
   while (next_positional != positional.end())
   {
     typename T::value_type val;
-    std::istringstream ss{
+    std::istringstream ss {
       *next_positional
     };
     ss >> val;

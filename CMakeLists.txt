@@ -9,6 +9,10 @@ endif()
 
 message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
+## Optional dependencies
+# Boost
+find_package(Boost COMPONENTS filesystem)
+
 ## Setup compile flags
 set (CMAKE_CXX_FLAGS_COMMON "-g -std=gnu++11 -Wall -Wextra -Wfatal-errors")
 

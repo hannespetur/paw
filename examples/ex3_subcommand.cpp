@@ -11,7 +11,6 @@ struct Options
 {
   std::string subcmd;
   bool use_double = false;
-  //bool
   std::vector<long> my_ints;
   std::vector<double> my_doubles;
 };
