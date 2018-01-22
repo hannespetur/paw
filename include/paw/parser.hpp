@@ -67,8 +67,12 @@ public:
   /* READ ONLY VARIABLES */
   /** Specifies how to represent arguments that have no short option.*/
   char static const NO_SHORT_OPTION = ' ';
+
   /** Specifies how the default seperator that splits argument lists.*/
   char static const DEFAULT_LIST_DELIMITER = ',';
+
+  /** Specifies how to indicate the option has no value. */
+  std::string const OPTION_HAS_NO_VALUE = "__OPTIONS_HAS_NO_VALUE__";
 
   /* EXCEPTIONS */
   /** Exception indicating that the user passed the help argument.*/
@@ -87,14 +91,7 @@ private:
       * \param[in] subcommand Subcommand used, if any.
       */
 public:
-    help_exception(std::string const & program_name,
-                   std::string const & binary_name,
-                   Args const & opt_args,
-                   Args const & pos_args,
-                   std::string const & version,
-                   Subcommands const & subcommands,
-                   std::string const & subcommand = ""
-                   );
+    help_exception(std::string const & help_message);
 
     /** Gets the help message.
      * \returns Help message.
@@ -113,8 +110,12 @@ private:
 public:
     /** Constructs an invalid option exception.
      * \param[in] invalid_option the parsed invalid option.
+     * \param[in] help_message the help message to display with the exception.
      */
-    invalid_option_exception(std::string const & invalid_option);
+    invalid_option_exception(std::string const & invalid_option,
+                             std::string const & help_message
+                             );
+
     /** Gets the error message of this exception.
      * \returns Error message.
      */
@@ -134,10 +135,12 @@ public:
      * \param[in] shrt Short option.
      * \param[in] lng Long option.
      * \param[in] invalid_option_value the parsed invalid option value.
+     * \param[in] help_message the help message to display with the exception.
      */
     invalid_option_value_exception(char const shrt,
                                    std::string const & lng,
-                                   std::string const & invalid_option_value
+                                   std::string const & invalid_option_value,
+                                   std::string const & help_message
                                    );
     /** Gets the error message of this exception.
      * \returns Error message.
@@ -154,8 +157,12 @@ private:
 public:
     /** Constructs an invalid positional exception.
      * \param[in] invalid_positional the parsed invalid positional value.
+     * \param[in] help_message the help message to display with the exception.
      */
-    invalid_positional_exception(std::string const & invalid_positional);
+    invalid_positional_exception(std::string const & invalid_positional,
+                                 std::string const & help_message
+                                 );
+
     /** Gets the error message of this exception.
      * \returns Error message.
      */
@@ -170,7 +177,17 @@ public:
     std::string error_message;   /**< Message to display when exception is thrown. */
 
 public:
-    invalid_subcommand_exception(std::string const & subcommand);
+    /** Constructs an invalid subcommand exception
+     * \param[in] subcommand Subcommand the user passed.
+     * \param[in] help_message the help message to display with the exception.
+     */
+    invalid_subcommand_exception(std::string const & subcommand,
+                                 std::string const & help_message
+                                 );
+
+    /** Gets the error message of this exception.
+     * \returns Error message.
+     */
     virtual const char * what() const throw();
   };
 
@@ -185,8 +202,12 @@ public:
     /** Constructs a missing value exception.
      * \param[in] shrt short option.
      * \param[in] lng long option.
+     * \param[in] help_message the help message to display with the exception.
      */
-    missing_value_exception(char const shrt, std::string const & lng);
+    missing_value_exception(char const shrt, std::string const & lng,
+                            std::string const & help_message
+                            );
+
     /** Gets the error message of this exception.
      * \returns Error message.
      */
@@ -205,8 +226,11 @@ private:
 public:
     /** Constructs a missing positional argument exception
      * \param[in] meta_string Meta string of the positional argument.
+     * \param[in] help_message the help message to display with the exception.
      */
-    missing_positional_argument_exception(std::string const & meta_string);
+    missing_positional_argument_exception(std::string const & meta_string,
+                                          std::string const & help_message
+                                          );
 
     /** Gets the error message of this exception.
      * \returns Error message.
@@ -364,6 +388,11 @@ public:
    */
   void set_version(std::string const & version);
 
+  /** Generates a help message to display to the user.
+   * \exception None.
+   */
+  std::string generate_help_message() const;
+
   /** Throw exceptions with help message */
   void throw_help() const;
 
@@ -447,7 +476,7 @@ parser::parse_option(T & val,
   if (flag_it != flag_map.end())
   {
     if (flag_it->second.size() == 0)
-      throw paw::parser::missing_value_exception(shrt, lng);
+      throw paw::parser::missing_value_exception(shrt, lng, this->generate_help_message());
 
     std::istringstream ss {
       flag_it->second
@@ -456,7 +485,13 @@ parser::parse_option(T & val,
 
     // Check if there were any logical errors
     if (ss.fail() || !ss.eof())
-      throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
+    {
+      throw paw::parser::invalid_option_value_exception(shrt,
+                                                        lng,
+                                                        ss.str(),
+                                                        this->generate_help_message()
+                                                        );
+    }
   }
 }
 
@@ -470,14 +505,14 @@ parser::parse_option(bool & val,
                      char const shrt,
                      std::string const & lng,
                      std::string const & description,
-                     std::string const & meta_string
+                     std::string const & /*mega_string makes no sense for booleans*/
                      )
 {
   Arg arg; // = {shrt, lng, description, meta_string, std::string("")};
   arg.shrt = shrt;
   arg.lng = lng;
   arg.description = description;
-  arg.meta_string = meta_string;
+  arg.meta_string = paw::parser::OPTION_HAS_NO_VALUE;
   arg.default_value = "";
   opt_args.push_back(std::move(arg));
   auto flag_it = find_flag(shrt, lng);
@@ -505,7 +540,7 @@ parser::parse_option_list(T & list,
       while (it_range.first != it_range.second)
       {
         if (it_range.first->second.size() == 0)
-          throw paw::parser::missing_value_exception(shrt, lng);
+          throw paw::parser::missing_value_exception(shrt, lng, this->generate_help_message());
 
         std::string::iterator begin = it_range.first->second.begin();
         std::string::iterator end = it_range.first->second.end();
@@ -522,7 +557,12 @@ parser::parse_option_list(T & list,
 
             // Check if there were any logical errors
             if (ss.fail() || !ss.eof())
-              throw paw::parser::invalid_option_value_exception(shrt, lng, ss.str());
+            {
+              throw paw::parser::invalid_option_value_exception(shrt,
+                                                                lng,
+                                                                ss.str(),
+                                                                this->generate_help_message());
+            }
 
             list.insert(list.end(), val); // insert new value back to list
           }
@@ -570,7 +610,7 @@ parser::parse_positional_argument(T & val,
 
   // Check if there were any logical errors
   if (ss.fail() || !ss.eof())
-    throw paw::parser::invalid_positional_exception(ss.str());
+    throw paw::parser::invalid_positional_exception(ss.str(), this->generate_help_message());
 
   ++next_positional;
 }
@@ -601,7 +641,7 @@ parser::parse_remaining_positional_arguments(T & list,
 
     // Check if there were any logical errors
     if (ss.fail() || !ss.eof())
-      throw paw::parser::invalid_positional_exception(ss.str());
+      throw paw::parser::invalid_positional_exception(ss.str(), this->generate_help_message());
 
     ++next_positional;
   }
@@ -679,128 +719,9 @@ print_string(std::ostringstream & ss,
 
 
 /* EXCEPTIONS */
-parser::help_exception::help_exception(std::string const & program_name,
-                                       std::string const & binary_name,
-                                       Args const & opt_args,
-                                       Args const & pos_args,
-                                       std::string const & version,
-                                       Subcommands const & subcommands,
-                                       std::string const & subcommand
-                                       )
+parser::help_exception::help_exception(std::string const & _help_message)
 {
-  using paw::internal::print_string;
-
-  std::ostringstream ss;
-  std::size_t constexpr INDENT = 3;
-  std::size_t constexpr MAX_WIDTH = 80;
-
-  // Name section
-  if (program_name.size() > 0)
-  {
-    ss << "\nNAME";
-    print_string(ss, program_name, INDENT, MAX_WIDTH);
-    ss << "\n\n";
-  }
-
-  // Usage section
-  ss << "USAGE";
-
-  {
-    std::ostringstream usage_ss;
-    usage_ss << binary_name;
-
-    if (subcommands.size() > 0)
-    {
-      if (subcommand.size() > 0)
-        usage_ss << ' ' << subcommand;
-      else
-        usage_ss << " <subcommand>";
-    }
-
-    if (pos_args.size() > 0)
-    {
-      auto pos_arg_it = pos_args.cbegin();
-
-      if (subcommands.size() > 0)
-        ++pos_arg_it;
-
-      while (pos_arg_it != pos_args.cend())
-      {
-        usage_ss << " <" << pos_arg_it->meta_string << ">";
-        ++pos_arg_it;
-      }
-    }
-
-    usage_ss << " [OPTIONS]";
-    print_string(ss, usage_ss.str(), INDENT, MAX_WIDTH);
-  }
-
-  ss << "\n";
-
-  // Positional arguments
-  if (pos_args.size() > 0)
-  {
-    auto pos_arg_it = pos_args.cbegin();
-
-    // If a subcommand was used, skip the first positional argument
-    if (subcommand.size() > 0)
-      ++pos_arg_it;
-
-    while (pos_arg_it != pos_args.end())
-    {
-      if (pos_arg_it->description.size() == 0)
-        continue;
-
-      ss << '\n' << std::string(INDENT, ' ') << '<' << pos_arg_it->meta_string << '>';
-      print_string(ss, pos_arg_it->description, INDENT * 2, MAX_WIDTH);
-      ss << '\n';
-      ++pos_arg_it;
-    }
-  }
-
-  // Subcommands section
-  if (subcommand.size() > 0)
-  {
-    ss << "\nSUBCOMMANDS";
-
-    for (auto const & subcmd : subcommands)
-    {
-      print_string(ss, subcmd.first, INDENT, MAX_WIDTH);
-      print_string(ss, subcmd.second, INDENT * 2, MAX_WIDTH);
-      ss << '\n';
-    }
-  }
-
-  // Options section
-  if (opt_args.size() > 0)
-  {
-    ss << "\nOPTIONS";
-
-    for (auto const & arg : opt_args)
-    {
-      std::ostringstream opt_ss;
-      opt_ss << "--" << arg.lng;
-
-      if (arg.meta_string.size() > 0)
-        opt_ss << "=" << arg.meta_string;
-
-      if (arg.shrt != paw::parser::NO_SHORT_OPTION)
-        opt_ss << " or -" << arg.shrt << arg.meta_string;
-
-      if (arg.default_value.size() > 0)
-        opt_ss << " [" << arg.default_value << "]";
-
-      print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
-      print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
-      ss << "\n";
-    }
-  }
-
-  // Version number
-  if (version.size() > 0)
-    ss << "\nVERSION\n" << std::string(INDENT, ' ') << version << "\n";
-
-  help_message = ss.str();
+  help_message = _help_message;
 }
 
 
@@ -812,10 +733,15 @@ parser::help_exception::what() const throw()
 
 
 /* Invalid option exception */
-parser::invalid_option_exception::invalid_option_exception(std::string const & invalid_option)
+parser::invalid_option_exception::invalid_option_exception(std::string const & invalid_option,
+                                                           std::string const & help_message
+                                                           )
 {
   std::ostringstream ss;
-  ss << "[paw::parser::InvalidOption] Option '" << invalid_option << "' is invalid.";
+  ss << "[paw::parser::InvalidOption] ERROR: Unknown option '"
+     << invalid_option
+     << "' was passed.\n"
+     << help_message;
   error_message = ss.str();
 }
 
@@ -831,7 +757,8 @@ parser::invalid_option_exception::what() const throw()
 parser::invalid_option_value_exception::invalid_option_value_exception(
   char const shrt,
   std::string const & lng,
-  std::string const & invalid_option_value
+  std::string const & invalid_option_value,
+  std::string const & help_message
   )
 {
   std::ostringstream ss;
@@ -855,6 +782,7 @@ parser::invalid_option_value_exception::invalid_option_value_exception(
        << "' is invalid.";
   }
 
+  ss << "\n" << help_message;
   error_message = ss.str();
 }
 
@@ -868,13 +796,16 @@ parser::invalid_option_value_exception::what() const throw()
 
 /* Invalid positional exception */
 parser::invalid_positional_exception::invalid_positional_exception(
-  std::string const & invalid_positional
+  std::string const & invalid_positional,
+  std::string const & help_message
   )
 {
   std::ostringstream ss;
-  ss << "[paw::parser::InvalidPositional] Positional argument '"
+  ss << "[paw::parser::InvalidPositional] Positional argument <"
      << invalid_positional
-     << "' is of invalid type.";
+     << "> is of invalid type.\n"
+     << help_message;
+
   error_message = ss.str();
 }
 
@@ -887,12 +818,16 @@ parser::invalid_positional_exception::what() const throw()
 
 
 /* Invalid subcommand exception */
-parser::invalid_subcommand_exception::invalid_subcommand_exception(std::string const & subcommand)
+parser::invalid_subcommand_exception::invalid_subcommand_exception(
+  std::string const & subcommand,
+  std::string const & help_message
+  )
 {
   std::ostringstream ss;
   ss << "[paw::parser::InvalidSubcommand] Subcommand '"
      << subcommand
-     << "' is invalid.";
+     << "' is invalid.\n"
+     << help_message;
 
   error_message = ss.str();
 }
@@ -907,7 +842,8 @@ parser::invalid_subcommand_exception::what() const throw()
 
 /* Missing value exception */
 parser::missing_value_exception::missing_value_exception(char const shrt,
-                                                         std::string const & lng
+                                                         std::string const & lng,
+                                                         std::string const & help_message
                                                          )
 {
   std::ostringstream ss;
@@ -927,6 +863,7 @@ parser::missing_value_exception::missing_value_exception(char const shrt,
        << "' was not passed any value.";
   }
 
+  ss << "\n" << help_message;
   error_message = ss.str();
 }
 
@@ -940,12 +877,16 @@ parser::missing_value_exception::what() const throw()
 
 /* Missing positional argument exception */
 parser::missing_positional_argument_exception::missing_positional_argument_exception(
-  std::string const & meta_string)
+  std::string const & meta_string,
+  std::string const & help_message
+  )
 {
   std::ostringstream ss;
-  ss << "[paw::parser::MissingPositionalArgument] Required positional argument '"
+  ss << "[paw::parser::MissingPositionalArgument] ERROR: "
+     << "Positional argument <"
      << meta_string
-     << "' is missing.";
+     << "> is missing.\n"
+     << help_message;
 
   error_message = ss.str();
 }
@@ -1072,7 +1013,7 @@ parser::check_for_invalid_options()
   for (auto it = flag_map.begin(); it != flag_map.end(); ++it)
   {
     if (known_options.find(it->first) == known_options.end())
-      throw paw::parser::invalid_option_exception(it->first);
+      throw paw::parser::invalid_option_exception(it->first, this->generate_help_message());
   }
 }
 
@@ -1094,7 +1035,7 @@ parser::parse_subcommand(std::string & subcommand)
                             );
 
   if (subcommands.size() == 0)
-    throw paw::parser::invalid_subcommand_exception(subcommand);
+    throw paw::parser::invalid_subcommand_exception(subcommand, this->generate_help_message());
 
   this->subcommand = subcommand;
 }
@@ -1145,29 +1086,152 @@ parser::finalize(bool const allow_no_arguments)
       });
 
     if (find_subcommand_it == subcommands.cend())
-      throw paw::parser::invalid_subcommand_exception(subcommand);
+      throw paw::parser::invalid_subcommand_exception(subcommand, this->generate_help_message());
   }
 
   std::size_t const N = std::distance(positional.begin(), next_positional);
 
   if (missing_positional_argument)
-    throw paw::parser::missing_positional_argument_exception(pos_args[N].meta_string);
+  {
+    throw paw::parser::missing_positional_argument_exception(pos_args[N].meta_string,
+                                                             this->generate_help_message()
+                                                             );
+  }
 
   this->check_for_invalid_options();
+}
+
+
+std::string
+parser::generate_help_message() const
+{
+
+  using paw::internal::print_string;
+
+  std::ostringstream ss;
+  std::string const & binary_name = this->raw_args[0];
+  std::size_t constexpr INDENT = 3;
+  std::size_t constexpr MAX_WIDTH = 80;
+
+  // Name section
+  if (program_name.size() > 0)
+  {
+    ss << "\nNAME";
+    print_string(ss, program_name, INDENT, MAX_WIDTH);
+    ss << "\n\n";
+  }
+
+  // Usage section
+  ss << "USAGE";
+
+  {
+    std::ostringstream usage_ss;
+    usage_ss << binary_name;
+
+    if (subcommands.size() > 0)
+    {
+      if (subcommand.size() > 0)
+        usage_ss << ' ' << subcommand;
+      else
+        usage_ss << " <subcommand>";
+    }
+
+    if (pos_args.size() > 0)
+    {
+      auto pos_arg_it = pos_args.cbegin();
+
+      if (subcommands.size() > 0)
+        ++pos_arg_it;
+
+      while (pos_arg_it != pos_args.cend())
+      {
+        usage_ss << " <" << pos_arg_it->meta_string << ">";
+        ++pos_arg_it;
+      }
+    }
+
+    usage_ss << " [OPTIONS]";
+    print_string(ss, usage_ss.str(), INDENT, MAX_WIDTH);
+  }
+
+  ss << "\n";
+
+  // Positional arguments
+  if (pos_args.size() > 0)
+  {
+    auto pos_arg_it = pos_args.cbegin();
+
+    // If a subcommand was used, skip the first positional argument
+    if (subcommand.size() > 0)
+      ++pos_arg_it;
+
+    while (pos_arg_it != pos_args.end())
+    {
+      if (pos_arg_it->description.size() == 0)
+        continue;
+
+      ss << '\n' << std::string(INDENT, ' ') << '<' << pos_arg_it->meta_string << '>';
+      print_string(ss, pos_arg_it->description, INDENT * 2, MAX_WIDTH);
+      ss << '\n';
+      ++pos_arg_it;
+    }
+  }
+
+  // Subcommands section
+  if (subcommand.size() > 0)
+  {
+    ss << "\nSUBCOMMANDS";
+
+    for (auto const & subcmd : subcommands)
+    {
+      print_string(ss, subcmd.first, INDENT, MAX_WIDTH);
+      print_string(ss, subcmd.second, INDENT * 2, MAX_WIDTH);
+      ss << '\n';
+    }
+  }
+
+  // Options section
+  if (opt_args.size() > 0)
+  {
+    ss << "\nOPTIONS";
+
+    for (auto const & arg : opt_args)
+    {
+      std::ostringstream opt_ss;
+      opt_ss << "--" << arg.lng;
+
+      if (arg.meta_string.size() > 0 && arg.meta_string != paw::parser::OPTION_HAS_NO_VALUE)
+        opt_ss << "=" << arg.meta_string;
+
+      if (arg.shrt != paw::parser::NO_SHORT_OPTION)
+      {
+        opt_ss << " or -" << arg.shrt;
+
+        if (arg.meta_string.size() > 0 && arg.meta_string != paw::parser::OPTION_HAS_NO_VALUE)
+          opt_ss << arg.meta_string;
+      }
+
+      if (arg.default_value.size() > 0)
+        opt_ss << " [default: " << arg.default_value << "]";
+
+      print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
+      print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
+      ss << "\n";
+    }
+  }
+
+  // Version number
+  if (version.size() > 0)
+    ss << "\nVERSION\n" << std::string(INDENT, ' ') << version << "\n";
+
+  return ss.str();
 }
 
 
 void
 parser::throw_help() const
 {
-  throw paw::parser::help_exception(this->program_name,
-                                    this->raw_args[0],
-                                    this->opt_args,
-                                    this->pos_args,
-                                    this->version,
-                                    this->subcommands,
-                                    this->subcommand
-                                    );
+  throw paw::parser::help_exception(this->generate_help_message());
 }
 
 
