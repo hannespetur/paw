@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.12)
 
 project (paw)
 
@@ -11,7 +11,7 @@ message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
 ## Optional dependencies
 # Boost
-find_package(Boost COMPONENTS filesystem)
+find_package(Boost COMPONENTS filesystem system)
 
 ## Setup compile flags
 set (CMAKE_CXX_FLAGS_COMMON "-g -std=gnu++11 -Wall -Wextra -Wfatal-errors")
@@ -30,6 +30,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 ## Include paw
 include_directories("${PROJECT_SOURCE_DIR}/include")
+
+## Static and shared libraries
+# Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
+add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
+SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
+
+add_library(shared SHARED paw.cpp)
+SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
+set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ## Examples
 add_subdirectory(examples)
@@ -55,7 +64,7 @@ if(BUILD_DOCUMENTATION)
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
 
-  install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
+  #install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
 
 ## Testing
