@@ -1,2 +1,2 @@
-#define IMPLEMENT
-#include "paw/parser.hpp"
+#define IMPLEMENT_PAW
+#include "paw.hpp"

@@ -452,8 +452,7 @@ private:
 
 
 template <typename T>
-inline
-void
+inline void
 parser::parse_option(T & val,
                      char const shrt,
                      std::string const & lng,
@@ -645,7 +644,7 @@ parser::parse_remaining_positional_arguments(T & list,
 }
 
 
-#ifdef IMPLEMENT
+#ifdef IMPLEMENT_PAW
 
 /******************
  * IMPLEMENTATION *
@@ -1247,6 +1246,6 @@ parser::find_flag(char const shrt, std::string const & lng)
 }
 
 
-#endif // #define IMPLEMENT
+#endif // #define IMPLEMENT_PAW
 
 } // namespace paw
