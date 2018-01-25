@@ -416,9 +416,6 @@ private:
   /** Indicator whether there was a missing positional argument. */
   bool missing_positional_argument = false;
 
-  /** Indicator whether the program has subcommands. */
-  bool has_subcommands = false;
-
   /** Vector of all values of positional arguments, in the same order as they were inserted.*/
   Positional positional;
 

@@ -35,6 +35,14 @@ matrix:
           packages: clang-3.5
       install: export CXX="clang++-3.5" CC="clang-3.5"
 
+    - os: linux
+      compiler: clang-3.9
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: clang-3.9
+      install: export CXX="clang++-3.9" CC="clang-3.9"
+
 script:
   - mkdir build && cd build
   - cmake -DCMAKE_INSTALL_PREFIX=${HOME}/usr/ ..
