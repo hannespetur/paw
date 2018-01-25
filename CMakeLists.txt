@@ -56,14 +56,14 @@ message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 find_package(Boost COMPONENTS filesystem system)
 
 ## Setup compile flags
-set (CMAKE_CXX_FLAGS_COMMON "-g -std=c++11 -Wall -Wextra -Wfatal-errors -pedantic")
+set (CMAKE_CXX_FLAGS_COMMON "-std=c++11")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wall -Wextra -Wfatal-errors -pedantic -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
 if(NOT PORTABLE)
-  set (CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -march=native")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
 endif()
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
