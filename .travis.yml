@@ -48,7 +48,7 @@ script:
   - VERBOSE=1 make -j2
   - make check
   - VERBOSE=1 make static
-  - cd ../build-debug
+  - cd ../build-release
   - cmake -DCMAKE_INSTALL_PREFIX=${HOME}/usr/ ..
   - VERBOSE=1 make -j2
   - make install
