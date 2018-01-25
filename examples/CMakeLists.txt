@@ -1,6 +1,4 @@
-cmake_minimum_required (VERSION 2.8.12)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples/bin)
+cmake_minimum_required (VERSION 2.8.11)
 
 add_executable(ex1 ex1_basic_usage.cpp)
 add_executable(ex2 ex2_simple.cpp)
