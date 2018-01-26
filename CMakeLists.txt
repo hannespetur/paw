@@ -1,6 +1,48 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.11)
 
 project (paw)
+
+set(PAW_VERSION_MAJOR 0)
+set(PAW_VERSION_MINOR 1)
+set(PAW_VERSION_PATCH 0)
+
+# Get the current working git branch
+execute_process(
+  COMMAND git rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE PAW_GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest abbreviated SHA commit hash of the working git branch
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE PAW_GIT_COMMIT_SHORT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest SHA commit hash of the working git branch
+execute_process(
+  COMMAND git rev-parse HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE PAW_GIT_COMMIT_LONG_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest SHA commit hash of the working git branch
+execute_process(
+  COMMAND git diff-files COMMAND wc -l
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE PAW_GIT_NUM_DIRTY_FILES
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+
+# Pass information of paw to the source
+configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/config.hpp
+               ${PROJECT_BINARY_DIR}/include/paw/internal/config.hpp
+               @ONLY)
 
 ## Set to release by default
 if(NOT CMAKE_BUILD_TYPE)
@@ -11,17 +53,17 @@ message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
 ## Optional dependencies
 # Boost
-find_package(Boost COMPONENTS filesystem)
+find_package(Boost COMPONENTS filesystem system)
 
 ## Setup compile flags
-set (CMAKE_CXX_FLAGS_COMMON "-g -std=gnu++11 -Wall -Wextra -Wfatal-errors")
+set (CMAKE_CXX_FLAGS_COMMON "-std=c++11")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wall -Wextra -Wfatal-errors -pedantic -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
 if(NOT PORTABLE)
-  set (CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -march=native")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
 endif()
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -30,6 +72,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 ## Include paw
 include_directories("${PROJECT_SOURCE_DIR}/include")
+
+## Static and shared libraries
+# Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
+add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
+SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
+
+add_library(shared SHARED paw.cpp)
+SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
+set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ## Examples
 add_subdirectory(examples)
@@ -55,8 +106,13 @@ if(BUILD_DOCUMENTATION)
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
 
-  install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
+  #install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
+
+## Install
+install(TARGETS shared LIBRARY DESTINATION lib)
+install(DIRECTORY include/ DESTINATION include PATTERN include/paw/internal EXCLUDE)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/include/paw/internal/ DESTINATION include/paw/internal)
 
 ## Testing
 enable_testing()

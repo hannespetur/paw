@@ -1,6 +1,5 @@
 #include "catch.hpp"
 
-#define PAW_INTERFACE_ONLY
 #include <paw/parser.hpp>
 
 

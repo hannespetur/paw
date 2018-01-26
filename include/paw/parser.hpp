@@ -3,12 +3,15 @@
 #include <algorithm> // std::find
 #include <exception> // std::exception
 #include <iomanip> // std::setw
-#include <ios> // std::ios::failbit
 #include <map> // std::multimap
 #include <unordered_set> // std::unordered_set
 #include <sstream> // std::istringstream, std::ostringstream
 #include <string> // std::string
-#include <vector> // std::vector
+#include <vector> // std::vector<T>
+
+/****************
+ * DECLERATIONS *
+ ****************/
 
 /** \mainpage
  * paw parser is a small, simple, and explicit command-line argument parser.
@@ -82,13 +85,7 @@ private:
     std::string help_message;     /**< Message to display when exception is thrown.*/
 
     /** Constructs the help exception message.
-      * \param[in] program_name Name of the program.
-      * \param[in] binary_name Name of the binary.
-      * \param[in] opt_args Options to display in help page.
-      * \param[in] pos_args Positional arguments to display in help page.
-      * \param[in] version Version of the program.
-      * \param[in] subcommands Available subcommands.
-      * \param[in] subcommand Subcommand used, if any.
+      * \param[in] help_message the help message to display with the exception.
       */
 public:
     help_exception(std::string const & help_message);
@@ -419,9 +416,6 @@ private:
   /** Indicator whether there was a missing positional argument. */
   bool missing_positional_argument = false;
 
-  /** Indicator whether the program has subcommands. */
-  bool has_subcommands = false;
-
   /** Vector of all values of positional arguments, in the same order as they were inserted.*/
   Positional positional;
 
@@ -455,8 +449,7 @@ private:
 
 
 template <typename T>
-inline
-void
+inline void
 parser::parse_option(T & val,
                      char const shrt,
                      std::string const & lng,
@@ -648,7 +641,7 @@ parser::parse_remaining_positional_arguments(T & list,
 }
 
 
-#ifdef IMPLEMENT
+#ifdef IMPLEMENT_PAW
 
 /******************
  * IMPLEMENTATION *
@@ -1250,6 +1243,6 @@ parser::find_flag(char const shrt, std::string const & lng)
 }
 
 
-#endif // #define IMPLEMENT
+#endif // #define IMPLEMENT_PAW
 
 } // namespace paw
