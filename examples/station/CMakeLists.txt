@@ -1,0 +1,7 @@
+cmake_minimum_required (VERSION 2.8.11)
+
+add_executable(station_ex1_read_ints_and_keep_primes_only read_ints_and_keep_primes_only.cpp)
+add_executable(station_ex2_generate_random_ints_and_sort_them generate_random_ints_and_sort_them.cpp)
+
+target_link_libraries (station_ex1_read_ints_and_keep_primes_only shared ${PAW_LINK_LIBRARIES})
+target_link_libraries (station_ex2_generate_random_ints_and_sort_them shared ${PAW_LINK_LIBRARIES})

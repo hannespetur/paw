@@ -1,14 +1,18 @@
-#include "catch.hpp"
+#include <iterator> // std::distance, std::next
+#include <string> // std::string
+#include <vector> // std::vector<T>
+
+#include "../catch.hpp"
 
 #include <paw/parser.hpp>
 
 
 TEST_CASE("No options parsed")
 {
-  paw::parser pawparser({"program"});
-  const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+  paw::Parser parser({"program"});
+  paw::Parser::FlagMap const & flag_map = parser.get_flag_map_reference();
   REQUIRE(flag_map.size() == 0);
-  pawparser.set_name("program2");
+  parser.set_name("program2");
 }
 
 
@@ -16,8 +20,8 @@ TEST_CASE("Parse argc argv with short options")
 {
   SECTION("Short option used once")
   {
-    paw::parser pawparser({"program", "-t"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "-t"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
 
     REQUIRE(flag_map.count("t") == 1);
     REQUIRE(flag_map.size() == 1);
@@ -25,16 +29,16 @@ TEST_CASE("Parse argc argv with short options")
 
   SECTION("Short option used twice")
   {
-    paw::parser pawparser({"program", "-t", "-t"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "-t", "-t"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 2);
     REQUIRE(flag_map.size() == 2);
   }
 
   SECTION("Short option with value")
   {
-    paw::parser pawparser({"program", "-t4"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "-t4"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 1);
     REQUIRE(flag_map.size() == 1);
     auto range_it = flag_map.equal_range("t");
@@ -46,8 +50,8 @@ TEST_CASE("Parse argc argv with short options")
 
   SECTION("Multiple short options with values")
   {
-    paw::parser pawparser({"program", "-t4", "-t84", "-t42"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "-t4", "-t84", "-t42"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("t") == 3);
     REQUIRE(flag_map.size() == 3);
     auto range_it = flag_map.equal_range("t");
@@ -69,16 +73,16 @@ TEST_CASE("Parse argc argv with long options")
 {
   SECTION("Long option used once")
   {
-    paw::parser pawparser({"program", "--test"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "--test"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 1);
     REQUIRE(flag_map.size() == 1);
   }
 
   SECTION("Long option used multiple times with value")
   {
-    paw::parser pawparser({"program", "--test=1", "--test=3", "--test=2"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "--test=1", "--test=3", "--test=2"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 3);
     REQUIRE(flag_map.size() == 3);
     auto range_it = flag_map.equal_range("test");
@@ -100,8 +104,8 @@ TEST_CASE("Parse argc argv with short and long options")
 {
   SECTION("Mixture of multiple short and long options")
   {
-    paw::parser pawparser({"program", "-t42", "--test=3", "-t1", "--test=2", "--test=4"});
-    const paw::parser::FlagMap & flag_map = pawparser.get_flag_map_reference();
+    paw::Parser pawparser({"program", "-t42", "--test=3", "-t1", "--test=2", "--test=4"});
+    paw::Parser::FlagMap const & flag_map = pawparser.get_flag_map_reference();
     REQUIRE(flag_map.count("test") == 3);
     REQUIRE(flag_map.count("t") == 2);
     REQUIRE(flag_map.size() == 5);
@@ -148,7 +152,7 @@ TEST_CASE("Parse options")
 
   SECTION("Valid options are passed")
   {
-    paw::parser pawparser(
+    paw::Parser pawparser(
       {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string=StRiNg", "--bool"}
       );
     pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
@@ -167,27 +171,27 @@ TEST_CASE("Parse options")
 
   SECTION("Pass invalid numbers")
   {
-    paw::parser pawparser(
+    paw::Parser pawparser(
       {"program", "--double=0.5a", "--int=-1b"}
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::parser::invalid_option_value_exception
+      paw::Parser::invalid_option_value_exception
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'i', "int", "Test int value."),
-      paw::parser::invalid_option_value_exception
+      paw::Parser::invalid_option_value_exception
       );
   }
 
   SECTION("Option with missing value")
   {
-    paw::parser pawparser({"program", "-d", "-b"});
+    paw::Parser pawparser({"program", "-d", "-b"});
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::parser::missing_value_exception
+      paw::Parser::missing_value_exception
       );
 
     REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bool value."));
@@ -196,7 +200,7 @@ TEST_CASE("Parse options")
 
   SECTION("Valid option string list")
   {
-    paw::parser pawparser({"program", "--files=f1.txt,f2.txt", "-ff3.txt", "main.txt"});
+    paw::Parser pawparser({"program", "--files=f1.txt,f2.txt", "-ff3.txt", "main.txt"});
     pawparser.parse_option_list(options.my_strings, 'f', "files", "Test file list");
     REQUIRE(options.my_strings.size() == 3);
     REQUIRE(options.my_strings[0] == std::string("f1.txt"));
@@ -206,6 +210,6 @@ TEST_CASE("Parse options")
 
   SECTION("Option list with missing value")
   {
-    paw::parser pawparser({"program", "--files", "f1.txt"});
+    paw::Parser pawparser({"program", "--files", "f1.txt"});
   }
 }

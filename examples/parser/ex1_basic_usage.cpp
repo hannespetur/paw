@@ -1,5 +1,6 @@
 #include <iostream> // std::cout, std::cerr
 #include <string> // std::string
+
 #include <paw/parser.hpp> // paw::parser
 
 
@@ -15,7 +16,7 @@ int
 main(int argc, char ** argv)
 {
   Options options;
-  paw::parser parser(argc, argv);
+  paw::Parser parser(argc, argv);
   parser.set_name("Example 1 - A very basic program that uses Paw parser.");
   parser.set_version("1.0");
 

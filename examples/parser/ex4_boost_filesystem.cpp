@@ -20,7 +20,7 @@ main(int argc, char ** argv)
   namespace fs = boost::filesystem;
 
   Options options;
-  paw::parser parser(argc, argv);
+  paw::Parser parser(argc, argv);
 
   try
   {
