@@ -75,7 +75,7 @@ public:
 
       if (smallest_size < options.max_queue_size)
       {
-        (*min_queue_it)->add_work_to_queue([&work, args ...] {work(args ...);});
+        (*min_queue_it)->add_work_to_queue(std::bind(std::forward<TWork>(work), args ...));
       }
       else
       {
@@ -108,7 +108,9 @@ public:
     }
     else
     {
-      queues[thread_id % thread_count]->add_work_to_queue([&work, args ...] {work(args ...);});
+      queues[thread_id % thread_count]->add_work_to_queue(std::bind(std::forward<TWork>(work),
+                                                                    args ...)
+                                                          );
     }
   }
 

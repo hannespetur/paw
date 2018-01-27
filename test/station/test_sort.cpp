@@ -62,8 +62,8 @@ template <typename T>
 void
 check_simple_floats()
 {
-  std::array<float, 7> const initial_floats  = {0.5f, 0.2f, 0.1f, 100.0f, -0.2f, 0.4f, 0.9f};
-  std::array<float, 7> const expected_floats = {-0.2f, 0.1f, 0.2f, 0.4f, 0.5f, 0.9f, 100.0f};
+  std::array<float, 7> const initial_floats  = {{0.5f, 0.2f, 0.1f, 100.0f, -0.2f, 0.4f, 0.9f}};
+  std::array<float, 7> const expected_floats = {{-0.2f, 0.1f, 0.2f, 0.4f, 0.5f, 0.9f, 100.0f}};
   T floats;
 
   for (auto it = initial_floats.cbegin(); it != initial_floats.cend(); ++it)

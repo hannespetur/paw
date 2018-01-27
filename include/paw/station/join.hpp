@@ -31,8 +31,6 @@ inline
 void
 join(TContainer & map, std::vector<std::shared_ptr<TContainer> > & split_map, Function merge_fun)
 {
-  std::size_t const PARTS = split_map.size();
-
   for (auto & a_map : split_map)
   {
     for (typename TContainer::iterator it = a_map->begin(); it != a_map->end(); ++it)
