@@ -51,9 +51,16 @@ endif()
 
 message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
-## Optional dependencies
-# Boost
+
+###
+# OPTIONAL DEPENDENCIES
+###
+# Find Boost
 find_package(Boost COMPONENTS filesystem system)
+
+# Find thread library (e.g. pthread on unix)
+find_package (Threads)
+set (PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 ## Setup compile flags
 set (CMAKE_CXX_FLAGS_COMMON "-std=c++11")
@@ -81,6 +88,7 @@ SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
 add_library(shared SHARED paw.cpp)
 SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
 set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 
 ## Examples
 add_subdirectory(examples)

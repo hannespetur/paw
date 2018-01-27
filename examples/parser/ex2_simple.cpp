@@ -27,7 +27,7 @@ main(int argc, char ** argv)
   // Parse arguments
   try
   {
-    paw::parser parser(argc, argv);
+    paw::Parser parser(argc, argv);
     parser.set_name("Example 2 - A simple program that uses Paw parser.");
     parser.set_version("3.14.15");
     parser.parse_option(options.my_bool,
@@ -60,7 +60,7 @@ main(int argc, char ** argv)
                                                 );
     parser.finalize();
   }
-  catch (const std::exception& e)
+  catch (const std::exception & e)
   {
     std::cerr << e.what() << "\n";
     return EXIT_FAILURE;
@@ -74,13 +74,13 @@ main(int argc, char ** argv)
   std::cout << "my_ints = [ ";
 
 
-  for (const auto& my_int : options.my_ints)
+  for (const auto & my_int : options.my_ints)
     std::cout << my_int << " ";
 
   std::cout << "]\n";
   std::cout << "my_strings = [ ";
 
-  for (const auto& my_string : options.my_strings)
+  for (const auto & my_string : options.my_strings)
     std::cout << my_string << " ";
   std::cout << "]\n";
 
@@ -88,7 +88,7 @@ main(int argc, char ** argv)
   std::cout << "my_second_pos_argument = " << options.my_second_pos_argument << "\n";
   std::cout << "my_remaining_pos_arguments = [ ";
 
-  for (const auto& my_pos_args : options.my_remaining_pos_arguments)
+  for (const auto & my_pos_args : options.my_remaining_pos_arguments)
     std::cout << my_pos_args << " ";
   std::cout << "]\n";
   return EXIT_SUCCESS;

@@ -41,7 +41,7 @@ int
 main(int argc, char ** argv)
 {
   Options options;
-  paw::parser parser(argc, argv);
+  paw::Parser parser(argc, argv);
 
   try
   {
