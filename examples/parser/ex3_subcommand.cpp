@@ -1,3 +1,4 @@
+#include <algorithm> // std::sort
 #include <iostream> // std::cout, std::cerr
 #include <iterator> // std::ostream_iterator
 #include <numeric> // std::accumulate

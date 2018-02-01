@@ -218,7 +218,7 @@ Station::join()
 
   for (int i = 0; i < static_cast<int>(options.num_threads) - 1; ++i)
   {
-    queues[i]->finished = true;
+    queues[i]->finish();
     workers[i].join();
 
     if (options.verbosity >= 2)

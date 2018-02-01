@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm> // std::find
-#include <iomanip> // std::setw
 #include <iterator> // std::distance
 #include <sstream> // std::ostringstream
 #include <string> // std::string
@@ -41,6 +39,10 @@ print_string(std::ostringstream & ss,
 /******************
  * IMPLEMENTATION *
  ******************/
+
+#include <algorithm> // std::find
+#include <iomanip> // std::setw
+
 
 namespace paw
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm> // std::find
 #include <map> // std::multimap
 #include <unordered_set> // std::unordered_set
 #include <sstream> // std::istringstream, std::ostringstream
@@ -31,7 +32,7 @@ public:
   {
 public:
     /** Short option for the 'help' page.
-     * No option shown if it is paw::parser::NO_SHORT_OPTION.
+     * No option shown if it is paw::internal::NO_SHORT_OPTION.
      */
     char shrt;
     std::string lng;           /**< Long option for the 'help' page.*/
@@ -40,15 +41,15 @@ public:
     std::string default_value; /**< The default value to display in the 'help' page.*/
   };
 
-
-  /** Type definition of the container used to store the arguments.*/
-  using Args = std::vector<Arg>;
-  using Subcommands = std::vector<std::pair<std::string, std::string> >;
-
-
   /* TYPE DEFINITIONS */
   /** Type definition for the hash table container to use for parsing arguments.*/
   using FlagMap = std::multimap<std::string, std::string>;
+
+  /** Type definition of the container used to store the arguments.*/
+  using Args = std::vector<Arg>;
+
+  /** Type definition for subcommands.*/
+  using Subcommands = std::vector<std::pair<std::string, std::string> >;
 
 public:
   /** \brief Construction of a paw parser instance.
@@ -180,13 +181,15 @@ public:
   set_name(std::string const & name);
 
   /** Sets the version of the program using two unsigned integers.
-   * \param[in] MAJOR major version.
-   * \param[in] MINOR minor version.
+   * \param[in] major Major version number.
+   * \param[in] minor Minor version number.
+   * \param[in] patch Patch version number.
    * \exception None.
    */
   void
-  set_version(unsigned const MAJOR,
-              unsigned const MINOR
+  set_version(unsigned const major,
+              unsigned const minor,
+              unsigned const patch
               );
 
   /** Sets the version of the program using a std::string.
@@ -451,7 +454,14 @@ Parser::parse_remaining_positional_arguments(T & list,
 }
 
 
+} // namespace paw
+
+
 #ifdef IMPLEMENT_PAW
+
+
+namespace paw
+{
 
 /******************
  * IMPLEMENTATION *
@@ -491,7 +501,8 @@ Parser::Parser(std::vector<std::string> const & arguments)
 
       if (it != arg_it->end())
       {
-        flag_map.emplace(std::move(flag), std::string(it + 1, arg_it->end())); // Equal sign used
+        // Equal sign was used
+        flag_map.emplace(std::move(flag), std::string(it + 1, arg_it->end()));
       }
       else
       {
@@ -609,10 +620,10 @@ Parser::set_name(std::string const & name)
 
 
 void
-Parser::set_version(unsigned const major, unsigned const minor)
+Parser::set_version(unsigned const major, unsigned const minor, unsigned const patch)
 {
   std::ostringstream ss;
-  ss << major << '.' << minor;
+  ss << major << '.' << minor << '.' << patch;
   version = ss.str();
 }
 
@@ -814,6 +825,7 @@ Parser::find_flag(char const shrt, std::string const & lng)
 }
 
 
-#endif // #define IMPLEMENT_PAW
-
 } // namespace paw
+
+
+#endif // #define IMPLEMENT_PAW

@@ -63,9 +63,9 @@ find_package (Threads)
 set (PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 ## Setup compile flags
-set (CMAKE_CXX_FLAGS_COMMON "-std=c++11")
+set (CMAKE_CXX_FLAGS_COMMON "-std=c++11 -Wall -Wfatal-errors")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wall -Wextra -Wfatal-errors -pedantic -DDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wextra -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
 if(NOT PORTABLE)
