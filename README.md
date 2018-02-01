@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/hannespetur/paw.svg?branch=master)](https://travis-ci.org/hannespetur/paw)
 
 ## paw
-Paw libraries are header-only libraries made to both simple and convenient to use.
+Paw libraries are header-only libraries made to be both simple and convenient to use.
 
 ### paw::Parser
 paw::Parser is a library for parsing command-line arguments. Its most distinctive feature that it automatically parses argument values to their respective types and creates a neat help page based on the available option of the program.

@@ -1,16 +1,132 @@
 #pragma once
 
-#include <chrono>
 #include <iterator> // std::iterator_traits
 #include <thread> // std::thread::hardware_concurrency
 
 #include <paw/station/internal/algorithm_help_functions.hpp>
 
-#include <paw/station/partition_iterator.hpp>
-#include <paw/station/split.hpp>
-#include <paw/station/station.hpp>
+#include <paw/station/partition_iterator.hpp> // paw::get_partition_iterators
+#include <paw/station/station.hpp> // paw::Station
 #include <paw/station/station_options.hpp> // paw::StationOptions
-#include <paw/station/worker_queue.hpp>
+
+
+namespace paw
+{
+
+/** Checks if unary predicate p returns true for all elements in the range [first, last).
+ * \param[in] options Options/policy of the paw::Station.
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+all_of(StationOptions && options, InputIt first, InputIt last, UnaryPredicate f);
+
+
+/** Checks if unary predicate p returns true for all elements in the range [first, last).
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+all_of(InputIt first, InputIt last, UnaryPredicate f);
+
+
+/** Checks if unary predicate p returns true for any elements in the range [first, last).
+ * \param[in] options Options/policy of the paw::Station.
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+any_of(StationOptions && options, InputIt first, InputIt last, UnaryPredicate f);
+
+
+/** Checks if unary predicate p returns true for any elements in the range [first, last).
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+any_of(InputIt first, InputIt last, UnaryPredicate f);
+
+
+template <typename InputIt, typename T>
+T inline
+count(StationOptions && options, InputIt first, InputIt last, T const & value);
+
+
+template <typename InputIt, typename T>
+T inline
+count(InputIt first, InputIt last, T const & value);
+
+
+template <typename InputIt, typename UnaryPredicate>
+typename std::iterator_traits<InputIt>::difference_type inline
+count_if(StationOptions && options, InputIt first, InputIt last, UnaryPredicate p);
+
+
+template <typename InputIt, typename UnaryPredicate>
+typename std::iterator_traits<InputIt>::difference_type inline
+count_if(InputIt first, InputIt last, UnaryPredicate p);
+
+
+template <typename InputIt, typename T>
+void inline
+fill(StationOptions && options, InputIt first, InputIt last, T const & value);
+
+
+template <typename InputIt, typename T>
+void inline
+fill(InputIt first, InputIt last, T const & value);
+
+
+template <typename InputIt, typename UnaryFunction>
+UnaryFunction inline
+for_each(StationOptions && options, InputIt first, InputIt last, UnaryFunction f);
+
+
+template <typename InputIt, typename UnaryFunction>
+UnaryFunction inline
+for_each(InputIt first, InputIt last, UnaryFunction f);
+
+
+/** Checks if unary predicate p returns true for no elements in the range [first, last).
+ * \param[in] options Options/policy of the paw::Station.
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+none_of(StationOptions && options, InputIt first, InputIt last, UnaryPredicate f);
+
+
+/** Checks if unary predicate p returns true for no elements in the range [first, last).
+ * \param[in] first Beginning of the range.
+ * \param[in] last Exclusive end of the range.
+ * \param[in] f Predicate to apply to the elements in the range.
+ */
+template <typename InputIt, typename UnaryPredicate>
+bool inline
+none_of(InputIt first, InputIt last, UnaryPredicate f);
+
+
+template <typename InputIt>
+void inline
+sort(StationOptions && options, InputIt first, InputIt last);
+
+
+template <typename InputIt>
+void inline
+sort(InputIt first, InputIt last);
+
+
+} // namespace paw
 
 
 namespace paw

@@ -172,17 +172,22 @@ TEST_CASE("Parse options")
   SECTION("Pass invalid numbers")
   {
     paw::Parser pawparser(
-      {"program", "--double=0.5a", "--int=-1b"}
+      {"program", "--double=0.5a", "--int=-1b", "--uint=1."}
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::Parser::invalid_option_value_exception
+      paw::exception::invalid_option_value
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'i', "int", "Test int value."),
-      paw::Parser::invalid_option_value_exception
+      paw::exception::invalid_option_value
+      );
+
+    REQUIRE_THROWS_AS(
+      pawparser.parse_option(options.my_int, 'u', "uint", "Test uint value."),
+      paw::exception::invalid_option_value
       );
   }
 
@@ -191,7 +196,7 @@ TEST_CASE("Parse options")
     paw::Parser pawparser({"program", "-d", "-b"});
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::Parser::missing_value_exception
+      paw::exception::missing_value
       );
 
     REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bool value."));
