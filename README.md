@@ -3,11 +3,16 @@
 ## paw
 Paw libraries are header-only libraries made to be both simple and convenient to use.
 
+
 ### paw::Parser
 paw::Parser is a library for parsing command-line arguments. Its most distinctive feature that it automatically parses argument values to their respective types and creates a neat help page based on the available option of the program.
 
+**Dependencies**: C++11 support (GCC >= 4.8.1, Clang >= 3.3)
+
 ### paw::Station
 paw::Station is a threadpool library built on top of the `std::thread` class. Each "station" manages the work to available threads.
+
+**Dependencies**: C++11 support (GCC >= 4.8.1, Clang >= 3.3), multi-threading library (i.e. compile with the `-pthread` flag on Linux)
 
 ### More libraries to come...
 Hopefully.
