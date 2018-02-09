@@ -31,12 +31,12 @@ matrix:
       install: export CXX="clang++" CC="clang"
 
     - os: linux
-      compiler: clang-3.9
+      compiler: clang-3.5
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: clang-3.9
-      install: export CXX="clang++-3.9" CC="clang-3.9"
+          packages: clang-3.5
+      install: export CXX="clang++-3.5" CC="clang-3.5"
 
 script:
   - mkdir build-release build-debug && cd build-debug
