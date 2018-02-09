@@ -27,12 +27,8 @@ matrix:
       install: export CXX="g++-7" CC="gcc-7"
 
     - os: linux
-      compiler: clang-3.5
-      addons:
-        apt:
-          sources: ubuntu-toolchain-r-test
-          packages: clang-3.5
-      install: export CXX="clang++-3.5" CC="clang-3.5"
+      compiler: clang
+      install: export CXX="clang++" CC="clang"
 
     - os: linux
       compiler: clang-3.9
