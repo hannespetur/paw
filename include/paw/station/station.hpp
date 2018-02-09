@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm> // std::all_of, std::min_element
-#include <iostream> // std::cout
 #include <memory> // std::unique_ptr
 #include <thread> // std::thread
 #include <utility> // std::forward
@@ -15,12 +13,6 @@
  * DECLERATIONS *
  ****************/
 
-/** \mainpage
- * paw Station is a thread pool library.
- * \author Hannes P Eggertsson
- * \copyright GNU GPLv3
- */
-
 /** \file paw/station/station.hpp
  * Main header file for paw Station.
  */
@@ -32,133 +24,130 @@ namespace paw
 class Station
 {
 public:
-  /* aliases */
   using Queues = std::vector<std::unique_ptr<WorkerQueue> >;
 
 private:
   /*********************
   * STATION STATISTICS *
   *********************/
+  /** Set if the station has joined its worker queues, i.e. all threads have finished running. */
   bool joined = false;
-  std::size_t main_thread_work_count = 0; /** Number of jobs the main thread has run. */
-  std::vector<std::thread> workers; /** List of threads. */
-  Queues queues; /** Each thread has a unique worker queue. */
+
+  /** Number of jobs the main thread has run. */
+  std::size_t main_thread_work_count = 0;
+
+  /** std::thread instances in this station. */
+  std::vector<std::thread> workers;
+
+  /** Each thread has a unique worker queue. */
+  Queues queues;
 
 public:
-  StationOptions options; /** Options and policies this station will follow */
+  /** Options and policies this station will follow */
+  StationOptions options;
 
+  /** Constructs a new Station instance.
+   * \param[in] _options Station options to use.
+   */
   Station(StationOptions _options);
+
+  /** Constructs a new Station instance.
+   * \param[in] num_threads Number of threads to use (includes the main thread).
+   * \param[in] max_queue_size Maximum number of elements in each queue.
+   */
   Station(std::size_t const num_threads = 1, std::size_t const max_queue_size = 2);
+
+  /** Deconstructs the Station. */
   ~Station();
 
   /***************************
   * GENERAL MEMBER FUNCTIONS *
   ***************************/
+  template <typename TWork, typename ... Args>
+  void inline
+  add_work(TWork && work, Args ... args);
+
+  template <typename TWork, typename ... Args>
+  void inline
+  add(TWork && work, Args ... args);
+
+  template <typename TWork, typename ... Args>
+  void inline
+  add_to_thread(std::size_t const thread_id, TWork && work, Args ... args);
+
   Queues::const_iterator find_smallest_queue(std::size_t & smallest_size);
 
-  template <typename TWork, typename ... Args>
-  void inline
-  add_work(TWork && work, Args ... args)
-  {
-    if (workers.size() == 0)
-    {
-      work(args ...);
-      ++main_thread_work_count;
-    }
-    else
-    {
-      // We have some workers, so let's assign the work to the smallest worker queue
-      std::size_t smallest_size = -1;
-
-      // If we have any worker threads, check who has the smallest queue
-      auto min_queue_it = find_smallest_queue(smallest_size);
-
-      if (smallest_size < options.max_queue_size)
-      {
-        (*min_queue_it)->add_work_to_queue(std::bind(std::forward<TWork>(work), args ...));
-      }
-      else
-      {
-        work(args ...); // If all queues are of maximum size, use the boss thread instead
-        ++main_thread_work_count;
-      }
-    }
-  }
-
-
-  template <typename TWork, typename ... Args>
-  void inline
-  add(TWork && work, Args ... args)
-  {
-    // For backwards compability
-    this->add_work(std::forward<TWork>(work), args ...);
-  }
-
-
-  template <typename TWork, typename ... Args>
-  void inline
-  add_to_thread(std::size_t const thread_id, TWork && work, Args ... args)
-  {
-    std::size_t const thread_count = options.num_threads;
-
-    if (thread_id % thread_count == thread_count - 1)
-    {
-      work(args ...);
-      ++main_thread_work_count;
-    }
-    else
-    {
-      queues[thread_id % thread_count]->add_work_to_queue(std::bind(std::forward<TWork>(work),
-                                                                    args ...)
-                                                          );
-    }
-  }
-
-
-  void inline
-  join()
-  {
-    if (options.verbosity >= 2)
-    {
-      std::cout << "[stations] Main thread processed "
-                << main_thread_work_count
-                << " chunks.\n";
-    }
-
-    for (int i = 0; i < static_cast<int>(options.num_threads) - 1; ++i)
-    {
-      queues[i]->finished = true;
-      workers[i].join();
-
-      if (options.verbosity >= 2)
-      {
-        std::cout << "[stations] Thread " << (i + 1)
-                  << " processed "
-                  << queues[i]->get_number_of_completed_items()
-                  << " chunks.\n";
-      }
-    }
-
-    joined = true;
-  }
-
+  void join();
 
   /***************************
   * PRIVATE MEMBER FUNCTIONS *
   ****************************/
 private:
-  void inline
-  resize_queues_and_workers(std::size_t const new_size)
-  {
-    for (std::size_t i = 0; i < new_size; ++i)
-    {
-      queues.push_back(std::unique_ptr<WorkerQueue>(new WorkerQueue()));
-      workers.push_back(std::thread(std::ref(*queues[i])));
-    }
-  }
-
+  void resize_queues_and_workers(std::size_t const new_size);
 
 };
+
+
+/*************
+ * TEMPLATES *
+ *************/
+template <typename TWork, typename ... Args>
+void inline
+Station::add_work(TWork && work, Args ... args)
+{
+  if (workers.size() == 0)
+  {
+    work(args ...);
+    ++main_thread_work_count;
+  }
+  else
+  {
+    // We have some workers, so let's assign the work to the smallest worker queue
+    std::size_t smallest_size = -1;
+
+    // If we have any worker threads, check who has the smallest queue
+    auto min_queue_it = find_smallest_queue(smallest_size);
+
+    if (smallest_size < options.max_queue_size)
+    {
+      (*min_queue_it)->add_work_to_queue(std::bind(std::forward<TWork>(work), args ...));
+    }
+    else
+    {
+      work(args ...);   // If all queues are of maximum size, use the boss thread instead
+      ++main_thread_work_count;
+    }
+  }
+}
+
+
+template <typename TWork, typename ... Args>
+void inline
+Station::add(TWork && work, Args ... args)
+{
+  // For backwards compability
+  this->add_work(std::forward<TWork>(work), args ...);
+}
+
+
+template <typename TWork, typename ... Args>
+void inline
+Station::add_to_thread(std::size_t const thread_id, TWork && work, Args ... args)
+{
+  std::size_t const thread_count = options.num_threads;
+
+  if (thread_id % thread_count == thread_count - 1)
+  {
+    work(args ...);
+    ++main_thread_work_count;
+  }
+  else
+  {
+    queues[thread_id % thread_count]->add_work_to_queue(std::bind(std::forward<TWork>(work),
+                                                                  args ...)
+                                                        );
+  }
+}
 
 
 } // namespace paw
@@ -166,7 +155,7 @@ private:
 
 #ifdef IMPLEMENT_PAW
 /* IMPLEMENTATION */
-
+#include <iostream> // std::cout
 
 namespace paw
 {
@@ -214,6 +203,45 @@ Station::find_smallest_queue(std::size_t & smallest_size)
   }
 
   return smallest_q_it;
+}
+
+
+void
+Station::join()
+{
+  if (options.verbosity >= 2)
+  {
+    std::cout << "[stations] Main thread processed "
+              << main_thread_work_count
+              << " chunks.\n";
+  }
+
+  for (int i = 0; i < static_cast<int>(options.num_threads) - 1; ++i)
+  {
+    queues[i]->finish();
+    workers[i].join();
+
+    if (options.verbosity >= 2)
+    {
+      std::cout << "[stations] Thread " << (i + 1)
+                << " processed "
+                << queues[i]->get_number_of_completed_items()
+                << " chunks.\n";
+    }
+  }
+
+  joined = true;
+}
+
+
+void
+Station::resize_queues_and_workers(std::size_t const new_size)
+{
+  for (std::size_t i = 0; i < new_size; ++i)
+  {
+    queues.push_back(std::unique_ptr<WorkerQueue>(new WorkerQueue()));
+    workers.push_back(std::thread(std::ref(*queues[i])));
+  }
 }
 
 
