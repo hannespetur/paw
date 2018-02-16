@@ -41,9 +41,12 @@ execute_process(
 
 
 # Pass information of paw to the source
-configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/config.hpp
+configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/_config.hpp
                ${PROJECT_BINARY_DIR}/include/paw/internal/config.hpp
                @ONLY)
+
+# Include configured files
+include_directories(${PROJECT_BINARY_DIR}/include)
 
 ## Set to release by default
 if(NOT CMAKE_BUILD_TYPE)
@@ -52,25 +55,39 @@ endif()
 
 message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
+## Find zlib
+find_package(ZLIB REQUIRED)
+include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
+
+list(APPEND PAW_LINK_LIBRARIES ${ZLIB_LIBRARIES})
 
 ###
 # OPTIONAL DEPENDENCIES
 ###
 # Find Boost
-find_package(Boost COMPONENTS filesystem system)
+find_package(Boost COMPONENTS filesystem system iostreams)
+
+if (Boost_FOUND)
+  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
+  include_directories(${Boost_INCLUDE_DIRS})
+
+  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
+  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
+endif()
 
 # Find thread library (e.g. pthread on unix)
 find_package (Threads)
-set(PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+list(APPEND PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
-# If c++17 is supported, use that
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+# Check which compiler flags are supported
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+#CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 
-if (COMPILER_SUPPORTS_CXX17)
-  set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
-elseif (COMPILER_SUPPORTS_CXX14)
+# Use highest CXX compiler flag available
+#if (COMPILER_SUPPORTS_CXX17)
+#  set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
+if (COMPILER_SUPPORTS_CXX14)
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++14")
 elseif (COMPILER_SUPPORTS_CXX11)
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++11")

@@ -5,6 +5,7 @@ set_property(TARGET catch PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 list(APPEND PAW_LINK_LIBRARIES catch)
 
+add_subdirectory(align)
 add_subdirectory(parser)
 add_subdirectory(station)
 
