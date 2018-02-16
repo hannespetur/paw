@@ -2,3 +2,7 @@
 debug/
 release/
 build*/
+GPATH
+GRTAGS
+GSYMS
+GTAGS
