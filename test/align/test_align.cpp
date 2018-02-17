@@ -61,12 +61,11 @@ TEST_CASE("Aligment black box tests")
   std::swap(database, query);
 
   auto t0 = Ttime::now();
-  std::string const src_dir = STR(PAW_SOURCE_DIR);
-  std::cerr << src_dir << std::endl;
-  database = get_sequence_from_fa("/home/sennap/git/paw/test/data/MT-human.fa", false);
+  std::string const src_dir(STR(PAW_SOURCE_DIR));
+  database = get_sequence_from_fa(src_dir + "/test/data/MT-human.fa", false);
   //database = get_sequence_from_fa(PROJECT_SOURCE_DIR + "/test/data/t2.fa.gz", true);
 
-  query = get_sequence_from_fa("/home/sennap/git/paw/test/data/MT-orang.fa", false);
+  query = get_sequence_from_fa(src_dir + "/test/data/MT-orang.fa", false);
   //query = get_sequence_from_fa(PROJECT_SOURCE_DIR + "/test/data/q2.fa.gz", true);
 
   // Change to uppercase
