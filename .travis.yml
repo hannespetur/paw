@@ -17,13 +17,13 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libboost-dev']
+          packages: ['libboost-all-dev']
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libboost-dev']
+          packages: ['libboost-all-dev']
       install: export CXX="clang++" CC="clang"
 
     - os: linux
@@ -31,7 +31,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: ['g++-5', 'libboost-dev']
+          packages: ['g++-5', 'libboost-all-dev']
       install: export CXX="g++-5" CC="gcc-5"
 
     - os: linux
@@ -39,7 +39,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: ['g++-7', 'libboost-dev']
+          packages: ['g++-7', 'libboost-all-dev']
       install: export CXX="g++-7" CC="gcc-7"
 
     - os: linux
@@ -47,7 +47,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: ['clang-3.5', 'libstdc++-4.9-dev', 'libboost-dev']
+          packages: ['clang-3.5', 'libstdc++-4.9-dev', 'libboost-all-dev']
       install: export CXX="clang++-3.5" CC="clang-3.5"
 
 script:
