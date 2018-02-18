@@ -14,7 +14,6 @@ struct FastaRecord
   std::string seq;
 
   FastaRecord();
-  FastaRecord(std::string const & id);
   FastaRecord(std::string const & id, std::string const & seq);
 };
 
@@ -28,13 +27,13 @@ public:
   std::vector<std::string> ids;
   std::vector<std::string> seqs;
 
-  Fasta(){}
+  Fasta();
 
   void add_record(std::string id, std::string seq);
   void load(std::string const & fn);
   void store(std::string const & fn);
 
-  std::string get_sequence(std::size_t const index) const;
+  std::string get_sequence(std::size_t index) const;
 
 };
 
@@ -68,14 +67,16 @@ FastaRecord::FastaRecord()
 {}
 
 
-FastaRecord::FastaRecord(std::string const & _id)
-  : id(_id)
-{}
-
-
 FastaRecord::FastaRecord(std::string const & _id, std::string const & _seq)
   : id(_id)
   , seq(_seq)
+{}
+
+
+Fasta::Fasta()
+    : records(0)
+    , ids(0)
+    , seqs(0)
 {}
 
 

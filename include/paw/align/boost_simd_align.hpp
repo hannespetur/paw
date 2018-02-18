@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <boost/simd.hpp>
+#include <boost/simd/pack.hpp>
 #include <boost/simd/memory/allocator.hpp>
 #include <boost/simd/function/all.hpp>
 #include <boost/simd/function/if_zero_else.hpp>
@@ -20,38 +20,13 @@
 #include <boost/simd/function/store.hpp>
 #include <boost/simd/function/maximum.hpp>
 
+#include <paw/align/aligner_options.hpp>
 #include <paw/align/backtracker.hpp>
 #include <paw/align/row.hpp>
 
 
 namespace paw
 {
-
-
-template <typename Tuint>
-struct AlignerOptions
-{
-  bool default_options; // If set to true, all options are assumed to be the default
-  //                       This removes some of the runtime checks
-
-  Tuint match = 2;
-  Tuint mismatch = 2;
-  Tuint gap_open = 5;
-  Tuint gap_extend = 1;
-
-  bool backtracking = true;
-  bool top_row_free = false;
-  bool bottom_row_free = false;
-  bool gap_open_free = false;
-  bool top_row_gap_open_free = gap_open_free;
-  bool bottom_row_gap_open_free = gap_open_free;
-  bool left_column_gap_open_free = gap_open_free;
-  bool right_column_gap_open_free = gap_open_free;
-
-  AlignerOptions(bool const _default_options = false)
-    : default_options(_default_options)
-  {}
-};
 
 
 template <typename Tuint, typename Tit>
@@ -102,12 +77,12 @@ private:
   Tuint top_left_score = 0;
 
   Tpack max_greater(Tpack & v1, Tpack const & v2);
-  Tpack max_greater_or_equal(Tpack & v1, Tpack const & v2);
+  // Tpack max_greater_or_equal(Tpack & v1, Tpack const & v2);
   void calculate_DNA_W_profile();
   void calculate_scores();
 
   // Same as 'calculate_scores', but assumes default options (less runtime checks)
-  void calculate_scores_default();
+  // void calculate_scores_default();
   void check_gap_extend_deletions();
   void check_gap_extend_deletions_with_backtracking(std::size_t const i);
   void init_score_vectors();
@@ -197,6 +172,7 @@ print_score_vector_vectorized(Tpack const & v)
 }
 
 
+/*
 template <typename Tpack>
 inline void
 print_score_vectors(Tpack const & vH,
@@ -219,13 +195,16 @@ print_score_vectors(Tpack const & vH,
   std::cout << "Vectorized E   : "; print_score_vector_vectorized(vE);
   std::cout << "=====\n";
 }
+*/
 
 
+/*
 constexpr int inline
 shift_elements_left(int i, int c)
 {
   return (c - 1 == i) ? -1 : (i + 1);
 }
+*/
 
 
 constexpr int inline
@@ -347,6 +326,7 @@ Aligner<Tuint, Tit>::max_greater(Tpack & v1, Tpack const & v2)
 }
 
 
+/*
 template <typename Tuint, typename Tit>
 typename Aligner<Tuint, Tit>::Tpack inline
 Aligner<Tuint, Tit>::max_greater_or_equal(Tpack & v1, Tpack const & v2)
@@ -355,6 +335,7 @@ Aligner<Tuint, Tit>::max_greater_or_equal(Tpack & v1, Tpack const & v2)
   v1 = boost::simd::if_else(is_greater, v2, v1);
   return boost::simd::if_one_else_zero(is_greater);
 }
+*/
 
 
 /// Calculate W_profile
@@ -466,9 +447,9 @@ Aligner<Tuint, Tit>::align(Tit _q_begin, Tit _q_end)
     }
   }
 
-  //if (opt.default_options)
-  //  calculate_scores_default();
-  //else
+//  if (opt.default_options)
+//    calculate_scores_default();
+//  else
   calculate_scores();
 
   // Get final score
@@ -753,7 +734,7 @@ Aligner<Tuint, Tit>::calculate_scores()
   } /// End of outer loop
 }
 
-
+/*
 template <typename Tuint, typename Tit>
 void inline
 Aligner<Tuint, Tit>::calculate_scores_default()
@@ -863,6 +844,7 @@ Aligner<Tuint, Tit>::calculate_scores_default()
     std::swap(vH.vectors, vH_up.vectors);
   } /// End of outer loop
 }
+*/
 
 
 template <typename Tuint, typename Tit>
