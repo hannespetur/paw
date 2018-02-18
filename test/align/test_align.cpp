@@ -1,21 +1,18 @@
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <paw/align/boost_simd_align.hpp>
-#include <paw/internal/config.hpp>
 
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-#include <algorithm> // std::transform
-#include <cctype> // toupper
 #include <chrono> // std::chrono::high_resolution_clock
 #include <fstream> // std::ifstream
-#include <ios>
-#include <iostream>
-#include <string>
-#include <vector>
+
+
+#ifdef NDEBUG
+#include <paw/internal/config.hpp>
+#endif
 
 
 namespace io = boost::iostreams;
@@ -60,7 +57,8 @@ TEST_CASE("Aligment black box tests")
   std::string query =    "GAG";
   std::swap(database, query);
 
-  auto t0 = Ttime::now();
+  // Black box test with FASTA sequences runs too slowly in debug mode
+#ifdef NDEBUG
   std::string const src_dir(STR(PAW_SOURCE_DIR));
   database = get_sequence_from_fa(src_dir + "/test/data/MT-human.fa", false);
   //database = get_sequence_from_fa(PROJECT_SOURCE_DIR + "/test/data/t2.fa.gz", true);
@@ -71,12 +69,9 @@ TEST_CASE("Aligment black box tests")
   // Change to uppercase
   std::transform(database.begin(), database.end(), database.begin(), ::toupper);
   std::transform(query.begin(), query.end(), query.begin(), ::toupper);
-
-  auto t1 = Ttime::now();
-  std::cout << "i/o     " << Tduration(t1 - t0).count() << " ms\n";
-
+#endif // NDEBUG
   //boost_simd_align<int8_t>(query, database);
-  t0 = Ttime::now();
+  auto t0 = Ttime::now();
 
   {
     AlignerOptions<uint8_t> opt;
@@ -96,9 +91,8 @@ TEST_CASE("Aligment black box tests")
     std::cout << "score = " << score << "\n";
   }
 
-  t1 = Ttime::now();
+  auto t1 = Ttime::now();
   std::cout << "int8_t  " << Tduration(t1 - t0).count() << " ms\n";
-
 
   for (std::size_t i = 0; i < 2; ++i)
   {

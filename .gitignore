@@ -1,8 +1,10 @@
 # build directories
 debug/
 release/
+cmake-build*/
 build*/
 GPATH
 GRTAGS
 GSYMS
 GTAGS
+.*/

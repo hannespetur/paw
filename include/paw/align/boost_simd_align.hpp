@@ -1,8 +1,7 @@
 #pragma once
 
-#include <array>
-#include <chrono>
-#include <cstdint>
+#include <array> // std::array
+#include <cstdint> // uint8_t
 #include <iostream>
 #include <limits>
 #include <set>
@@ -67,8 +66,6 @@ public:
   // p is the length (or cardinality) of the SIMD vectors
   std::size_t static constexpr p = boost::simd::cardinal_of<Tpack>();
 
-  using Ttime = std::chrono::high_resolution_clock;
-  using Tduration = std::chrono::duration<double, std::milli>;
 
 private:
   AlignerOptions<Tuint> const opt;
@@ -114,7 +111,6 @@ private:
   void check_gap_extend_deletions();
   void check_gap_extend_deletions_with_backtracking(std::size_t const i);
   void init_score_vectors();
-  void create_Wcomb();
 
 
 public:
@@ -139,7 +135,7 @@ public:
  * IMPLEMENTATION *
  ******************/
 
-#ifdef IMPLEMENT_PAW
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
 #include <cassert>
 #include <iomanip>

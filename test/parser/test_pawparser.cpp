@@ -2,7 +2,7 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <paw/parser.hpp>
 
