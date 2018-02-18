@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
-#include <boost/simd.hpp>
+#include <boost/simd/pack.hpp>
 
 
 namespace paw
@@ -25,18 +26,24 @@ struct Row
   /* CONSTRUCTORS */
   Row(std::size_t const _n_elements);
   Row(std::size_t const _n_elements, Tuint const val);
+
 };
 
 
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
 #include <iomanip> // std::setw
 
+
 namespace paw
 {
+
+template<typename Tuint>
+std::size_t constexpr Row<Tuint>::vector_size;
+
 
 template <typename Tuint>
 Row<Tuint>::Row(std::size_t const _n_elements)
@@ -54,6 +61,7 @@ Row<Tuint>::Row(std::size_t const _n_elements, Tuint const val)
   Tpack my_vector {
     val
   };
+
   vectors.resize((n_elements + vector_size - 1) / vector_size, my_vector);
 }
 

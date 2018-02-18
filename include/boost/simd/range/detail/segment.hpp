@@ -11,6 +11,7 @@
 #define BOOST_SIMD_RANGE_DETAIL_SEGMENT_HPP_INCLUDED
 
 #include <boost/simd/detail/nsm.hpp>
+#include <boost/range/iterator_range.hpp>
 
 namespace boost { namespace simd { namespace detail
 {
