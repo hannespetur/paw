@@ -474,9 +474,8 @@ Parser::Parser(int argc, char ** argv) :
 
 
 Parser::Parser(std::vector<std::string> const & arguments)
+  : raw_args(arguments)
 {
-  raw_args = std::vector<std::string>(arguments);
-
   // raw_args is assumed to be never empty
   if (raw_args.size() == 0)
     raw_args.push_back("<program>");

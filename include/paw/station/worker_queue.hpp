@@ -63,9 +63,8 @@ namespace paw
 
 
 WorkerQueue::WorkerQueue()
-{
-  queue_size = 0;
-}
+  : queue_size(0)
+{}
 
 
 void

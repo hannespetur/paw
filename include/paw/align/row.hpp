@@ -14,6 +14,7 @@ struct Row
 {
   using uint_t = Tuint;
   using Tpack = boost::simd::pack<Tuint>;
+  using Tlogical_pack = boost::simd::pack<boost::simd::logical<Tuint> >;
   using Vectors = std::vector<Tpack, boost::simd::allocator<Tpack> >;
 
   std::size_t static constexpr vector_size = boost::simd::cardinal_of<Tpack>();

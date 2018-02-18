@@ -82,12 +82,13 @@ list(APPEND PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 # Check which compiler flags are supported
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-#CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 
 # Use highest CXX compiler flag available
-#if (COMPILER_SUPPORTS_CXX17)
-#  set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
-if (COMPILER_SUPPORTS_CXX14)
+if (COMPILER_SUPPORTS_CXX17 AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # Compilation fails on GCC 7.3 with c++17.
+  set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
+elseif (COMPILER_SUPPORTS_CXX14)
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++14")
 elseif (COMPILER_SUPPORTS_CXX11)
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++11")
@@ -101,9 +102,9 @@ set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wfatal-errors")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wextra -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
-if(NOT PORTABLE)
-  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
-endif()
+#if(NOT PORTABLE)
+#  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
+#endif()
 
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -122,6 +123,16 @@ add_library(shared SHARED paw.cpp)
 SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
 set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+#add_library(shared_sse2 SHARED paw.cpp)
+#SET_TARGET_PROPERTIES(shared_sse2 PROPERTIES OUTPUT_NAME paw_sse2)
+#set_property(TARGET shared_sse2 PROPERTY POSITION_INDEPENDENT_CODE ON)
+#set_target_properties(shared_sse2 PROPERTIES COMPILE_FLAGS "-msse2")
+
+#set_target_properties(test_sse3 PROPERTIES COMPILE_FLAGS "-msse3")
+#set_target_properties(test_sse4.1 PROPERTIES COMPILE_FLAGS "-msse4.1")
+#set_target_properties(test_sse4.2 PROPERTIES COMPILE_FLAGS "-msse4.2")
+#set_target_properties(test_avx PROPERTIES COMPILE_FLAGS "-mavx")
+#set_target_properties(test_avx2 PROPERTIES COMPILE_FLAGS "-mavx2")
 
 ## Examples
 add_subdirectory(examples)

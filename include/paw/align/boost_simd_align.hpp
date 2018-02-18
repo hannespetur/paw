@@ -62,6 +62,7 @@ public:
   using Trow = Row<Tuint>;   // A row of vectors that can be run in parallel
   using Tarr = std::array<Trow, 4>;
   using Tpack = typename Row<Tuint>::Tpack;
+  using Tlogical_pack = typename Row<Tuint>::Tlogical_pack;
 
   // p is the length (or cardinality) of the SIMD vectors
   std::size_t static constexpr p = boost::simd::cardinal_of<Tpack>();
@@ -94,15 +95,17 @@ private:
   Tuint const max_score_val;
   Tpack const max_score_pack;
   int64_t total_reductions = 0;
-  Trow vH_up;   // Previous H row
-  Trow vH;   // Current H row
-  Trow vE;   // Current E row
-  Trow vF_up;   // Previous F row
-  Trow vF;   // Current F row
+  Trow vH_up; // Previous H row
+  Trow vH;    // Current H row
+  Trow vE;    // Current E row
+  Trow vF_up; // Previous F row
+  Trow vF;    // Current F row
   Tarr W_profile;
-  Backtracker<Tuint> mB;   //(n /*n_row*/, t /*n_vectors in each score row*/);
+  Backtracker<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   Tuint top_left_score = 0;
 
+  Tpack max_greater(Tpack & v1, Tpack const & v2);
+  Tpack max_greater_or_equal(Tpack & v1, Tpack const & v2);
   void calculate_DNA_W_profile();
   void calculate_scores();
 
@@ -170,27 +173,6 @@ get_W(const char b, std::array<paw::Row<Tuint>, 4> const & W_profile)
 }
 
 
-/// Calculate the maximum with backtrack
-template <typename Tpack>
-inline Tpack
-max_greater(Tpack & v1, Tpack const & v2)
-{
-  auto is_greater = v2 > v1;
-  v1 = boost::simd::if_else(is_greater, v2, v1);
-  return boost::simd::if_one_else_zero(is_greater);
-}
-
-
-template <typename Tpack>
-inline Tpack
-max_greater_or_equal(Tpack & v1, Tpack const & v2)
-{
-  auto is_greater = v2 >= v1;
-  v1 = boost::simd::if_else(is_greater, v2, v1);
-  return boost::simd::if_one_else_zero(is_greater);
-}
-
-
 template <typename Tpack>
 inline void
 print_score_vector_standard(Tpack const & vX)
@@ -246,10 +228,7 @@ print_score_vectors(Tpack const & vH,
 constexpr int inline
 shift_elements_left(int i, int c)
 {
-  if (c - 1 == i)
-    return -1;
-  else
-    return i + 1;
+  return (c - 1 == i) ? -1 : (i + 1);
 }
 
 
@@ -358,6 +337,27 @@ Aligner<Tuint, Tit>::Aligner(Tit _d_begin /*database begin*/,
   }
 
   calculate_DNA_W_profile();
+}
+
+
+/// Calculate the maximum with backtrack
+template <typename Tuint, typename Tit>
+typename Aligner<Tuint, Tit>::Tpack inline
+Aligner<Tuint, Tit>::max_greater(Tpack & v1, Tpack const & v2)
+{
+  Tlogical_pack is_greater = v2 > v1;
+  v1 = boost::simd::if_else(is_greater, v2, v1);
+  return boost::simd::if_one_else_zero(is_greater);
+}
+
+
+template <typename Tuint, typename Tit>
+typename Aligner<Tuint, Tit>::Tpack inline
+Aligner<Tuint, Tit>::max_greater_or_equal(Tpack & v1, Tpack const & v2)
+{
+  Tlogical_pack is_greater = v2 >= v1;
+  v1 = boost::simd::if_else(is_greater, v2, v1);
+  return boost::simd::if_one_else_zero(is_greater);
 }
 
 

@@ -12,6 +12,10 @@ struct FastaRecord
 {
   std::string id;
   std::string seq;
+
+  FastaRecord();
+  FastaRecord(std::string const & id);
+  FastaRecord(std::string const & id, std::string const & seq);
 };
 
 
@@ -19,6 +23,7 @@ class Fasta
 {
 public:
   using Records = std::vector<FastaRecord>;
+  Records records;
 
   std::vector<std::string> ids;
   std::vector<std::string> seqs;
@@ -58,6 +63,21 @@ namespace io = boost::iostreams;
 
 namespace paw
 {
+
+FastaRecord::FastaRecord()
+{}
+
+
+FastaRecord::FastaRecord(std::string const & _id)
+  : id(_id)
+{}
+
+
+FastaRecord::FastaRecord(std::string const & _id, std::string const & _seq)
+  : id(_id)
+  , seq(_seq)
+{}
+
 
 void
 Fasta::add_record(std::string id, std::string seq)
@@ -117,9 +137,11 @@ Fasta::load(std::string const & fn)
       id = std::move(line);
       seq.clear();
     }
-
-    // Add line to sequence
-    ss << line;
+    else
+    {
+      // Add line to sequence
+      ss << line;
+    }
   }
 
   // Add final sequence

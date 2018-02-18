@@ -183,9 +183,8 @@ namespace exception
 {
 /* EXCEPTIONS */
 help::help(std::string const & _help_message)
-{
-  help_message = _help_message;
-}
+  : help_message(_help_message)
+{}
 
 
 const char *
@@ -199,6 +198,7 @@ help::what() const throw()
 invalid_option::invalid_option(std::string const & invalid_option,
                                std::string const & help_message
                                )
+  : error_message("")
 {
   std::ostringstream ss;
   ss << "[paw::Parser::InvalidOption] ERROR: Unknown option '"
