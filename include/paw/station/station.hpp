@@ -153,8 +153,8 @@ Station::add_to_thread(std::size_t const thread_id, TWork && work, Args ... args
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
-/* IMPLEMENTATION */
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
+
 #include <iostream> // std::cout
 
 namespace paw

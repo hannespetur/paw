@@ -23,7 +23,7 @@ struct AlignerOptions
   bool left_column_gap_open_free = gap_open_free;
   bool right_column_gap_open_free = gap_open_free;
 
-  AlignerOptions(bool const _default_options = false)
+  explicit AlignerOptions(bool const _default_options = false)
       : default_options(_default_options)
   {}
 };

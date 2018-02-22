@@ -53,8 +53,7 @@ public:
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
-/* IMPLEMENTATION*/
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
 #include <thread> // std::this_thread::sleep_for
 

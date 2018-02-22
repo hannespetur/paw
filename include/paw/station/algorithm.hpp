@@ -479,7 +479,7 @@ void inline
 sort(InputIt first, InputIt last)
 {
   StationOptions options;
-  std::size_t const container_size = std::distance(first, last);
+  long const container_size = std::distance(first, last);
 
   if (options.num_threads > 2 && container_size >= 1000 && container_size <= 10000)
   {

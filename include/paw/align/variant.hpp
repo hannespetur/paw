@@ -52,7 +52,7 @@ bool operator==(Variant const & a, Variant const & b);
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
 
 namespace paw
