@@ -7,6 +7,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include <chrono> // std::chrono::high_resolution_clock
+#include <string>
 #include <fstream> // std::ifstream
 
 
@@ -70,6 +71,7 @@ TEST_CASE("Aligment black box tests")
   std::transform(database.begin(), database.end(), database.begin(), ::toupper);
   std::transform(query.begin(), query.end(), query.begin(), ::toupper);
 #endif // NDEBUG
+
   //boost_simd_align<int8_t>(query, database);
   auto t0 = Ttime::now();
 

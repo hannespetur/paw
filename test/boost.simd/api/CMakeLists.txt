@@ -1,20 +1,10 @@
-##===================================================================================================
-##                 Copyright 2016   NumScale SAS
-##
-##                   Distributed under the Boost Software License, Version 1.0.
-##                        See accompanying file LICENSE.txt or copy at
-##                            http://www.boost.org/LICENSE_1_0.txt
-##===================================================================================================
+#add_subdirectory(algorithm)
+#add_subdirectory(helper)
+#add_subdirectory(meta)
+#add_subdirectory(memory)
+#add_subdirectory(pack)
+#add_subdirectory(range)
 
-add_subdirectory(helper)
-add_subdirectory(meta)
-add_subdirectory(memory)
-add_subdirectory(pack)
-add_subdirectory(range)
-add_subdirectory(algorithm)
-
-SET( SOURCES
-    includes.cpp
-  )
-
-make_unit( "api" ${SOURCES})
+add_executable(test_boost_simd_algorithm algorithm.cpp)
+target_link_libraries(test_boost_simd_algorithm shared ${PAW_LINK_LIBRARIES})
+add_test(NAME test_boost_simd_algorithm COMMAND $<TARGET_FILE:test_boost_simd_algorithm>)
