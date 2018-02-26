@@ -457,7 +457,7 @@ Parser::parse_remaining_positional_arguments(T & list,
 } // namespace paw
 
 
-#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
+#if defined(IMPLEMENT_PAW)
 
 
 namespace paw

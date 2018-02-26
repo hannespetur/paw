@@ -12,6 +12,11 @@
 #include "algorithm/test_copy_n.hpp"
 #include "algorithm/test_count.hpp"
 #include "algorithm/test_count_if.hpp"
+#include "algorithm/test_equal.hpp"
+#include "algorithm/test_fill.hpp"
+#include "algorithm/test_find.hpp"
+#include "algorithm/test_find_if.hpp"
+#include "algorithm/test_find_if_not.hpp"
 
 
 template<typename T>
@@ -24,6 +29,11 @@ test_algorithm()
   test_copy_n<T>();
   test_count<T>();
   test_count_if<T>();
+  test_equal<T>();
+  test_fill<T>();
+  test_find<T>();
+  test_find_if<T>();
+  test_find_if_not<T>();
 }
 
 

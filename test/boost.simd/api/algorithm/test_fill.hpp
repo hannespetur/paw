@@ -6,16 +6,21 @@
   (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
 */
 //==================================================================================================
-#include <boost/simd/algorithm/fill.hpp>
+
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include <boost/simd/algorithm/fill.hpp>
+
+#include "../../../include/catch.hpp"
 
 using namespace boost::simd;
 using namespace boost::alignment;
 
 
-STF_CASE_TPL( "Check unary simd::fill", STF_NUMERIC_TYPES )
+template<typename T>
+void
+test_fill()
 {
   static const int N = pack<T>::static_size;
 
@@ -23,9 +28,7 @@ STF_CASE_TPL( "Check unary simd::fill", STF_NUMERIC_TYPES )
   std::fill(values1.begin(), values1.end(),T(1));
   boost::simd::fill(values2.data(), values2.data()+values2.size(),T(1));
 
-  STF_EQUAL (true, std::equal(values1.begin(), values1.end(), values2.begin()));
-
-
+  REQUIRE(std::equal(values1.begin(), values1.end(), values2.begin()));
 }
 
 
