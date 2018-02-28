@@ -10,13 +10,15 @@
 #include <boost/simd/function/is_greater.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include "../../../include/catch.hpp"
 
 using namespace boost::simd;
 using namespace boost::alignment;
 
-
-STF_CASE_TPL( "Check unary simd::max_val", STF_NUMERIC_TYPES )
+template<typename T>
+void
+test_max_val()
 {
   static const int N = pack<T>::static_size;
 
@@ -26,44 +28,46 @@ STF_CASE_TPL( "Check unary simd::max_val", STF_NUMERIC_TYPES )
     values[N] = T(1000);
     auto f1 = *std::max_element(values.begin(), values.end());
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
+
   {
     std::iota(values.begin(), values.end(),T(1));
     values[0] = T(1000);
     auto f1 = *std::max_element(values.begin(), values.end());
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
+
   {
     std::iota(values.begin(), values.end(),T(1));
     values[2*N] = T(0);
     auto f1 = *std::max_element(values.begin(), values.end());
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
+
   {
     std::iota(values.begin(), values.end(),T(1));
     values[N] = T(0);
     auto f1 = *std::max_element(values.begin(), values.end(), bs::is_greater);
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1, bs::is_greater);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
+
   {
     std::iota(values.begin(), values.end(),T(1));
     values[0] = T(0);
     auto f1 = *std::max_element(values.begin(), values.end(), bs::is_greater);
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1, bs::is_greater);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
+
   {
     std::iota(values.begin(), values.end(),T(1));
     values[2*N] = T(0);
     auto f1 = *std::max_element(values.begin(), values.end(), bs::is_greater);
     auto f2 = boost::simd::max_val(values.data(), values.data()+2*N+1, bs::is_greater);
-    STF_EQUAL ( f1, f2 );
+    REQUIRE(f1 == f2);
   }
-
 }
-
-

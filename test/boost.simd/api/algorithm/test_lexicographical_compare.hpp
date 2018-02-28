@@ -10,13 +10,16 @@
 #include <boost/simd/function/compare_greater.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include "../../../include/catch.hpp"
 
 using namespace boost::simd;
 using namespace boost::alignment;
 
 
-STF_CASE_TPL( "Check unary simd::lexicographical_compare", STF_NUMERIC_TYPES )
+template<typename T>
+void
+test_lexicographical_compare()
 {
   static const int N = pack<T>::static_size;
 
@@ -27,36 +30,37 @@ STF_CASE_TPL( "Check unary simd::lexicographical_compare", STF_NUMERIC_TYPES )
   {
     bool b1 = boost::simd::lexicographical_compare( values2.data(), values2.data()+2*N+1, values2.data(), values2.data()+2*N+1);
     bool sb1 = std::lexicographical_compare( values2.data(), values2.data()+2*N+1, values2.data(), values2.data()+2*N+1);
-    STF_EQUAL(b1, sb1);
+    REQUIRE(b1 == sb1);
     bool b2 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N+1, values2.data(), values2.data()+2*N+1);
     bool sb2 = std::lexicographical_compare( values1.data(), values1.data()+2*N+1, values2.data(), values2.data()+2*N+1);
-    STF_EQUAL(b2, sb2);
+    REQUIRE(b2 == sb2);
     bool b3 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N+1, values1.data(), values1.data()+2*N-1);
     bool sb3 = std::lexicographical_compare( values1.data(), values1.data()+2*N+1, values1.data(), values1.data()+2*N-1);
-    STF_EQUAL(b3, sb3);
+    REQUIRE(b3 == sb3);
     bool b4 = boost::simd::lexicographical_compare( values2.data(), values2.data()+2*N+1, values1.data(), values1.data()+2*N-1);
     bool sb4 = std::lexicographical_compare( values2.data(), values2.data()+2*N+1, values1.data(), values1.data()+2*N-1);
-    STF_EQUAL(b4, sb4);
+    REQUIRE(b4 == sb4);
     bool b5 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N-1, values1.data(), values1.data()+2*N+1);
     bool sb5 = std::lexicographical_compare( values1.data(), values1.data()+2*N-1, values1.data(), values1.data()+2*N+1);
-    STF_EQUAL(b5, sb5);
+    REQUIRE(b5 == sb5);
   }
+
   {
     bool b1 = boost::simd::lexicographical_compare( values2.data(), values2.data()+2*N+1, values2.data(), values2.data()+2*N+1, bs::compare_greater);
     bool sb1 = std::lexicographical_compare( values2.data(), values2.data()+2*N+1, values2.data(), values2.data()+2*N+1, bs::compare_greater);
-    STF_EQUAL(b1, sb1);
+    REQUIRE(b1 == sb1);
     bool b2 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N+1, values2.data(), values2.data()+2*N+1, bs::compare_greater);
     bool sb2 = std::lexicographical_compare( values1.data(), values1.data()+2*N+1, values2.data(), values2.data()+2*N+1, bs::compare_greater);
-    STF_EQUAL(b2, sb2);
+    REQUIRE(b2 == sb2);
     bool b3 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N+1, values1.data(), values1.data()+2*N-1, bs::compare_greater);
     bool sb3 = std::lexicographical_compare( values1.data(), values1.data()+2*N+1, values1.data(), values1.data()+2*N-1, bs::compare_greater);
-    STF_EQUAL(b3, sb3);
+    REQUIRE(b3 == sb3);
     bool b4 = boost::simd::lexicographical_compare( values2.data(), values2.data()+2*N+1, values1.data(), values1.data()+2*N-1, bs::compare_greater);
     bool sb4 = std::lexicographical_compare( values2.data(), values2.data()+2*N+1, values1.data(), values1.data()+2*N-1, bs::compare_greater);
-    STF_EQUAL(b4, sb4);
+    REQUIRE(b4 == sb4);
     bool b5 = boost::simd::lexicographical_compare( values1.data(), values1.data()+2*N-1, values1.data(), values1.data()+2*N+1, bs::compare_greater);
     bool sb5 = std::lexicographical_compare( values1.data(), values1.data()+2*N-1, values1.data(), values1.data()+2*N+1, bs::compare_greater);
-    STF_EQUAL(b5, sb5);
+    REQUIRE(b5 == sb5);
   }
 }
 

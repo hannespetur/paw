@@ -17,6 +17,7 @@
 #include <boost/simd/pack.hpp>
 #include <type_traits>
 
+
 namespace boost { namespace simd
 {
   /*!
@@ -43,16 +44,20 @@ namespace boost { namespace simd
 
   **/
   template<typename T, typename Pred>
-  T const* find_if(T const* first, T const* last, Pred const& pred)
+  T const*
+  find_if(T const* first, T const* last, Pred const& pred)
   {
-    auto pr = segmented_aligned_range(first,last);
-    auto safe_pred = [&pred](T x){ return pred(x); };
+    auto pr = segmented_aligned_range(first, last);
+    auto safe_pred = [&pred](T x){return pred(x);};
 
     auto r = std::find_if(pr.head.begin(), pr.head.end(), safe_pred);
-    if (r != pr.head.end()) return r;
 
-    auto rv = std::find_if( pr.body.begin(), pr.body.end()
-                          , [&pred](const pack<T>& x){ return any(pred(x)); }
+    if (r != pr.head.end())
+      return r;
+
+    auto rv = std::find_if(pr.body.begin(),
+                           pr.body.end(),
+                           [&pred](const pack<T>& x){return any(pred(x));}
                           );
 
     if (rv != pr.body.end())
@@ -65,6 +70,6 @@ namespace boost { namespace simd
 
     return std::find_if(pr.tail.begin(), pr.tail.end(), safe_pred);
   }
-} }
+} } // namespace boost::simd
 
 #endif

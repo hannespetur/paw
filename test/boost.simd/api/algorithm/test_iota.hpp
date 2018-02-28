@@ -10,11 +10,15 @@
 #include <boost/simd/pack.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include "../../../include/catch.hpp"
+
 
 using namespace boost::simd;
 
-STF_CASE_TPL( "Check unary simd::iota", (float)) // STF_NUMERIC_TYPES )
+template<typename T>
+void
+test_iota()
 {
   static const int N = pack<T>::static_size;
 
@@ -23,5 +27,5 @@ STF_CASE_TPL( "Check unary simd::iota", (float)) // STF_NUMERIC_TYPES )
 
   boost::simd::iota(values.data(), values.data()+values.size(), T(3));
 
-  STF_EQUAL( values, ref );
+  REQUIRE(values == ref);
 }

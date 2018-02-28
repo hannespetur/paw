@@ -10,44 +10,40 @@
 #include <boost/align/aligned_allocator.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include "../../../include/catch.hpp"
+
 
 using namespace boost::simd;
 using namespace boost::alignment;
 
-STF_CASE_TPL( "Check simd::none_of(f,l)", STF_NUMERIC_TYPES )
+
+template<typename T>
+void
+test_none_of()
 {
   static const int N = pack<T>::static_size;
 
   {
-
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N, T(0));
 
     auto ab = values.data();
-    auto ae = values.data()+values.size();
+    auto ae = values.data() + values.size();
 
     // All aligned
-    STF_EQUAL ( true
-              , (boost::simd::none_of(ab,ae))
-              );
+    REQUIRE(boost::simd::none_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( true
-              , (boost::simd::none_of(ab+1,ae))
-              );
+    REQUIRE(boost::simd::none_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::none_of(ab,ae-1))
-              );
+    REQUIRE(boost::simd::none_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::none_of(ab+1,ae-1))
-              );
+    REQUIRE(boost::simd::none_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[N] = T(1); // 1 in aligned
@@ -56,27 +52,19 @@ STF_CASE_TPL( "Check simd::none_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[1] = T(1);// 1 in prologue
@@ -85,27 +73,19 @@ STF_CASE_TPL( "Check simd::none_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae))
-              );
+    REQUIRE_FALSE (boost::simd::none_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae))
-              );
+    REQUIRE_FALSE (boost::simd::none_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[2*N-2] = T(1);// 1 in epilogue
@@ -114,25 +94,15 @@ STF_CASE_TPL( "Check simd::none_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::none_of(ab+1,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::none_of(ab+1,ae-1));
   }
 }
-
-

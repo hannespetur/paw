@@ -4,20 +4,23 @@
 #include <boost/simd/algorithm/all_of.hpp>
 #include <boost/align/aligned_allocator.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
-
-using namespace boost::simd;
-using namespace boost::alignment;
 
 
 template<typename T>
 void
 test_all_of()
 {
-  static const int N = pack<T>::static_size;
+  namespace ba = boost::alignment;
+  namespace bs = boost::simd;
+
+  static const int N = bs::pack<T>::static_size;
+
+  using vec_t = std::vector<T, ba::aligned_allocator<T, bs::pack<T>::alignment> >;
 
   {
-    std::vector<T, aligned_allocator<T, pack<T>::alignment>> values(static_cast<T>(2 * N));
+    vec_t values(static_cast<T>(2 * N));
     std::iota(values.begin(), values.end(), T(1));
 
     auto ab = values.data();
@@ -31,7 +34,7 @@ test_all_of()
   }
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(static_cast<T>(2 * N));
+    vec_t values(static_cast<T>(2 * N));
     std::iota(values.begin(), values.end(),T(1));
     values[N] = T(0);  // 0 in aligned
 
@@ -45,7 +48,7 @@ test_all_of()
   }
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(static_cast<T>(2 * N));
+    vec_t values(static_cast<T>(2 * N));
     std::iota(values.begin(), values.end(),T(1));
     values[1] = T(0);  // 0 in prologue
 
@@ -59,7 +62,7 @@ test_all_of()
   }
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(static_cast<T>(2 * N));
+    vec_t values(static_cast<T>(2 * N));
     std::iota(values.begin(), values.end(),T(1));
     values[2*N-2] = T(0);// 0 in epilogue
 
@@ -71,4 +74,9 @@ test_all_of()
     REQUIRE_FALSE(boost::simd::all_of(ab,ae-1));
     REQUIRE_FALSE(boost::simd::all_of(ab+1,ae-1));
   }
+}
+
+TEST_CASE("test all_of")
+{
+  TEST_NUMERIC_TYPES(test_all_of);
 }

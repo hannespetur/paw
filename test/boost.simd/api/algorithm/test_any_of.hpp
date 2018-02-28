@@ -18,7 +18,7 @@ test_any_of()
   static const int N = pack<T>::static_size;
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(static_cast<T>(2*N), T(0));
+    std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(static_cast<T>(2 * N), T(0));
 
     auto ab = values.data();
     auto ae = values.data()+values.size();

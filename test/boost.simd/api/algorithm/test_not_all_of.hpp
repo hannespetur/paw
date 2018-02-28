@@ -10,17 +10,21 @@
 #include <boost/align/aligned_allocator.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
+
+#include "../../../include/catch.hpp"
+
 
 using namespace boost::simd;
 using namespace boost::alignment;
 
-STF_CASE_TPL( "Check simd::not_all_of(f,l)", STF_NUMERIC_TYPES )
+
+template<typename T>
+void
+test_not_all_of()
 {
   static const int N = pack<T>::static_size;
 
   {
-
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
 
@@ -28,27 +32,19 @@ STF_CASE_TPL( "Check simd::not_all_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( false
-              , (boost::simd::not_all_of(ab,ae))
-              );
+    REQUIRE_FALSE(boost::simd::not_all_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( false
-              , (boost::simd::not_all_of(ab+1,ae))
-              );
+    REQUIRE_FALSE(boost::simd::not_all_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::not_all_of(ab,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::not_all_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( false
-              , (boost::simd::not_all_of(ab+1,ae-1))
-              );
+    REQUIRE_FALSE(boost::simd::not_all_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[N] = T(0); // 0 in aligned
@@ -57,27 +53,19 @@ STF_CASE_TPL( "Check simd::not_all_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[1] = T(0);// 0 in prologue
@@ -86,27 +74,19 @@ STF_CASE_TPL( "Check simd::not_all_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae-1));
   }
-  {
 
+  {
     std::vector<T,aligned_allocator<T,pack<T>::alignment>> values(2*N);
     std::iota(values.begin(), values.end(),T(1));
     values[2*N-2] = T(0);// 0 in epilogue
@@ -115,25 +95,15 @@ STF_CASE_TPL( "Check simd::not_all_of(f,l)", STF_NUMERIC_TYPES )
     auto ae = values.data()+values.size();
 
     // All aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae));
 
     // prologue + aligned
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae));
 
     // aligned + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab,ae-1));
 
     // prologue + epilogue
-    STF_EQUAL ( true
-              , (boost::simd::not_all_of(ab+1,ae-1))
-              );
+    REQUIRE(boost::simd::not_all_of(ab+1,ae-1));
   }
 }
-
-

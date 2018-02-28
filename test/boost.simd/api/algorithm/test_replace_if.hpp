@@ -10,14 +10,14 @@
 #include <boost/simd/pack.hpp>
 #include <numeric>
 #include <vector>
-#include <simd_test.hpp>
 
-namespace bs = boost::simd;
+#include "../../../include/catch.hpp"
+
 
 template < typename T>
 struct p
 {
-  using p_t =  bs::pack<T>;
+  using p_t =  boost::simd::pack<T>;
   p(const T & val):val_(val),  pval_(val){}
   T val_;
   p_t pval_;
@@ -26,29 +26,32 @@ struct p
   bs::as_logical_t<p_t> operator ()(const p_t& a) const { return a < pval_; }
 };
 
-STF_CASE_TPL( "Check unary simd::replace_if", STF_NUMERIC_TYPES )
+
+template<typename T>
+void
+test_replace_if()
 {
   static const int N = bs::pack<T>::static_size;
 
-  std::vector<T> values(2*N+3), ref(2*N+3);
-  std::iota(values.begin(), values.end(),T(1));
-  std::iota(ref.begin(), ref.end(),T(1));
+  std::vector<T> values(2 * N + 3), ref(2 * N + 3);
+  std::iota(values.begin(), values.end(), T(1));
+  std::iota(ref.begin(), ref.end(), T(1));
+
   {
     std::replace_if(ref.begin(), ref.end(), [](T e){ return e < N; }, T(0));
-    boost::simd::replace_if(values.data(), values.data()+2*N+3, p<T>(N), T(0));
-
-    STF_EQUAL( values, ref );
+    boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(N), T(0));
+    REQUIRE(values == ref);
   }
+
   {
     std::replace_if(ref.begin(), ref.end(), [](T e){ return e < 1; }, T(0));
-    boost::simd::replace_if(values.data(), values.data()+2*N+3, p<T>(1), T(0));
-
-    STF_EQUAL( values, ref );
+    boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(1), T(0));
+    REQUIRE(values == ref);
   }
+
   {
     std::replace_if(ref.begin(), ref.end(),  [](T e){ return e < 2*N-1; }, T(0));
-    boost::simd::replace_if(values.data(), values.data()+2*N+3, p<T>(2*N-1), T(0));
-
-    STF_EQUAL( values, ref );
+    boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(2 * N - 1), T(0));
+    REQUIRE(values == ref);
   }
 }

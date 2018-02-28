@@ -14,7 +14,7 @@
 #include <boost/simd/algorithm/find_if_not.hpp>
 
 #include "../../../include/catch.hpp"
-#include "f_struct.hpp"
+#include "help_structures.hpp"
 
 
 using namespace boost::simd;

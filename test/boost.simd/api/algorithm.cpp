@@ -6,7 +6,6 @@
 
 #include "../../include/catch.hpp"
 
-#include "algorithm/test_all_of.hpp"
 #include "algorithm/test_any_of.hpp"
 #include "algorithm/test_copy.hpp"
 #include "algorithm/test_copy_n.hpp"
@@ -17,13 +16,29 @@
 #include "algorithm/test_find.hpp"
 #include "algorithm/test_find_if.hpp"
 #include "algorithm/test_find_if_not.hpp"
+#include "algorithm/test_generate.hpp"
+#include "algorithm/test_generate_n.hpp"
+#include "algorithm/test_iota.hpp"
+#include "algorithm/test_lexicographical_compare.hpp"
+#include "algorithm/test_max_element.hpp"
+#include "algorithm/test_max_val.hpp"
+#include "algorithm/test_min_element.hpp"
+#include "algorithm/test_min_val.hpp"
+#include "algorithm/test_none_of.hpp"
+#include "algorithm/test_not_all_of.hpp"
+#include "algorithm/test_reduce.hpp"
+#include "algorithm/test_replace.hpp"
+#include "algorithm/test_replace_if.hpp"
+#include "algorithm/test_transform.hpp"
+#include "algorithm/test_transform_reduce.hpp"
 
+namespace
+{
 
 template<typename T>
 void
 test_algorithm()
 {
-  test_all_of<T>();
   test_any_of<T>();
   test_copy<T>();
   test_copy_n<T>();
@@ -34,6 +49,21 @@ test_algorithm()
   test_find<T>();
   test_find_if<T>();
   test_find_if_not<T>();
+  test_generate<T>();
+  test_generate_n<T>();
+  test_iota<T>();
+  test_lexicographical_compare<T>();
+  test_max_element<T>();
+  test_max_val<T>();
+  test_min_element<T>();
+  test_min_val<T>();
+  test_none_of<T>();
+  test_not_all_of<T>();
+  test_reduce<T>();
+  test_replace<T>();
+  test_replace_if<T>();
+  test_transform<T>();
+  test_transform_reduce<T>();
 }
 
 
@@ -95,3 +125,5 @@ TEST_CASE("Check algorithms with double-precision numbers.")
 {
   test_algorithm<double>();
 }
+
+} // anon namespace

@@ -32,3 +32,41 @@ struct f_lt
   T n_;
   p_t vn_;
 };
+
+
+struct g
+{
+  g(float seed = 0.0f, float step = 1.0f)
+    : i_(seed)
+    , step_(step)
+  {}
+
+  template < typename T> T operator()(bs::as_<T>)
+  {
+    auto z = bs::enumerate<T>(i_, step_);
+    i_+= bs::cardinal_of<T>::value*step_;
+    return z;
+  }
+
+  float i_;
+  float step_;
+};
+
+
+struct gstd
+{
+  gstd(float seed = 0.0f, float step = 1.0f)
+    : i_(seed)
+    ,  step_(step)
+  {}
+
+  float operator()()
+  {
+    float z = i_;
+    i_+= step_;
+    return z;
+  }
+
+  float i_;
+  float step_;
+};
