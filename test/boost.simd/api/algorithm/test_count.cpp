@@ -1,10 +1,10 @@
-#pragma once
 #include <algorithm>
 #include <numeric>
 #include <vector>
 
 #include <boost/simd/algorithm/count.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -25,4 +25,9 @@ test_count()
   auto bc = boost::simd::count(values.data(), values.data()+2*N+1, T(5));
 
   REQUIRE(bc == c);
+}
+
+TEST_CASE("test count")
+{
+  TEST_NUMERIC_TYPES(test_count);
 }

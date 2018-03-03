@@ -1,11 +1,10 @@
-#pragma once
-
 #include <algorithm>
 #include <numeric>
 #include <vector>
 
 #include <boost/simd/algorithm/count_if.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -28,4 +27,7 @@ test_count_if()
   REQUIRE(bc == c);
 }
 
-
+TEST_CASE("test count_if")
+{
+  TEST_NUMERIC_TYPES(test_count_if);
+}

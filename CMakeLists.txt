@@ -118,10 +118,12 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 # Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
 add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
 SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
+target_link_libraries(static ${PAW_LINK_LIBRARIES})
 
 add_library(shared SHARED paw.cpp)
 SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
 set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(shared ${PAW_LINK_LIBRARIES})
 
 #add_library(shared_sse2 SHARED paw.cpp)
 #SET_TARGET_PROPERTIES(shared_sse2 PROPERTIES OUTPUT_NAME paw_sse2)

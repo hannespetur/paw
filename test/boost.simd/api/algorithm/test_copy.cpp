@@ -3,6 +3,7 @@
 
 #include <boost/simd/algorithm/copy.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -27,4 +28,9 @@ test_copy()
 
   // verify values
   REQUIRE(out == ref);
+}
+
+TEST_CASE("test copy")
+{
+  TEST_NUMERIC_TYPES(test_copy);
 }

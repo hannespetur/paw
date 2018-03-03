@@ -3,6 +3,7 @@
 
 #include <boost/simd/algorithm/copy_n.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -30,4 +31,9 @@ test_copy_n()
 
   // verify values
   REQUIRE(out == ref);
+}
+
+TEST_CASE("test copy_n")
+{
+  TEST_NUMERIC_TYPES(test_copy_n);
 }

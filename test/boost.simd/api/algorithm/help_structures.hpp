@@ -1,9 +1,16 @@
 #pragma once
 
+#include <boost/simd/pack.hpp>
+#include <boost/simd/function/enumerate.hpp>
+
+
+namespace bs = boost::simd;
+
+
 template<typename T>
 struct f_ge
 {
-  using p_t = pack<T>;
+  using p_t = bs::pack<T>;
 
   f_ge(const T & n)
       : n_(n)
@@ -20,7 +27,7 @@ struct f_ge
 template<typename T>
 struct f_lt
 {
-  using p_t = pack<T>;
+  using p_t = bs::pack<T>;
 
   f_lt(const T & n)
       : n_(n)

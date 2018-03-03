@@ -4,6 +4,7 @@
 #include <boost/simd/algorithm/any_of.hpp>
 #include <boost/align/aligned_allocator.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -71,3 +72,9 @@ test_any_of()
     REQUIRE(boost::simd::any_of(ab+1,ae-1));
   }
 }
+
+TEST_CASE("test any_of")
+{
+  TEST_NUMERIC_TYPES(test_any_of);
+}
+
