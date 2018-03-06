@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 2.8.11)
-
 set(stations_test_files
   test_all_of.cpp
   test_any_of.cpp
@@ -17,6 +15,7 @@ set(stations_test_files
 add_executable(test_pawstation ${stations_test_files})
 
 # Link to threading library (pthreads on linux)
-target_link_libraries (test_pawstation shared ${PAW_LINK_LIBRARIES})
+target_link_libraries (test_pawstation shared catch)
+target_include_directories(test_pawparser PRIVATE ../include)
 
 add_test(NAME test_pawstation COMMAND test_pawstation)

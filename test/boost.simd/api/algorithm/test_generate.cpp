@@ -12,7 +12,7 @@
 #include <numeric>
 #include <vector>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 #include "help_structures.hpp"
 

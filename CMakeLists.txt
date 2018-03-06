@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.4)
 include(CheckCXXCompilerFlag)
 
 project (paw CXX)
@@ -46,7 +46,7 @@ configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/_config.hpp
                @ONLY)
 
 # Include configured files
-include_directories(${PROJECT_BINARY_DIR}/include)
+list(APPEND PAW_INCLUDE_DIRS ${PROJECT_BINARY_DIR}/include)
 
 ## Set to release by default
 if(NOT CMAKE_BUILD_TYPE)
@@ -57,8 +57,6 @@ message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
 ## Find zlib
 find_package(ZLIB REQUIRED)
-include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
-
 list(APPEND PAW_LINK_LIBRARIES ${ZLIB_LIBRARIES})
 
 ###
@@ -69,7 +67,7 @@ find_package(Boost COMPONENTS filesystem system iostreams)
 
 if (Boost_FOUND)
   message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
-  include_directories(${Boost_INCLUDE_DIRS})
+  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 
   message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
   list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
@@ -102,28 +100,25 @@ set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wfatal-errors")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wextra -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
 
-#if(NOT PORTABLE)
-#  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
-#endif()
-
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 ## Include paw
-include_directories("${PROJECT_SOURCE_DIR}/include")
+list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
 ## Static and shared libraries
 # Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
 add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
-SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
-target_link_libraries(static ${PAW_LINK_LIBRARIES})
+set_target_properties(static PROPERTIES OUTPUT_NAME paw)
+target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
+target_include_directories(static PUBLIC ${PAW_INCLUDE_DIRS})
 
 add_library(shared SHARED paw.cpp)
-SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
-set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(shared ${PAW_LINK_LIBRARIES})
+set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
+target_include_directories(shared PUBLIC ${PAW_INCLUDE_DIRS})
 
 #add_library(shared_sse2 SHARED paw.cpp)
 #SET_TARGET_PROPERTIES(shared_sse2 PROPERTIES OUTPUT_NAME paw_sse2)

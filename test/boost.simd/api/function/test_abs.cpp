@@ -6,6 +6,7 @@
 #include <boost/simd/function/load.hpp>
 #include <boost/simd/function/store.hpp>
 
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 

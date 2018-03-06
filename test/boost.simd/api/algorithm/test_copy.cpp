@@ -3,7 +3,7 @@
 
 #include <boost/simd/algorithm/copy.hpp>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 

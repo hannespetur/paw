@@ -6,34 +6,34 @@
   (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
 */
 //==================================================================================================
+#include <numeric>
+#include <vector>
+
 #include <boost/simd/algorithm/transform_reduce.hpp>
 #include <boost/align/aligned_allocator.hpp>
 #include <boost/simd/function/sqr.hpp>
 #include <boost/simd/function/plus.hpp>
-#include <numeric>
-#include <vector>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 
-using namespace boost::simd;
-using namespace boost::alignment;
+namespace bs = boost::simd;
+namespace ba = boost::alignment;
 
 
 template<typename T>
 void
 test_transform_reduce()
 {
-  namespace bs =  boost::simd;
-  static const int N = pack<T>::static_size;
+  static const int N = bs::pack<T>::static_size;
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> d(2*N+1);
+    std::vector<T, ba::aligned_allocator<T, bs::pack<T>::alignment>> d(2*N+1);
     std::iota(d.begin(), d.end(), T(1));
 
-    auto s1  = bs::transform_reduce( d.data(), d.data()+2*N, bs::sqr,T(0), bs::plus);
-    auto s1s = std::inner_product( d.data(), d.data()+2*N, d.data(), T(0));
+    auto s1  = bs::transform_reduce(d.data(), d.data()+2*N, bs::sqr,T(0), bs::plus);
+    auto s1s = std::inner_product(d.data(), d.data()+2*N, d.data(), T(0));
     REQUIRE(s1 == s1s);
 
     auto s2 =  bs::transform_reduce( d.data()+1, d.data()+2*N+1, bs::sqr, T(1), bs::plus);
@@ -46,7 +46,8 @@ test_transform_reduce()
   }
 
   {
-    std::vector<T,aligned_allocator<T,pack<T>::alignment>> d(2*N+1), e(2*N+1);
+    std::vector<T, ba::aligned_allocator<T, bs::pack<T>::alignment> > d(2 * N + 1);
+    std::vector<T, ba::aligned_allocator<T, bs::pack<T>::alignment> > e(2 * N + 1);
     std::iota(d.begin(), d.end(), T(1));
     std::iota(e.begin(), e.end(), T(1));
 

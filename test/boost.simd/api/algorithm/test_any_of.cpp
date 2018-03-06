@@ -4,7 +4,7 @@
 #include <boost/simd/algorithm/any_of.hpp>
 #include <boost/align/aligned_allocator.hpp>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 

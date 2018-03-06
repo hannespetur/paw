@@ -4,7 +4,7 @@
 
 #include <boost/simd/algorithm/count_if.hpp>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 

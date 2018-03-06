@@ -36,5 +36,6 @@ add_executable(test_boost_simd_algorithm
     function/test_abs.cpp
     )
 
-target_link_libraries(test_boost_simd_algorithm shared ${PAW_LINK_LIBRARIES})
+target_link_libraries(test_boost_simd_algorithm shared catch)
+target_include_directories(test_boost_simd_algorithm PRIVATE ${PAW_INCLUDE_DIRS})
 add_test(NAME test_boost_simd_algorithm COMMAND $<TARGET_FILE:test_boost_simd_algorithm>)

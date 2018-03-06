@@ -10,7 +10,7 @@
 
 #include <boost/simd/algorithm/equal.hpp>
 
-#include "../common.hpp"
+#include "../test_numeric_types.hpp"
 #include "../../../include/catch.hpp"
 
 using namespace boost::simd;
