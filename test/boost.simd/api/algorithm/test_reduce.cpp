@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -66,4 +67,9 @@ test_reduce()
             boost::simd::reduce(values.data(), values.data() + values.size(), T(3), fake_sum{})
             );
   }
+}
+
+TEST_CASE("test test_reduce")
+{
+  TEST_NUMERIC_TYPES(test_reduce);
 }

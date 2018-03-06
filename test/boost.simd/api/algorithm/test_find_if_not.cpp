@@ -6,13 +6,12 @@
   (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
 */
 //==================================================================================================
-#pragma once
-
 #include <numeric>
 #include <vector>
 
 #include <boost/simd/algorithm/find_if_not.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 #include "help_structures.hpp"
 
@@ -46,4 +45,9 @@ test_find_if_not()
     auto f4 = boost::simd::find_if_not(values.data(), values.data()+2*N+1, f_lt<T>(2*N));
     REQUIRE(*f3 == *f4);
   }
+}
+
+TEST_CASE("test test_find_if_not")
+{
+  TEST_NUMERIC_TYPES(test_find_if_not);
 }

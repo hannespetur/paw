@@ -13,6 +13,7 @@
 
 #include <boost/simd/algorithm/find.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -29,6 +30,7 @@ test_find()
   std::vector<T> values(2 * N + 1);
   std::iota(values.begin(), values.end(), T(1));
 
+  SECTION("t1")
   {
     auto f1 = std::find(values.begin(), values.end(), T(N));
     auto f2 = boost::simd::find(values.data(), values.data() + 2 * N + 1, T(N));
@@ -38,6 +40,7 @@ test_find()
     REQUIRE(*f3 == *f4);
   }
 
+  SECTION("t2")
   {
     auto f1 = std::find(values.begin(), values.end(), T(0));
     auto f2 = boost::simd::find(values.data(), values.data() + 2 * N + 1, T(0));
@@ -46,4 +49,9 @@ test_find()
     auto f4 = boost::simd::find(values.data(), values.data() + 2 * N + 1, T(2*N));
     REQUIRE(*f3 == *f4);
   }
+}
+
+TEST_CASE("test test_find")
+{
+  TEST_NUMERIC_TYPES(test_find);
 }

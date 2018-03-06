@@ -12,6 +12,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 #include "help_structures.hpp"
 
@@ -33,4 +34,9 @@ test_generate()
   std::generate(ref.begin(), ref.end(), gstd(2, 3));
   boost::simd::generate(values.data(), values.data()+values.size(), g(2, 3));
   REQUIRE(values == ref);
+}
+
+TEST_CASE("test test_generate")
+{
+  TEST_NUMERIC_TYPES(test_generate);
 }

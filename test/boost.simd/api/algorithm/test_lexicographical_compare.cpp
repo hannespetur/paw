@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 using namespace boost::simd;
@@ -64,4 +65,7 @@ test_lexicographical_compare()
   }
 }
 
-
+TEST_CASE("test test_lexicographical_compare")
+{
+  TEST_NUMERIC_TYPES(test_lexicographical_compare);
+}

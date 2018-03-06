@@ -10,6 +10,7 @@
 
 #include <boost/simd/algorithm/equal.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 using namespace boost::simd;
@@ -35,4 +36,9 @@ test_equal()
    REQUIRE(std::equal(values1.begin(), values1.end(), values2.begin()) ==
            boost::simd::equal(values1.data(), values1.data()+values1.size(), values2.data())
            );
+}
+
+TEST_CASE("test equal")
+{
+  TEST_NUMERIC_TYPES(test_equal);
 }

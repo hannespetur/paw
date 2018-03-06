@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 using namespace boost::simd;
@@ -71,4 +72,9 @@ test_min_element()
     auto f2 = boost::simd::min_element(values.data(), values.data()+2*N+1, bs::is_greater);
     REQUIRE(*f1 == *f2);
   }
+}
+
+TEST_CASE("test test_min_element")
+{
+  TEST_NUMERIC_TYPES(test_min_element);
 }

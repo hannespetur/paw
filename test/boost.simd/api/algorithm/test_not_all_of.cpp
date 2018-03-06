@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -106,4 +107,9 @@ test_not_all_of()
     // prologue + epilogue
     REQUIRE(boost::simd::not_all_of(ab+1,ae-1));
   }
+}
+
+TEST_CASE("test test_not_all_of")
+{
+  TEST_NUMERIC_TYPES(test_not_all_of);
 }

@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -28,4 +29,9 @@ test_iota()
   boost::simd::iota(values.data(), values.data()+values.size(), T(3));
 
   REQUIRE(values == ref);
+}
+
+TEST_CASE("test test_iota")
+{
+  TEST_NUMERIC_TYPES(test_iota);
 }

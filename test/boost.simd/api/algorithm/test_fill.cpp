@@ -12,6 +12,7 @@
 
 #include <boost/simd/algorithm/fill.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 using namespace boost::simd;
@@ -31,4 +32,7 @@ test_fill()
   REQUIRE(std::equal(values1.begin(), values1.end(), values2.begin()));
 }
 
-
+TEST_CASE("test test_fill")
+{
+  TEST_NUMERIC_TYPES(test_fill);
+}

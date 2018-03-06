@@ -10,6 +10,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -85,4 +86,9 @@ test_transform()
     // verify values
     REQUIRE(out == ref);
   }
+}
+
+TEST_CASE("test test_transform")
+{
+  TEST_NUMERIC_TYPES(test_transform);
 }

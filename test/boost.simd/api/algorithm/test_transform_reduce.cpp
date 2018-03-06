@@ -13,6 +13,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -61,4 +62,9 @@ test_transform_reduce()
     auto s3s = std::inner_product( d.data()+1, d.data()+2*N+1, e.data(), T(0));
     REQUIRE(s3 == s3s);
   }
+}
+
+TEST_CASE("test test_transform_reduce")
+{
+  TEST_NUMERIC_TYPES(test_transform_reduce);
 }

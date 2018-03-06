@@ -10,6 +10,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -46,4 +47,7 @@ test_replace()
   }
 }
 
-
+TEST_CASE("test test_replace")
+{
+  TEST_NUMERIC_TYPES(test_replace);
+}

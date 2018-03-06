@@ -12,6 +12,7 @@
 
 #include <boost/simd/algorithm/find_if.hpp>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 #include "help_structures.hpp"
 
@@ -45,4 +46,9 @@ test_find_if()
     auto f4 = boost::simd::find_if(values.data(), values.data()+2*N+1, f_ge<T>(T(2*N)));
     REQUIRE(*f3 == *f4);
   }
+}
+
+TEST_CASE("test test_find_if")
+{
+  TEST_NUMERIC_TYPES(test_find_if);
 }

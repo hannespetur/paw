@@ -11,7 +11,9 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
+
 
 using namespace boost::simd;
 using namespace boost::alignment;
@@ -72,4 +74,9 @@ test_min_val()
     auto f2 = boost::simd::min_val(values.data(), values.data()+2*N+1, bs::is_greater);
     REQUIRE(f1 == f2);
   }
+}
+
+TEST_CASE("test test_min_val")
+{
+  TEST_NUMERIC_TYPES(test_min_val);
 }

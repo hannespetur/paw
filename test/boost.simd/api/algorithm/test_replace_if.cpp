@@ -11,14 +11,23 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
+
+
+namespace bs = boost::simd;
 
 
 template < typename T>
 struct p
 {
-  using p_t =  boost::simd::pack<T>;
-  p(const T & val):val_(val),  pval_(val){}
+  using p_t = bs::pack<T>;
+
+  p(const T & val)
+    : val_(val)
+    , pval_(val)
+  {}
+
   T val_;
   p_t pval_;
 
@@ -37,21 +46,30 @@ test_replace_if()
   std::iota(values.begin(), values.end(), T(1));
   std::iota(ref.begin(), ref.end(), T(1));
 
+  SECTION("t1")
   {
     std::replace_if(ref.begin(), ref.end(), [](T e){ return e < N; }, T(0));
     boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(N), T(0));
     REQUIRE(values == ref);
   }
 
+  SECTION("t2")
   {
     std::replace_if(ref.begin(), ref.end(), [](T e){ return e < 1; }, T(0));
     boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(1), T(0));
     REQUIRE(values == ref);
   }
 
+  SECTION("t3")
   {
     std::replace_if(ref.begin(), ref.end(),  [](T e){ return e < 2*N-1; }, T(0));
     boost::simd::replace_if(values.data(), values.data() + 2 * N + 3, p<T>(2 * N - 1), T(0));
     REQUIRE(values == ref);
   }
+}
+
+
+TEST_CASE("test test_replace_if")
+{
+  TEST_NUMERIC_TYPES(test_replace_if);
 }

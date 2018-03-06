@@ -12,11 +12,14 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 #include "help_structures.hpp"
 
+
 using namespace boost::simd;
 using namespace boost::alignment;
+
 
 template<typename T>
 void
@@ -31,7 +34,10 @@ test_generate_n()
   std::generate(ref.begin(), ref.begin()+2*N+1, gstd(2, 3));
   boost::simd::generate_n(values.data(),2*N+1, g(2, 3));
   REQUIRE(values == ref);
-
 }
 
 
+TEST_CASE("test test_generate_n")
+{
+  TEST_NUMERIC_TYPES(test_generate_n);
+}

@@ -11,6 +11,7 @@
 #include <numeric>
 #include <vector>
 
+#include "../common.hpp"
 #include "../../../include/catch.hpp"
 
 
@@ -105,4 +106,9 @@ test_none_of()
     // prologue + epilogue
     REQUIRE_FALSE(boost::simd::none_of(ab+1,ae-1));
   }
+}
+
+TEST_CASE("test test_none_of")
+{
+  TEST_NUMERIC_TYPES(test_none_of);
 }
