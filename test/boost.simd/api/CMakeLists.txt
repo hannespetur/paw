@@ -5,8 +5,7 @@
 #add_subdirectory(pack)
 #add_subdirectory(range)
 
-add_executable(test_boost_simd_algorithm
-    algorithm.cpp
+add_executable(test_boost_simd_api
     algorithm/test_all_of.cpp
     algorithm/test_any_of.cpp
     algorithm/test_copy.cpp
@@ -33,9 +32,10 @@ add_executable(test_boost_simd_algorithm
     algorithm/test_replace_if.cpp
     algorithm/test_transform.cpp
     algorithm/test_transform_reduce.cpp
-    function/test_abs.cpp
+    helper/test_logical.cpp
+    helper/test_mask.cpp
     )
 
-target_link_libraries(test_boost_simd_algorithm shared catch)
-target_include_directories(test_boost_simd_algorithm PRIVATE ${PAW_INCLUDE_DIRS})
-add_test(NAME test_boost_simd_algorithm COMMAND $<TARGET_FILE:test_boost_simd_algorithm>)
+target_link_libraries(test_boost_simd_api shared catch)
+target_include_directories(test_boost_simd_api PRIVATE ${PAW_INCLUDE_DIRS})
+add_test(NAME test_boost_simd_api COMMAND $<TARGET_FILE:test_boost_simd_api>)

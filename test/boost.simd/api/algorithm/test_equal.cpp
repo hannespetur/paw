@@ -11,7 +11,7 @@
 #include <boost/simd/algorithm/equal.hpp>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 
 using namespace boost::simd;
 using namespace boost::alignment;

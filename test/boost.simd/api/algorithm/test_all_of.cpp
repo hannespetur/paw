@@ -5,7 +5,7 @@
 #include <boost/align/aligned_allocator.hpp>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 
 
 template<typename T>

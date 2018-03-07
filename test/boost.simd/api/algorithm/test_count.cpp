@@ -5,7 +5,7 @@
 #include <boost/simd/algorithm/count.hpp>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 
 
 using namespace boost::simd;

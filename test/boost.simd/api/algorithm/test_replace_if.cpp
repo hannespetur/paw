@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 
 
 namespace bs = boost::simd;

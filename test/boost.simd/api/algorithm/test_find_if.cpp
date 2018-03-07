@@ -13,7 +13,7 @@
 #include <boost/simd/algorithm/find_if.hpp>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 #include "help_structures.hpp"
 
 

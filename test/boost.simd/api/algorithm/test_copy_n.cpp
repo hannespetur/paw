@@ -4,7 +4,7 @@
 #include <boost/simd/algorithm/copy_n.hpp>
 
 #include "../test_numeric_types.hpp"
-#include "../../../include/catch.hpp"
+#include <catch.hpp>
 
 
 using namespace boost::simd;
