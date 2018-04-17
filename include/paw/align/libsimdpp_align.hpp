@@ -24,18 +24,286 @@
 #include <paw/align/backtracker.hpp>
 #include <paw/align/row.hpp>
 
+#include <paw/align/libsimdpp_backtracker.hpp>
+
+#include <simdpp/simd.h>
+
 
 namespace paw
 {
+
+//namespace simd = simdpp;
+
+
+struct Row2
+{
+  using Tint = int16_t;
+  //using Tpack = simdpp::int16<16 / sizeof(int16_t), void>;
+  //using Tmask = simdpp::mask_int16<16 / sizeof(int16_t), void>;
+  using Tpack = simdpp::int16<16 / sizeof(Tint), void>;
+  using Tlogical_pack = simdpp::mask_int16<16 / sizeof(Tint), void>;
+  using Tvec = std::vector<Tpack, simdpp::aligned_allocator<Tpack, sizeof(Tpack)> >;
+
+  std::size_t static const vector_size = Tpack::length;
+
+  std::size_t const n_elements = 0;
+  Tvec vectors;
+
+  Row2() = default;
+
+  /* CONSTRUCTORS */
+  Row2(std::size_t const _n_elements)
+    : n_elements(_n_elements)
+  {
+    Tpack my_vector = simdpp::make_zero();
+    vectors.resize((n_elements + vector_size - 1) / vector_size, my_vector);
+  }
+
+  Row2(std::size_t const _n_elements, Tint const val)
+    : n_elements(_n_elements)
+  {
+    Tpack my_vector = simdpp::make_int(val);
+    vectors.resize((n_elements + vector_size - 1) / vector_size, my_vector);
+  }
+};
+
+
+template <typename Tit>
+class Align
+{
+public:
+  using Trow = Row2; // A row of vectors that can be run in parallel
+  using Tarr = std::array<Trow, 4>;
+  using Tpack = typename Trow::Tpack;
+  using Tlogical_pack = typename Trow::Tlogical_pack;
+  using Tint = typename Trow::Tint;
+  using Tuint = typename Trow::Tint;
+
+  // p is the length (or cardinality) of the SIMD vectors
+  std::size_t static const p = Tpack::length;
+
+private:
+  AlignerOptions<Tuint> const opt;
+  std::vector<Event> free_snp_edits;
+  std::vector<Event> free_del_edits;
+  std::vector<Event> free_ins_edits;
+  Tit d_begin;
+  Tit d_end;
+  Tit q_begin;
+  Tit q_end;
+
+  std::size_t const m = 0;
+  std::size_t alignment_end = m;
+  std::size_t n = 0;
+  std::size_t const t = 0;
+
+  Tuint const x_gain;
+  Tpack const x_gain_pack = simdpp::make_zero();
+  Tuint const y_gain;
+  Tpack const y_gain_pack = simdpp::make_zero();
+
+  Tuint const gap_open_val_x = 0;
+  Tpack const gap_open_pack_x = simdpp::make_zero();
+  Tuint const gap_open_val_y = 0;
+  Tpack const gap_open_pack_y = simdpp::make_zero();
+  Tuint const gap_open_val = 0;
+  Tpack const gap_open_pack = simdpp::make_zero();
+
+  Tuint const max_score_val = 0;
+  Tpack const max_score_pack = simdpp::make_zero();
+
+  int64_t total_reductions = 0;
+  Trow vH_up; // Previous H row
+  Trow vH;    // Current H row
+  Trow vE;    // Current E row
+  Trow vF_up; // Previous F row
+  Trow vF;    // Current F row
+  Tarr W_profile;
+  Backtracker2<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
+  Tuint top_left_score = 0;
+
+  Tpack max_greater(Tpack & v1, Tpack const & v2);
+  // Tpack max_greater_or_equal(Tpack & v1, Tpack const & v2);
+  void calculate_DNA_W_profile();
+  void calculate_scores();
+
+  // Same as 'calculate_scores', but assumes default options (less runtime checks)
+  // void calculate_scores_default();
+  void check_gap_extend_deletions();
+  void check_gap_extend_deletions_with_backtracking(std::size_t const i);
+  void init_score_vectors();
+
+public:
+  Align(Tit _d_begin,
+        Tit _d_end,
+        AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/),
+        std::set<Event> const & free_edits = std::set<Event>()
+        )
+    : opt(_opt)
+    , d_begin(_d_begin)
+    , d_end(_d_end)
+    , m(std::distance(d_begin, d_end))
+    , n(0)
+    , t((m + p) / p)
+    , x_gain(opt.gap_extend)
+    , x_gain_pack(simdpp::make_int(x_gain))
+    , y_gain(std::max(opt.gap_extend, static_cast<Tuint>(opt.mismatch - x_gain)))
+    , y_gain_pack(simdpp::make_int(y_gain))
+    , gap_open_val_x(opt.gap_open - x_gain)
+    , gap_open_pack_x(simdpp::make_int(gap_open_val_x))
+    , gap_open_val_y(opt.gap_open - y_gain)
+    , gap_open_pack_y(simdpp::make_int(gap_open_val_y))
+    , gap_open_val(std::max(gap_open_val_x, gap_open_val_y))
+    , gap_open_pack(simdpp::make_int(gap_open_val))
+    , max_score_val(std::numeric_limits<Tuint>::max() - gap_open_val)
+    , max_score_pack(simdpp::make_int(max_score_val))
+    , vH_up(m + 1)
+    , vH(m + 1)
+    , vE(m + 1)
+    , vF_up(m + 1)
+    , vF(m + 1)
+    , W_profile
+    {
+      {
+        Trow(m + 1),
+        Trow(m + 1),
+        Trow(m + 1),
+        Trow(m + 1)
+      }
+    }
+    , mB()
+  {
+    /*
+    for (auto const & e : free_edits)
+    {
+      if (e.ref.size() == 0)
+      {
+        free_ins_edits.push_back(e);
+      }
+      else if (e.alt.size() == 0)
+      {
+        free_del_edits.push_back(e);
+      }
+      else   //if (e.ref.size() == 1 && e.alt.size() == 1)
+      {
+        free_snp_edits.push_back(e);
+      }
+    }
+
+    auto get_edit_str = [](Event const & e) -> std::string
+                        {
+                          std::stringstream ss;
+                          ss << e.pos << " "
+                             << (e.ref.size() > 0 ? e.ref : "-") << " "
+                             << (e.alt.size() > 0 ? e.alt : "-");
+                          return ss.str();
+                        };
+
+
+    if (free_snp_edits.size() > 0)
+    {
+      std::cout << "Free SNP edits are:\n";
+
+      for (auto const & e : free_snp_edits)
+        std::cout << get_edit_str(e) << "\n";
+    }
+
+    if (free_ins_edits.size() > 0)
+    {
+      std::cout << "Free INS edits are:\n";
+
+      for (auto const & e : free_ins_edits)
+        std::cout << get_edit_str(e) << "\n";
+    }
+
+    if (free_del_edits.size() > 0)
+    {
+      std::cout << "Free DEL edits are:\n";
+
+      for (auto const & e : free_del_edits)
+        std::cout << get_edit_str(e) << "\n";
+    }
+    */
+
+    calculate_DNA_W_profile();
+  }
+};
+
+
+template <typename Tit>
+void inline
+Align<Tit>::calculate_DNA_W_profile()
+{
+  std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
+  //Tuint const match = opt.match;
+  //Tuint const mismatch = -opt.mismatch;
+  Tpack const match_pack = simdpp::make_int(x_gain + y_gain + opt.match);
+  Tpack const mismatch_pack = simdpp::make_int(x_gain + y_gain - opt.mismatch);
+  long const t = W_profile[0].vectors.size();
+  assert(t > 0);
+
+  for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
+  {
+    char const a = DNA_BASES[i];
+    auto & W = W_profile[i];
+
+    for (long v = 0; v < t; ++v)
+    {
+      std::vector<Tint, simdpp::aligned_allocator<Tint, sizeof(Tint)> > seq;
+      //seq.reserve(p);
+
+      for (long j = v; j < m; j += t)
+      {
+        seq.push_back(a == *std::next(d_begin, j));
+      }
+
+      //assert(seq.size() == p);
+      Tpack seq_pack = simdpp::load(&seq[0]);
+      Tlogical_pack seq_mask = simdpp::to_mask(seq_pack);
+      W.vectors[v] = simdpp::blend(match_pack, mismatch_pack, seq_mask);
+
+      //Tpack
+      //x_gain_pack
+      //for (long e = 0, j = v; j < m; ++e, j += t)
+      //  W.vectors[v][e] = x_gain + y_gain + (a == *std::next(d_begin, j) ? match : mismatch);
+    }
+
+    // Update the W_profile if there are any free mismatches
+    /*
+    for (auto const & snp_e : free_snp_edits)
+    {
+      assert(snp_e.ref.size() == 1);
+      assert(snp_e.alt.size() == 1);
+      assert(snp_e.pos < m);
+      assert(snp_e.ref[0] == *std::next(d_begin, snp_e.pos));
+
+      if (a != snp_e.alt[0])
+        continue;
+
+      std::size_t const v = snp_e.pos % t;
+      std::size_t const e = snp_e.pos / t;
+
+      W.vectors[v][e] = x_gain + y_gain + match;
+    }
+    */
+  }
+}
+
+
+
+/******************************************
+ *  OLD CODE!
+ ******************************************/
+
 
 
 template <typename Tuint, typename Tit>
 class Aligner
 {
 public:
-  using Trow = Row<Tuint>;   // A row of vectors that can be run in parallel
+  using Trow = Row<Tuint>; // A row of vectors that can be run in parallel
   using Tarr = std::array<Trow, 4>;
-  using Tpack = typename Row<Tuint>::Tpack;
+  using Tpack = typename Trow::Tpack;
   using Tlogical_pack = typename Row<Tuint>::Tlogical_pack;
 
   // p is the length (or cardinality) of the SIMD vectors

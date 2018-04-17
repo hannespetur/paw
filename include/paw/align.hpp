@@ -9,3 +9,11 @@
 #include <paw/align/skyr.hpp>
 #include <paw/align/variant.hpp>
 #include <paw/align/vcf.hpp>
+
+namespace paw
+{
+
+std::string get_current_arch();
+void align(std::string const & seq1, std::string const & seq2);
+
+} // namespace paw

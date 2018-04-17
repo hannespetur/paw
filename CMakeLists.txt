@@ -1,7 +1,21 @@
 cmake_minimum_required (VERSION 3.1)
-include(CheckCXXCompilerFlag)
 
 project (paw CXX)
+
+include(CheckCXXCompilerFlag)
+
+# Include custom CMake modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(SimdppMultiarch)
+
+
+# Find which archs are compilable and which are runnable
+simdpp_get_compilable_archs(COMPILABLE_ARCHS)
+simdpp_get_runnable_archs(RUNNABLE_ARCHS)
+
+message(STATUS "Compilable archs are: ${COMPILABLE_ARCHS}")
+message(STATUS "Runnable archs are: ${RUNNABLE_ARCHS}")
+
 
 set(PAW_VERSION_MAJOR 0)
 set(PAW_VERSION_MINOR 1)
@@ -108,14 +122,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ## Include paw
 list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "${RUNNABLE_ARCHS}") # ${COMPILABLE_ARCHS}
+#add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
+
 ## Static and shared libraries
 # Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
-add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
+add_library(static STATIC EXCLUDE_FROM_ALL src/paw.cpp ${GEN_ARCH_FILES})
 set_target_properties(static PROPERTIES OUTPUT_NAME paw)
 target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(static PUBLIC ${PAW_INCLUDE_DIRS})
 
-add_library(shared SHARED paw.cpp)
+add_library(shared SHARED src/paw.cpp ${GEN_ARCH_FILES})
 set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(shared PUBLIC ${PAW_INCLUDE_DIRS})

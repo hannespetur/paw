@@ -153,7 +153,7 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar);
 } //namespace paw
 
 
-#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
+#if defined(IMPLEMENT_PAW)
 
 
 namespace paw
