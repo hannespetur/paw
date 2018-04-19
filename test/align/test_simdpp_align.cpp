@@ -1,6 +1,6 @@
 #include "../include/catch.hpp"
 
-#include <paw/align/boost_simd_align.hpp>
+#include <paw/align/libsimdpp_align.hpp>
 
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
@@ -8,6 +8,7 @@
 
 #include <chrono> // std::chrono::high_resolution_clock
 #include <string>
+#include <vector>
 #include <fstream> // std::ifstream
 
 
@@ -18,11 +19,10 @@
 
 namespace io = boost::iostreams;
 
-
 namespace
 {
 
-std::string
+inline std::string
 get_sequence_from_fa(std::string const & fn, bool gzip = false)
 {
   std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
@@ -52,7 +52,71 @@ get_sequence_from_fa(std::string const & fn, bool gzip = false)
 } // namespace anon
 
 
-TEST_CASE("Aligment black box tests")
+TEST_CASE("W profile")
+{
+  std::string database = "GCAG";
+  std::string query =    "GAAG";
+
+  using Tuint = uint16_t;
+  paw::AlignerOptions<Tuint> opt;
+  opt.match = 2;
+  opt.mismatch = 2;
+  opt.gap_open = 5;
+  opt.gap_extend = 1;
+  opt.backtracking = true;
+  opt.top_row_free = false;
+  opt.bottom_row_free = false;
+  opt.top_row_gap_open_free = false;
+  opt.bottom_row_gap_open_free = false;
+  opt.left_column_gap_open_free = false;
+  opt.right_column_gap_open_free = false;
+
+  paw::Align<std::string::const_iterator> align(database.cbegin(), database.cend(), opt);
+  align.calculate_DNA_W_profile();
+
+  SECTION("W profile contains 4 values for each DNAbase")
+  {
+    auto const & W_profile = align.get_W_profile();
+
+    REQUIRE(W_profile.size() == 4);
+    REQUIRE(W_profile[0].vectors.size() == 1);
+    REQUIRE(W_profile[1].vectors.size() == 1);
+    REQUIRE(W_profile[2].vectors.size() == 1);
+    REQUIRE(W_profile[3].vectors.size() == 1);
+
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > elements;
+    elements.resize(W_profile[0].vector_size * W_profile[0].vectors[0].vec_length, 100);
+
+    simdpp::store(&elements[0], W_profile[0].vectors[0]);
+    REQUIRE(elements[0] == 0);
+    REQUIRE(elements[1] == 0);
+    REQUIRE(elements[2] == 4);
+    REQUIRE(elements[3] == 0);
+
+    simdpp::store(&elements[0], W_profile[1].vectors[0]);
+    REQUIRE(elements[0] == 0);
+    REQUIRE(elements[1] == 4);
+    REQUIRE(elements[2] == 0);
+    REQUIRE(elements[3] == 0);
+
+    simdpp::store(&elements[0], W_profile[2].vectors[0]);
+    REQUIRE(elements[0] == 4);
+    REQUIRE(elements[1] == 0);
+    REQUIRE(elements[2] == 0);
+    REQUIRE(elements[3] == 4);
+
+    simdpp::store(&elements[0], W_profile[3].vectors[0]);
+    REQUIRE(elements[0] == 0);
+    REQUIRE(elements[1] == 0);
+    REQUIRE(elements[2] == 0);
+    REQUIRE(elements[3] == 0);
+  }
+
+  align.align(query.cbegin(), query.cend());
+}
+
+
+TEST_CASE("simdpp alignment black box tests")
 {
   using namespace paw;
 
@@ -80,8 +144,9 @@ TEST_CASE("Aligment black box tests")
   //boost_simd_align<int8_t>(query, database);
   auto t0 = Ttime::now();
 
+  /*
   {
-    AlignerOptions<uint8_t> opt;
+    paw::AlignerOptions<uint8_t> opt;
     opt.match = 2;
     opt.mismatch = 2;
     opt.gap_open = 5;
@@ -93,19 +158,20 @@ TEST_CASE("Aligment black box tests")
     opt.bottom_row_gap_open_free = false;
     opt.left_column_gap_open_free = false;
     opt.right_column_gap_open_free = false;
-    Aligner<uint8_t, std::string::const_iterator> aligner(database.cbegin(), database.cend(), opt);
+    paw::Align<std::string::const_iterator> aligner(database.cbegin(), database.cend(), opt);
     auto score = aligner.align(query.cbegin(), query.cend());
-    //std::cout << "score = " << score << "\n";
+    std::cout << "score = " << score << "\n";
   }
+  */
 
   auto t1 = Ttime::now();
   //std::cout << "int8_t  " << Tduration(t1 - t0).count() << " ms\n";
 
-  for (std::size_t i = 0; i < 2; ++i)
+  for (std::size_t i = 0; i < 1; ++i)
   {
-    using Tuint = uint16_t;
+    using Tint = uint16_t;
     t0 = Ttime::now();
-    AlignerOptions<Tuint> opt;
+    AlignerOptions<Tint> opt;
     opt.match = 2;
     opt.mismatch = 2;
     opt.gap_open = 5;
@@ -117,35 +183,38 @@ TEST_CASE("Aligment black box tests")
     opt.bottom_row_gap_open_free = false;
     opt.left_column_gap_open_free = false;
     opt.right_column_gap_open_free = false;
-    Aligner<Tuint, std::string::const_iterator> aligner(database.cbegin(), database.cend(), opt);
+    paw::Align<std::string::const_iterator> aligner(database.cbegin(), database.cend(), opt);
+    /*
     auto score = aligner.align(query.cbegin(), query.cend());
     //Aligner<uint16_t> aligner(database);
     //auto score = aligner.align(query);
     t1 = Ttime::now();
-    //std::cout << "score = " << score << "\n";
+    std::cout << "score = " << score << "\n";
     std::swap(database, query);
-    //std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
+    std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
+    */
 
     if (opt.backtracking)
     {
+      /*
       auto aligned_strings = aligner.get_aligned_strings();
 
-      /*
-      for (std::size_t i = 0; i < std::min(1000ul, aligned_strings.first.size()); i += 100)
-      {
-        std::cout << aligned_strings.first.substr(i, 90) << "\n"
-                  << aligned_strings.second.substr(i, 90) << "\n\n";
-      }
 
-      auto edit_script = get_edit_script(aligned_strings);
+      //for (std::size_t i = 0; i < std::min(1000ul, aligned_strings.first.size()); i += 100)
+      //{
+      //  std::cout << aligned_strings.first.substr(i, 90) << "\n"
+      //            << aligned_strings.second.substr(i, 90) << "\n\n";
+      //}
+      //
+      //auto edit_script = get_edit_script(aligned_strings);
+      //
+      //for (auto const & e : edit_script)
+      //{
+      //  std::cout << e.pos << " "
+      //            << (e.ref.size() > 0 ? std::string(e.ref.begin(), e.ref.end()) : "-") << " "
+      //            << (e.alt.size() > 0 ? std::string(e.alt.begin(), e.alt.end()) : "-") << "\n";
+      //}
 
-      for (auto const & e : edit_script)
-      {
-        std::cout << e.pos << " "
-                  << (e.ref.size() > 0 ? std::string(e.ref.begin(), e.ref.end()) : "-") << " "
-                  << (e.alt.size() > 0 ? std::string(e.alt.begin(), e.alt.end()) : "-") << "\n";
-      }
-      */
 
       auto cigar = aligner.get_cigar(aligned_strings);
       std::size_t M = 0;
@@ -154,33 +223,34 @@ TEST_CASE("Aligment black box tests")
 
       for (auto const & c : cigar)
       {
-        //std::cout << c.count;
+        std::cout << c.count;
 
         switch (c.operation)
         {
         case MATCH:
-          //std::cout << "M ";
+          std::cout << "M ";
           M += c.count;
           break;
 
         case INSERTION:
-          //std::cout << "I ";
+          std::cout << "I ";
           I += c.count;
           break;
 
         case DELETION:
-          //std::cout << "D ";
+          std::cout << "D ";
           D += c.count;
           break;
 
         default:
-          //std::cout << "WHAT\n";
+          std::cout << "WHAT\n";
           break;
         }
       }
 
-      //std::cout << "\n";
-      //std::cout << "M,I,D = " << M << "," << I << "," << D << "\n";
+      std::cout << "\n";
+      std::cout << "M,I,D = " << M << "," << I << "," << D << "\n";
+      */
     }
   }
 }

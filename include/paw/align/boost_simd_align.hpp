@@ -110,7 +110,7 @@ public:
  * IMPLEMENTATION *
  ******************/
 
-#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
+#if defined(IMPLEMENT_PAW)
 
 #include <cassert>
 #include <iomanip>

@@ -6,14 +6,16 @@
 
 #include "event.hpp"
 
-#include <boost/simd.hpp>
-#include <boost/simd/memory/allocator.hpp>
+//#include <boost/simd.hpp>
+//#include <boost/simd/memory/allocator.hpp>
+
+#include <simdpp/simd.h>
 
 
 namespace paw
 {
 
-/*
+
 enum CigarOperation
 {
   MATCH = 0,
@@ -27,10 +29,10 @@ struct Cigar
   std::size_t count;
   CigarOperation operation;
 };
-*/
+
 
 template <typename Tuint>
-struct Backtracker2
+struct Backtrack
 {
   using Tint = Tuint;
   using Tpack = simdpp::int16<16 / sizeof(Tint), void>;
@@ -54,12 +56,12 @@ struct Backtracker2
 
   Tmatrix matrix;
 
-  Backtracker2()
-    : Backtracker2(0, 0)
+  Backtrack()
+    : Backtrack(0, 0)
   {}
 
 
-  Backtracker2(std::size_t const n_row, std::size_t const n_vectors)
+  Backtrack(std::size_t const n_row, std::size_t const n_vectors)
     : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, simdpp::make_zero()})
   {}
 

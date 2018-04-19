@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.2)
 
 project (paw CXX)
 
@@ -109,10 +109,10 @@ else()
 endif()
 
 ## Setup other compiler flags
-set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wfatal-errors")
+set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wextra -pedantic -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -pedantic -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON} -DNDEBUG")
 
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -128,7 +128,10 @@ simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "${RUNNABLE_ARCHS}") # ${COMPILABL
 ## Static and shared libraries
 # Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
 add_library(static STATIC EXCLUDE_FROM_ALL src/paw.cpp ${GEN_ARCH_FILES})
-set_target_properties(static PROPERTIES OUTPUT_NAME paw)
+set_target_properties(static PROPERTIES
+    OUTPUT_NAME paw
+    )
+
 target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(static PUBLIC ${PAW_INCLUDE_DIRS})
 

@@ -26,6 +26,7 @@ align(std::string const & seq1, std::string const & seq2)
   std::cerr << "Aligning " << seq1 << " to " << seq2 << "\n";
 
   Align<std::string::const_iterator> align(seq1.cbegin(), seq2.cend());
+  align.calculate_DNA_W_profile();
 }
 
 
