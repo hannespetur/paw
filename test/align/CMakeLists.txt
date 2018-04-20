@@ -1,4 +1,4 @@
-add_executable(test_align test_align.cpp test_simdpp_align.cpp)
+add_executable(test_align test_simdpp_align.cpp)
 
 target_link_libraries(test_align shared catch)
 target_include_directories(test_align PRIVATE ../include)

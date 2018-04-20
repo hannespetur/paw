@@ -1,5 +1,7 @@
 #include "../include/catch.hpp"
 
+#include <simdpp/simd.h>
+
 #include <paw/align/libsimdpp_align.hpp>
 
 #include <boost/iostreams/filtering_stream.hpp>
@@ -12,49 +14,11 @@
 #include <fstream> // std::ifstream
 
 
-#ifdef NDEBUG
-#include <paw/internal/config.hpp>
-#endif
 
-
-namespace io = boost::iostreams;
-
-namespace
-{
-
-inline std::string
-get_sequence_from_fa(std::string const & fn, bool gzip = false)
-{
-  std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
-
-  io::filtering_istream in;
-
-  if (gzip)
-    in.push(io::gzip_decompressor());
-
-  in.push(file);
-
-  std::stringstream ss;
-  std::string str;
-  std::getline(in, str); // Throw away header
-
-  for (; std::getline(in, str); )
-  {
-    if (str[0] == '>')
-      break;
-
-    ss << str;
-  }
-
-  return ss.str();
-}
-
-} // namespace anon
-
-
-/*
 TEST_CASE("W profile")
 {
+  using namespace paw::SIMDPP_ARCH_NAMESPACE;
+
   std::string database = "GCAG";
   std::string query =    "GAAG";
 
@@ -72,7 +36,7 @@ TEST_CASE("W profile")
   opt.left_column_gap_open_free = false;
   opt.right_column_gap_open_free = false;
 
-  paw::Align<std::string::const_iterator> align(database.cbegin(), database.cend(), opt);
+  Align<std::string::const_iterator> align(database.cbegin(), database.cend(), opt);
   align.calculate_DNA_W_profile();
 
   SECTION("W profile contains 4 values for each DNAbase")
@@ -86,7 +50,7 @@ TEST_CASE("W profile")
     REQUIRE(W_profile[3].vectors.size() == 1);
 
     std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > elements;
-    elements.resize(W_profile[0].vector_size * W_profile[0].vectors[0].vec_length, 100);
+    elements.resize(16 / sizeof(Tuint) * W_profile[0].vectors[0].vec_length, 100);
 
     simdpp::store(&elements[0], W_profile[0].vectors[0]);
     REQUIRE(elements[0] == 0);
@@ -115,7 +79,6 @@ TEST_CASE("W profile")
 
   align.align(query.cbegin(), query.cend());
 }
-*/
 
 
 /*

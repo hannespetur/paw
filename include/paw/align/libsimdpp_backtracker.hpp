@@ -14,7 +14,8 @@
 
 namespace paw
 {
-
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 enum CigarOperation
 {
@@ -197,15 +198,16 @@ std::ostream &
 operator<<(std::ostream & ss, std::vector<Cigar> const & cigar);
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } //namespace paw
 
 
 #if defined(IMPLEMENT_PAW)
 
-
 namespace paw
 {
-
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 template <typename Tint>
 std::ostream &
@@ -232,48 +234,45 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar)
 }
 
 
-//std::size_t static constexpr BACKTRACKS_PER_BYTE = 2;
-//std::size_t static constexpr BT_PER_CELL = sizeof(Tuint) * BACKTRACKS_PER_BYTE;
-//std::size_t static constexpr N_BT_BITS = 8 / BACKTRACKS_PER_BYTE;
+template <typename Tuint>
+std::size_t constexpr Backtrack<Tuint>::BACKTRACKS_PER_BYTE;
 
 template <typename Tuint>
-std::size_t constexpr Backtracker<Tuint>::BACKTRACKS_PER_BYTE;
+std::size_t constexpr Backtrack<Tuint>::BT_PER_CELL;
 
 template <typename Tuint>
-std::size_t constexpr Backtracker<Tuint>::BT_PER_CELL;
+std::size_t constexpr Backtrack<Tuint>::N_BT_BITS;
 
 template <typename Tuint>
-std::size_t constexpr Backtracker<Tuint>::N_BT_BITS;
+Tuint constexpr Backtrack<Tuint>::DEL_SHIFT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::DEL_SHIFT;
+Tuint constexpr Backtrack<Tuint>::INS_SHIFT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::INS_SHIFT;
+Tuint constexpr Backtrack<Tuint>::DEL_E_SHIFT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::DEL_E_SHIFT;
+Tuint constexpr Backtrack<Tuint>::INS_E_SHIFT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::INS_E_SHIFT;
+Tuint constexpr Backtrack<Tuint>::SUB_BT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::SUB_BT;
+Tuint constexpr Backtrack<Tuint>::DEL_BT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::DEL_BT;
+Tuint constexpr Backtrack<Tuint>::INS_BT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::INS_BT;
+Tuint constexpr Backtrack<Tuint>::DEL_E_BT;
 
 template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::DEL_E_BT;
-
-template <typename Tuint>
-Tuint constexpr Backtracker<Tuint>::INS_E_BT;
+Tuint constexpr Backtrack<Tuint>::INS_E_BT;
 
 
-} //namespace paw
+} // namespace SIMDPP_ARCH_NAMESPACE
+} // namespace paw
 
 
 #endif // IMPLEMENT_PAW

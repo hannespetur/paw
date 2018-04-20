@@ -2,8 +2,12 @@
 
 #include <string> // std::string
 
+#include <simdpp/simd.h>
+
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 // An event is an single point mutation with two alleles, reference and alternative.
@@ -25,15 +29,17 @@ bool operator<(Event const & a, Event const & b);
 bool operator==(Event const & a, Event const & b);
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
-#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
+#if defined(IMPLEMENT_PAW)
 
 
 namespace paw
 {
-
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 bool
 Event::is_snp() const
@@ -73,6 +79,6 @@ operator==(Event const & a, Event const & b)
 
 
 } // namespace paw
-
+} // namespace SIMDPP_ARCH_NAMESPACE
 
 #endif // IMPLEMENT_PAW

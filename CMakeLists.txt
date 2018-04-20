@@ -97,7 +97,7 @@ CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 
 # Use highest CXX compiler flag available
-if (COMPILER_SUPPORTS_CXX17 AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+if (COMPILER_SUPPORTS_CXX17)# AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Compilation fails on GCC 7.3 with c++17.
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
 elseif (COMPILER_SUPPORTS_CXX14)
@@ -122,7 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ## Include paw
 list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
-simdpp_multiarch(GEN_ARCH_FILES src/align.cpp ${RUNNABLE_ARCHS}) # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp ${COMPILABLE_ARCHS}) # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
 #add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
 
 ## Static and shared libraries
