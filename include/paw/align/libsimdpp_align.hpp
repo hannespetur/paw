@@ -22,40 +22,44 @@
 
 namespace paw
 {
-
-//namespace simd = simdpp;
-
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 struct Row2
 {
   using Tint = uint16_t;
+  using Tuint = Tint;
   //using Tpack = simdpp::int16<16 / sizeof(int16_t), void>;
   //using Tmask = simdpp::mask_int16<16 / sizeof(int16_t), void>;
-  using Tpack = simdpp::int16<16 / sizeof(Tint), void>;
+  using Tpack = simdpp::uint16<16 / sizeof(Tint), void>;
   using Tlogical_pack = simdpp::mask_int16<16 / sizeof(Tint), void>;
   using Tvec = std::vector<Tpack, simdpp::aligned_allocator<Tpack, sizeof(Tpack)> >;
 
-  std::size_t static const vector_size = Tpack::length;
+  //std::size_t static const vector_size = Tpack::length;
 
-  std::size_t const n_elements = 0;
+  long const n_elements = 0;
   Tvec vectors;
 
   /* CONSTRUCTORS */
-  Row2() = default;
+  //Row2() = default;
 
   Row2(std::size_t const _n_elements)
     : n_elements(_n_elements)
+    , vectors(0)
   {
     Tpack my_vector = simdpp::make_zero();
-    vectors.resize((n_elements + vector_size - 1) / vector_size, my_vector);
+    vectors.resize((n_elements + Tpack::length - 1) / Tpack::length, my_vector);
   }
 
+  /*
   Row2(std::size_t const _n_elements, Tint const val)
     : n_elements(_n_elements)
   {
+    std::cerr << "n_elements2 = " << n_elements << std::endl;
     Tpack my_vector = simdpp::make_int(val);
-    vectors.resize((n_elements + vector_size - 1) / vector_size, my_vector);
+    vectors.resize((n_elements + Tpack::length - 1) / Tpack::length, my_vector);
   }
+  */
 };
 
 
@@ -75,17 +79,12 @@ public:
   std::size_t static const p = Tpack::length;
   void calculate_DNA_W_profile();
 
-  inline Tarr const & get_W_profile() const
-  {
-    return this->W_profile;
-  }
-
 
 private:
   AlignerOptions<Tuint> const opt;
-  std::vector<Event> free_snp_edits;
-  std::vector<Event> free_del_edits;
-  std::vector<Event> free_ins_edits;
+  //std::vector<Event> free_snp_edits;
+  //std::vector<Event> free_del_edits;
+  //std::vector<Event> free_ins_edits;
   Tit d_begin;
   Tit d_end;
   Tit q_begin;
@@ -97,19 +96,13 @@ private:
   std::size_t const t = 0;
 
   Tuint const x_gain;
-  Tpack const x_gain_pack = simdpp::make_zero();
   Tuint const y_gain;
-  Tpack const y_gain_pack = simdpp::make_zero();
 
-  Tuint const gap_open_val_x = 0;
-  Tpack const gap_open_pack_x = simdpp::make_zero();
-  Tuint const gap_open_val_y = 0;
-  Tpack const gap_open_pack_y = simdpp::make_zero();
-  Tuint const gap_open_val = 0;
-  Tpack const gap_open_pack = simdpp::make_zero();
+  Tuint const gap_open_val_x;
+  Tuint const gap_open_val_y;
+  Tuint const gap_open_val;
 
-  Tuint const max_score_val = 0;
-  Tpack const max_score_pack = simdpp::make_zero();
+  Tuint const max_score_val;
 
   int64_t total_reductions = 0;
   Trow vH_up; // Previous H row
@@ -121,14 +114,9 @@ private:
   Backtrack<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   Tuint top_left_score = 0;
 
-  Trow const & get_W(const char b);
-
+  void calculate_scores();
   Tpack max_greater(Tpack & v1, Tpack const & v2);
   // Tpack max_greater_or_equal(Tpack & v1, Tpack const & v2);
-  void calculate_scores();
-
-  // Same as 'calculate_scores', but assumes default options (less runtime checks)
-  // void calculate_scores_default();
   void check_gap_extend_deletions();
   void check_gap_extend_deletions_with_backtracking(std::size_t const i);
   void init_score_vectors();
@@ -142,21 +130,19 @@ public:
     : opt(_opt)
     , d_begin(_d_begin)
     , d_end(_d_end)
-    , m(std::distance(d_begin, d_end))
+    , q_begin(_d_begin)
+    , q_end(_d_end)
+    , m(std::distance(_d_begin, _d_end))
+    , alignment_end(m)
     , n(0)
     , t((m + p) / p)
     , x_gain(opt.gap_extend)
-    , x_gain_pack(simdpp::make_int(x_gain))
-    , y_gain(std::max(opt.gap_extend, static_cast<Tuint>(opt.mismatch - x_gain)))
-    , y_gain_pack(simdpp::make_int(y_gain))
+    , y_gain(std::max(opt.gap_extend, static_cast<Tuint>(_opt.mismatch - x_gain)))
     , gap_open_val_x(opt.gap_open - x_gain)
-    , gap_open_pack_x(simdpp::make_int(gap_open_val_x))
     , gap_open_val_y(opt.gap_open - y_gain)
-    , gap_open_pack_y(simdpp::make_int(gap_open_val_y))
     , gap_open_val(std::max(gap_open_val_x, gap_open_val_y))
-    , gap_open_pack(simdpp::make_int(gap_open_val))
     , max_score_val(std::numeric_limits<Tuint>::max() - gap_open_val)
-    , max_score_pack(simdpp::make_int(max_score_val))
+    , total_reductions(0)
     , vH_up(m + 1)
     , vH(m + 1)
     , vE(m + 1)
@@ -172,6 +158,7 @@ public:
       }
     }
     , mB()
+    , top_left_score(0)
   {
     /*
     for (auto const & e : free_edits)
@@ -230,25 +217,43 @@ public:
   std::pair<std::string, std::string> get_aligned_strings();
   std::set<Event> get_edit_script(std::pair<std::string, std::string> const & s);
   std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
+
+  Trow const & get_W(const char b);
 };
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 namespace
 {
 
-template <typename Tpack>
-inline void
-print_score_vector_standard(Tpack const & vX)
+template <typename Trow>
+void
+print_score_vector_standard(Trow const & vX)
 {
-  std::size_t const t = vX.vectors.size();
+  using Tuint = typename Trow::Tuint;
+  using Vec = std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> >;
+  using Mat = std::vector<Vec>;
+
+  long const t = vX.vectors.size();
+
+  if (t == 0)
+    return;
+
+  Vec vec(vX.vectors[0].length, 0);
+  Mat m(vX.vectors.size(), vec);
+
+  for (long v = 0; v < t; ++v)
+  {
+    simdpp::store(&m[v][0], vX.vectors[v]);
+  }
 
   for (std::size_t j = 0; j < vX.n_elements; ++j)
   {
     std::size_t const v = j % t;
     std::size_t const e = j / t;
-    std::cout << std::setw(4) << static_cast<uint32_t>(vX.vectors.at(v)[e]) << " ";
+    std::cout << std::setw(4) << static_cast<uint64_t>(m[v][e]) << " ";
   }
 
   std::cout << "\n";
@@ -256,18 +261,7 @@ print_score_vector_standard(Tpack const & vX)
 
 
 template <typename Tpack>
-inline void
-print_score_vector_vectorized(Tpack const & v)
-{
-  for (auto const & vec : v.vectors)
-    std::cout << vec << " ";
-
-  std::cout << "\n";
-}
-
-
-template <typename Tpack>
-inline void
+void
 print_score_vectors(Tpack const & vH,
                     Tpack const & vH_up,
                     Tpack const & vE,
@@ -282,10 +276,10 @@ print_score_vectors(Tpack const & vH,
   std::cout << "Standard F_up  : "; print_score_vector_standard(vF_up);
   std::cout << "Standard F     : "; print_score_vector_standard(vF);
   std::cout << "Standard W     : "; print_score_vector_standard(vW);
-  std::cout << "\n";
-  std::cout << "Vectorized H_up: "; print_score_vector_vectorized(vH_up);
-  std::cout << "Vectorized H   : "; print_score_vector_vectorized(vH);
-  std::cout << "Vectorized E   : "; print_score_vector_vectorized(vE);
+  //std::cout << "\n";
+  //std::cout << "Vectorized H_up: "; print_score_vector_vectorized(vH_up);
+  //std::cout << "Vectorized H   : "; print_score_vector_vectorized(vH);
+  //std::cout << "Vectorized E   : "; print_score_vector_vectorized(vE);
   std::cout << "=====\n";
 }
 
@@ -294,6 +288,8 @@ print_score_vectors(Tpack const & vH,
 
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tit>
@@ -323,23 +319,22 @@ Align<Tit>::get_W(const char b)
 
 
 template <typename Tit>
-typename Align<Tit>::Tpack inline
+typename Align<Tit>::Tpack
 Align<Tit>::max_greater(Tpack & v1, Tpack const & v2)
 {
-  Tpack is_greater_pack = v2 > v1;
-  Tlogical_pack is_greater = simdpp::to_mask(is_greater_pack);
+  // TODO: 1) Only use simdpp::max when no backtracking.
+  //       2) Return mask when backtracking and blend later with actual backtracking values
+  Tlogical_pack is_greater = v2 > v1;
   v1 = simdpp::blend(v2, v1, is_greater);
-  //v1 = boost::simd::if_else(is_greater, v2, v1);
   return simdpp::blend(static_cast<Tpack>(simdpp::make_int(1)),
                        static_cast<Tpack>(simdpp::make_zero()),
                        is_greater
                        );
-  //return boost::simd::if_one_else_zero(is_greater);
 }
 
 
 template <typename Tit>
-void inline
+void
 Align<Tit>::calculate_DNA_W_profile()
 {
   std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
@@ -393,7 +388,7 @@ Align<Tit>::calculate_DNA_W_profile()
 
 
 template <typename Tit>
-inline void
+void
 Align<Tit>::init_score_vectors()
 {
   // For less verbosity of code
@@ -439,7 +434,7 @@ Align<Tit>::init_score_vectors()
 
 
 template <typename Tit>
-int64_t inline
+int64_t
 Align<Tit>::align(Tit _q_begin, Tit _q_end)
 {
   q_begin = _q_begin;
@@ -450,42 +445,117 @@ Align<Tit>::align(Tit _q_begin, Tit _q_end)
 
   if (opt.backtracking)
   {
-    if (n > mB.matrix.size())
-    {
-      mB = Backtrack<Tuint>(n, t);
-    }
-    else
-    {
-      // Make sure the first n rows have only zeros
-      for (std::size_t i = 0; i < n; ++i)
-      {
-        for (auto & v : mB.matrix[i])
-          v = simdpp::make_zero();
-      }
-    }
+    mB = Backtrack<Tuint>(n, t);
+    //if (n > mB.matrix.size())
+    //{
+    //  mB = Backtrack<Tuint>(n, t);
+    //}
+    //else
+    //{
+    //  // Make sure the first n rows have only zeros
+    //  for (std::size_t i = 0; i < n; ++i)
+    //  {
+    //    for (auto & v : mB.matrix[i])
+    //      v = simdpp::make_zero();
+    //  }
+    //}
   }
 
-  calculate_scores();
+  this->calculate_scores();
 
-  return 0;
+  /*
+  // Get final score
+  if (opt.bottom_row_free)
+  {
+    std::size_t max_j = 0;
+    int64_t max_s = std::numeric_limits<int64_t>::min();
+
+    // Find the highest score on the bottom row
+    for (std::size_t j = 0; j <= m; ++j)
+    {
+      int64_t s = static_cast<int64_t>(vH_up.vectors[j % t][j / t]) - j * x_gain;
+
+      if (s >= max_s)
+      {
+        max_s = s;
+        max_j = j;
+      }
+    }
+
+    alignment_end = max_j;
+
+    return static_cast<int64_t>(vH_up.vectors[max_j % t][max_j / t])
+           + total_reductions
+           - top_left_score
+           - n * y_gain
+           - max_j * x_gain;
+
+  }
+  else if (opt.bottom_row_gap_open_free)
+  {
+    std::size_t max_j = 0;
+    int64_t max_s = std::numeric_limits<int64_t>::min();
+
+    // Find the highest score on the bottom row
+    for (std::size_t j = 0; j <= m; ++j)
+    {
+      int64_t s = static_cast<int64_t>(vH_up.vectors[j % t][j / t]);
+
+      if (s >= max_s)
+      {
+        max_s = s;
+        max_j = j;
+      }
+    }
+
+    alignment_end = max_j;
+
+    return static_cast<int64_t>(vH_up.vectors[max_j % t][max_j / t])
+           + total_reductions
+           - top_left_score
+           - n * y_gain;
+  }
+  else
+  */
+  {
+    alignment_end = m;
+
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > arr(16 / sizeof(Tuint));
+
+    simdpp::store(&arr[0], vH_up.vectors[m % t]);
+    return arr[m / t]
+           + total_reductions
+           - top_left_score
+           - n * y_gain
+           - m * x_gain;
+  }
 }
 
 
 template <typename Tit>
-void inline
+void
 Align<Tit>::calculate_scores()
 {
-  bool const backtracking = opt.backtracking;
-  bool const left_column_gap_open_free = opt.left_column_gap_open_free;
-  bool const right_column_gap_open_free = opt.right_column_gap_open_free;
-  std::size_t const right_v = m % t; // Vector that contains the rightmost element
-  std::size_t const right_e = m / t; // The right-most element (in vector 'right_v')
+  //std::cout << "Number of vectors = " << t << "\n";
+  //std::cout << "n = " << n << "\n";
+  //std::cout << "m = " << m << "\n";
+  //std::cerr << "6y_gain = " << y_gain << "\n";
+  //std::cerr << "6gap_open_val_x = " << gap_open_val_x << "\n";
+
+  Tpack gap_open_pack = simdpp::make_int(gap_open_val);
+  Tpack gap_open_pack_x = simdpp::make_int(gap_open_val_x);
+
+  // bool const backtracking = opt.backtracking;
+  // bool const left_column_gap_open_free = opt.left_column_gap_open_free;
+  // bool const right_column_gap_open_free = opt.right_column_gap_open_free;
+  // std::size_t const right_v = m % t; // Vector that contains the rightmost element
+  // std::size_t const right_e = m / t; // The right-most element (in vector 'right_v')
   Tuint const max_gain_per_row = std::max(static_cast<Tuint>(0),
                                           static_cast<Tuint>(opt.match + x_gain + y_gain)
                                           );
 
   //Tuint current_max_score = vH_up.vectors[0][0]; // Keep track of current max score
-  Tuint current_max_score = gap_open_val * 2;
+  Tuint current_max_score = simdpp::extract<0>(vH_up.vectors[0]);
 
   /// Start of outer loop
   for (std::size_t i = 0; i < n; ++i)
@@ -493,47 +563,68 @@ Align<Tit>::calculate_scores()
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
     Trow const & vW = this->get_W(*std::next(q_begin, i));
 
+    //std::cerr << "0i = " << i << std::endl;
+    //std::cerr << "p = " << p << "\n";
+    //std::cerr << "alignment_end = " << alignment_end << "\n"
+    //          << "x_gain = " << x_gain << "\n"
+    //          << "7y_gain = " << y_gain << "\n"
+    //          << "7gap_open_val_x = " << gap_open_val_x << "\n"
+    //          << "gap_open_val_y = " << gap_open_val_y << "\n"
+    //          << "gap_open_val = " << gap_open_val << "\n";
+    //
+    //std::cerr << "total_reductions = " << total_reductions << "\n";
+    //std::cerr << "vectors.size(), vector_size, elements = " << vE.vectors.size() << "," << Tpack::length << "," << vE.n_elements << std::endl;
     // Clear vE vectors
     for (auto & vE_vec : vE.vectors)
       vE_vec = simdpp::make_zero();
 
-    /// Calculate vector 0
-    vH.vectors[0] = simdpp::move8_r<1>(vH_up.vectors[t - 1] + vW.vectors[t - 1]);
+    //std::cerr << "05i = " << i << std::endl;
 
-    /*
-    // This is the only way to reach the left-most coordinate
-    vH.vectors[0][0] = std::max(static_cast<Tuint>(vF_up.vectors[0][0]),
-                                static_cast<Tuint>(vH_up.vectors[0][0] - gap_open_val)
-                                );
+    /// Calculate vector 0
+    {
+      //std::cerr << "f pack:\n"; print_pack(vF_up.vectors[0]);
+      auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up.vectors[0])),
+                                 static_cast<Tuint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
+      //std::cerr << "left = " << left << "\n";
+      //std::cerr << "h pack sub:\n"; print_pack(vH_up.vectors[t - 1] + vW.vectors[t - 1]);
+      vH.vectors[0] = simdpp::align8<7>(static_cast<Tpack>(simdpp::make_int(left)),
+                                        vH_up.vectors[t - 1] + vW.vectors[t - 1]
+                                        );
+      //std::cerr << "h pack best:\n"; print_pack(vH.vectors[0]);
+      //print_pack(vH.vectors[0]);
+      //vH.vectors[0] = simdpp::move8_r<1>(vH_up.vectors[t - 1] + vW.vectors[t - 1]);
+    }
 
     // Check if any insertion have highest values
-    if (backtracking)
+    //if (backtracking)
     {
-      mB.matrix[i][0][0] = mB.INS_BT;
+      //mB.matrix[i][0][0] = mB.INS_BT;
+      mB.matrix[i][0] = simdpp::make_int(mB.INS_BT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
       vF.vectors[0] = vH_up.vectors[0] - gap_open_pack;
 
-      if (left_column_gap_open_free)
-        vF.vectors[0][0] = vH_up.vectors[0][0];
-
-      if (right_column_gap_open_free && right_v == 0)
-        vF.vectors[0][right_e] = vH_up.vectors[0][right_e];
+      //if (left_column_gap_open_free)
+      //  vF.vectors[0][0] = vH_up.vectors[0][0];
+      //
+      //if (right_column_gap_open_free && right_v == 0)
+      //  vF.vectors[0][right_e] = vH_up.vectors[0][right_e];
 
       mB.set_ins_extend(i, 0, max_greater(vF.vectors[0], vF_up.vectors[0]));
       mB.set_ins(i, 0, max_greater(vH.vectors[0], vF.vectors[0]));
     }
-    else
-    {
-      vF.vectors[0] = vH_up.vectors[0] - gap_open_pack;
 
-      if (left_column_gap_open_free)
-        vF.vectors[0][0] = vH_up.vectors[0][0];
-
-      if (right_column_gap_open_free && right_v == 0)
-        vF.vectors[0][right_e] = vH_up.vectors[0][right_e];
-
-      vF.vectors[0] = boost::simd::max(vF.vectors[0], vF_up.vectors[0]);
-      vH.vectors[0] = boost::simd::max(vH.vectors[0], vF.vectors[0]);
-    }
+    //else
+    //{
+    //  vF.vectors[0] = vH_up.vectors[0] - gap_open_pack;
+    //
+    //  if (left_column_gap_open_free)
+    //    vF.vectors[0][0] = vH_up.vectors[0][0];
+    //
+    //  if (right_column_gap_open_free && right_v == 0)
+    //    vF.vectors[0][right_e] = vH_up.vectors[0][right_e];
+    //
+    //  vF.vectors[0] = boost::simd::max(vF.vectors[0], vF_up.vectors[0]);
+    //  vH.vectors[0] = boost::simd::max(vH.vectors[0], vF.vectors[0]);
+    //}
     /// Done calculating vector 0
 
     /// Calculate vectors 1,...,v-1
@@ -543,42 +634,42 @@ Align<Tit>::calculate_scores()
       vH.vectors[v] = vH_up.vectors[v - 1] + vW.vectors[v - 1];
       //vF.vectors[v] = boost::simd::max(vH_up.vectors[v] - gap_open_pack, vF_up.vectors[v]);
 
-      if (backtracking)
+      //if (backtracking)
       {
         vF.vectors[v] = vH_up.vectors[v] - gap_open_pack;
 
-        // Slight performance gain if this if statement is moved out of the loop
-        if (right_column_gap_open_free && v == right_v)
-          vF.vectors[right_v][right_e] = vH_up.vectors[right_v][right_e];
+        /// Slight performance gain if this if statement is moved out of the loop
+        //if (right_column_gap_open_free && v == right_v)
+        //  vF.vectors[right_v][right_e] = vH_up.vectors[right_v][right_e];
 
         mB.set_ins_extend(i, v, max_greater(vF.vectors[v], vF_up.vectors[v]));
         mB.set_ins(i, v, max_greater(vH.vectors[v], vF.vectors[v]));
       }
-      else
-      {
-        vF.vectors[v] = boost::simd::max(vH_up.vectors[v] - gap_open_pack, vF_up.vectors[v]);
-
-        // Slight performance gain if this if statement is moved out of the loop
-        if (right_column_gap_open_free && v == right_v)
-          vF.vectors[right_v][right_e] = vH_up.vectors[right_v][right_e];
-
-        vH.vectors[v] = boost::simd::max(vH.vectors[v], vF.vectors[v]);
-      }
+      //else
+      //{
+      //  vF.vectors[v] = boost::simd::max(vH_up.vectors[v] - gap_open_pack, vF_up.vectors[v]);
+      //
+      //  // Slight performance gain if this if statement is moved out of the loop
+      //  if (right_column_gap_open_free && v == right_v)
+      //    vF.vectors[right_v][right_e] = vH_up.vectors[right_v][right_e];
+      //
+      //  vH.vectors[v] = boost::simd::max(vH.vectors[v], vF.vectors[v]);
+      //}
 
       // Deletions pass 1: Gap opens
       vE.vectors[v] = vH.vectors[v - 1] - gap_open_pack;
     } /// Done calculating vectors 1,...,v-1
 
-    // Calculate vE.vector[0]
-    vE.vectors[0] =
-      boost::simd::shuffle<boost::simd::pattern<shift_elements_right> >(
-        vH.vectors[t - 1] - gap_open_pack_x);
 
-    //for (std::size_t e = 1; e < p; ++e)
-    //  vE.vectors[0][e] = vH.vectors[t - 1][e - 1] - gap_open_val_x;
+    /// Calculate vE.vector[0]
+    vE.vectors[0] = simdpp::move8_r<1>(vH.vectors[t - 1] - gap_open_pack_x);
+    //vE.vectors[0] =
+    //  boost::simd::shuffle<boost::simd::pattern<shift_elements_right> >(
+    //    vH.vectors[t - 1] - gap_open_pack_x);
+
 
     // Deletions pass 2: Gap extends
-    if (backtracking)
+    //if (backtracking)
     {
       check_gap_extend_deletions_with_backtracking(i);
 
@@ -586,14 +677,15 @@ Align<Tit>::calculate_scores()
       for (std::size_t v = 0; v < t; ++v)
         mB.set_del(i, v, max_greater(vH.vectors[v], vE.vectors[v]));
     }
-    else
-    {
-      check_gap_extend_deletions();
+    //else
+    //{
+    //  check_gap_extend_deletions();
+    //
+    //  // Check if any vE has higher scores than vH
+    //  for (std::size_t v = 0; v < t; ++v)
+    //    vH.vectors[v] = boost::simd::max(vH.vectors[v], vE.vectors[v]);
+    //}
 
-      // Check if any vE has higher scores than vH
-      for (std::size_t v = 0; v < t; ++v)
-        vH.vectors[v] = boost::simd::max(vH.vectors[v], vE.vectors[v]);
-    }
 
     //std::cout << "q[" << i << "] = " << q[i] << "\n";
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
@@ -606,12 +698,14 @@ Align<Tit>::calculate_scores()
     }
     else
     {
+      return;
       // Find the correct max score (accurate but computationally expensive)
       current_max_score = 0;
 
       for (auto const & vec : vH.vectors)
       {
-        current_max_score = std::max(current_max_score, boost::simd::maximum(vec));
+        //current_max_score = std::max(current_max_score, boost::simd::maximum(vec));
+        current_max_score = std::max(current_max_score, static_cast<Tuint>(simdpp::reduce_max(vec)));
 
         if (current_max_score >= max_score_val)
         {
@@ -619,22 +713,261 @@ Align<Tit>::calculate_scores()
           total_reductions += gap_open_val;
 
           for (auto & vH_vec : vH.vectors)
-            vH_vec = boost::simd::max(vH_vec - gap_open_pack, gap_open_pack);
+          {
+            Tpack vH_vec_reduced = vH_vec - gap_open_pack;
+            vH_vec = simdpp::max(vH_vec_reduced, gap_open_pack);
+          }
 
           for (auto & vF_vec : vF.vectors)
-            vF_vec = boost::simd::max(vF_vec - gap_open_pack, gap_open_pack);
+          {
+            Tpack vF_vec_reduced = vF_vec - gap_open_pack;
+            vF_vec = simdpp::max(vF_vec_reduced, gap_open_pack);
+          }
+
+          //for (auto & vH_vec : vH.vectors)
+          //  vH_vec = boost::simd::max(vH_vec - gap_open_pack, gap_open_pack);
+          //
+          //for (auto & vF_vec : vF.vectors)
+          //  vF_vec = boost::simd::max(vF_vec - gap_open_pack, gap_open_pack);
 
           break;
         }
       }
     }
-    */
 
     std::swap(vF.vectors, vF_up.vectors);
     std::swap(vH.vectors, vH_up.vectors);
   } /// End of outer loop
-
 }
 
 
+template <typename Tit>
+void
+Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
+{
+  //Tpack vE0 = simdpp::make_zero();
+  using Tvec = std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> >;
+  Tvec vE0(8);
+
+  for (std::size_t c = 0; c < 2; ++c)
+  {
+    Tuint max_val = 0;
+    Tvec vE_first(8);
+    Tvec vE_last(8);
+    simdpp::store(&vE_first[0], vE.vectors[0]);
+    simdpp::store(&vE_last[0], vE.vectors[t - 1]);
+
+    //vE0 = simdpp::max(vE0, static_cast<Tpack>(simdpp::make_int(max_val)));
+    /// Check for deletions in vector 0
+    for (std::size_t e = 1; e < p; ++e)
+    {
+      max_val = std::max(max_val, vE_last[e - 1]);
+
+      if (max_val > static_cast<Tuint>(vE_first[e]))
+        vE0[e] = max_val;
+    }
+
+    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<Tpack>(simdpp::load(&vE0[0]))));
+
+    // Check for deletions in vectors 1,...,t-1
+    for (std::size_t v = 1; v < t; ++v)
+    {
+      mB.set_del_extend(i, v, max_greater(vE.vectors[v], vE.vectors[v - 1]));
+    }
+  }
+}
+
+
+template <typename Tit>
+std::pair<std::string, std::string>
+Align<Tit>::get_aligned_strings()
+{
+  long i = n;
+  long j = alignment_end; //d.size();
+  std::pair<std::string, std::string> s;
+
+  // TODO: Fix this mess
+  std::string d(d_begin, d_end);
+  std::string q(q_begin, q_end);
+
+  long del_count = 0;
+  long ins_count = 0;
+  long del_ext_count = 0;
+  long ins_ext_count = 0;
+  long match_count = 0;
+  long mismatch_count = 0;
+
+  if (alignment_end < d.size())
+  {
+    s.first.append(std::string(d.rbegin(), d.rbegin() + d.size() - alignment_end));
+    s.second.append(d.size() - alignment_end, '-');
+
+    del_count = 1;
+    del_ext_count = d.size() - alignment_end - 1;
+  }
+
+  //std::cout << "alignment_end, d.size() = " << alignment_end << "," << d.size() << "\n";
+
+  auto add_del = [&]()
+                 {
+                   //std::cerr << "DEL SELECTED" << j << "\n";
+                   s.first.push_back(*std::next(d_begin, j - 1));
+                   s.second.push_back('-');
+                   --j;
+                   ++del_count;
+                 };
+
+  auto add_del_ext = [&]()
+                 {
+                   //std::cerr << "DEL SELECTED" << j << "\n";
+                   s.first.push_back(*std::next(d_begin, j - 1));
+                   s.second.push_back('-');
+                   --j;
+                   ++del_ext_count;
+                 };
+
+  auto add_ins = [&]()
+                 {
+                   //std::cerr << "INS SELECTED" << "\n";
+                   s.first.push_back('-');
+                   s.second.push_back(*std::next(q_begin, i - 1));
+                   --i;
+                   ++ins_count;
+                 };
+
+  auto add_ins_ext = [&]()
+                 {
+                   //std::cerr << "INS SELECTED" << "\n";
+                   s.first.push_back('-');
+                   s.second.push_back(*std::next(q_begin, i - 1));
+                   --i;
+                   ++ins_ext_count;
+                 };
+
+  auto add_sub = [&]()
+                 {
+                   //std::cerr << "SUB SELECTED" << "\n";
+                   if (d[j - 1] == q[i - 1])
+                   {
+                     ++match_count;
+                   }
+                   else
+                   {
+                     ++mismatch_count;
+                   }
+
+                   s.first.push_back(d[j - 1]);
+                   s.second.push_back(q[i - 1]);
+                   --i;
+                   --j;
+
+
+                 };
+
+  while (i > 0 || j > 0)
+  {
+    assert(i >= 0);
+    assert(j >= 0);
+    //std::cerr << "i,j = " << i << "," << j << std::endl;
+    std::size_t const v = j % t;
+    std::size_t const e = j / t;
+
+    if (i == 0)
+    {
+      assert(j > 0);
+      add_del();
+
+      while (j > 0)
+        add_del_ext();
+    }
+    else if (mB.is_del(i - 1, v, e))
+    {
+      while (j > 1 && mB.is_del_extend(i - 1, j % t, j / t))
+        add_del_ext();
+
+      assert(j > 0);
+      add_del();
+    }
+    else if (mB.is_ins(i - 1, v, e))
+    {
+      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+        add_ins_ext();
+
+      assert(i > 0);
+      add_ins();
+    }
+    else
+    {
+      add_sub();
+    }
+  }
+
+  std::pair<std::string, std::string> out =
+  {
+    std::string(s.first.rbegin(), s.first.rend()),
+    std::string(s.second.rbegin(), s.second.rend())
+  };
+
+  assert(out.first.size() == out.second.size());
+
+  std::cerr << "matches, mismatches, deletions, del_ext, insertions, ins_ext = \n"
+            << match_count << ","
+            << mismatch_count << ","
+            << del_count << ","
+            << del_ext_count << ","
+            << ins_count << ","
+            << ins_ext_count << "\n";
+
+  std::cerr << "score = "
+            << static_cast<long>(match_count * 2 - mismatch_count * 2 - (del_count + ins_count) * 5 - (del_ext_count + ins_ext_count)) << std::endl;
+  return out;
+}
+
+
+template <typename Tit>
+std::vector<Cigar>
+Align<Tit>::get_cigar(std::pair<std::string, std::string> const & s)
+{
+  std::vector<Cigar> cigar;
+
+  if (s.first.size() == 0)
+    return cigar;
+
+  auto get_op = [](char const c1, char const c2) -> CigarOperation
+                {
+                  if (c1 == '-')
+                    return INSERTION;
+                  else if (c2 == '-')
+                    return DELETION;
+                  else
+                    return MATCH;
+                };
+
+  std::size_t prev_pos = 0;
+  CigarOperation op = get_op(s.first[0], s.second[0]);
+
+  for (std::size_t i = 1; i < s.first.size(); ++i)
+  {
+    // Both string cant have a gap
+    assert(s.first[i] != '-' || s.second[i] != '-');
+    CigarOperation const new_op = get_op(s.first[i], s.second[i]);
+
+    if (op == new_op)
+    {
+      continue;
+    }
+    else
+    {
+      cigar.push_back({i - prev_pos, op});
+      op = new_op;
+      prev_pos = i;
+    }
+  }
+
+  cigar.push_back({s.first.size() - prev_pos, op});
+  return cigar;
+}
+
+
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw

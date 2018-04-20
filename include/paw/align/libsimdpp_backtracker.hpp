@@ -71,7 +71,7 @@ struct Backtrack
           Tpack const pack /*pack to set*/
           )
   {
-    matrix[i][v / BT_PER_CELL] |= pack << (N_BT_BITS * (v % BT_PER_CELL) + DEL_SHIFT);
+    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] | (pack << (N_BT_BITS * (v % BT_PER_CELL) + DEL_SHIFT));
   }
 
 
@@ -81,7 +81,7 @@ struct Backtrack
           Tpack const pack /*pack to set*/
           )
   {
-    matrix[i][v / BT_PER_CELL] |= pack << (N_BT_BITS * (v % BT_PER_CELL) + INS_SHIFT);
+    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] | (pack << (N_BT_BITS * (v % BT_PER_CELL) + INS_SHIFT));
   }
 
 
@@ -91,7 +91,7 @@ struct Backtrack
                  Tpack const pack /*pack to set*/
                  )
   {
-    matrix[i][v / BT_PER_CELL] |= pack << (N_BT_BITS * (v % BT_PER_CELL) + DEL_E_SHIFT);
+    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] | (pack << (N_BT_BITS * (v % BT_PER_CELL) + DEL_E_SHIFT));
   }
 
 
@@ -101,7 +101,7 @@ struct Backtrack
                  Tpack const pack /*pack to set*/
                  )
   {
-    matrix[i][v / BT_PER_CELL] |= pack << (N_BT_BITS * (v % BT_PER_CELL) + INS_E_SHIFT);
+    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] | (pack << (N_BT_BITS * (v % BT_PER_CELL) + INS_E_SHIFT));
   }
 
 
@@ -111,7 +111,19 @@ struct Backtrack
          std::size_t const e /*element index*/
          ) const
   {
-    return matrix[i][v / BT_PER_CELL][e] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //Tpack tmp = matrix[i][v / BT_PER_CELL] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
+    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    //
+    //std::cerr << "IS DEL? e = " << e << "\n";
+    //
+    //for (auto const item : tmp_vec)
+    //  std::cerr << item << ",  ";
+    //
+    //std::cerr << std::endl;
+    //
+    //assert(e < tmp_vec.size());
+    return tmp_vec[e] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -121,7 +133,20 @@ struct Backtrack
          std::size_t const e /*element index*/
          ) const
   {
-    return matrix[i][v / BT_PER_CELL][e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //Tpack tmp = matrix[i][v / BT_PER_CELL] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
+    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+
+    //std::cerr << "IS INS? e = " << e << "\n";
+    //
+    //for (auto const item : tmp_vec)
+    //  std::cerr << item << ",  ";
+    //
+    //std::cerr << std::endl;
+
+    assert(e < tmp_vec.size());
+    return tmp_vec[e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //return matrix[i][v / BT_PER_CELL][e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -131,7 +156,21 @@ struct Backtrack
                 std::size_t const e /*element index*/
                 ) const
   {
-    return matrix[i][v / BT_PER_CELL][e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //Tpack tmp = matrix[i][v / BT_PER_CELL] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
+    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+
+    //std::cerr << "e = " << e << "\n";
+    //
+    //for (auto const item : tmp_vec)
+    //  std::cerr << item << ",  ";
+    //
+    //std::cerr << std::endl;
+    //
+    //assert(e < tmp_vec.size());
+
+    return tmp_vec[e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //return matrix[i][v / BT_PER_CELL][e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -141,7 +180,12 @@ struct Backtrack
                 std::size_t const e /*element index*/
                 ) const
   {
-    return matrix[i][v / BT_PER_CELL][e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //Tpack tmp = matrix[i][v / BT_PER_CELL] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
+    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    //assert(e < tmp_vec.size());
+    return tmp_vec[e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    //return matrix[i][v / BT_PER_CELL][e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 

@@ -12,7 +12,7 @@ namespace paw
 
 
 template <typename Tuint>
-struct Row
+struct Row1
 {
   using uint_t = Tuint;
   using Tpack = boost::simd::pack<Tuint>;
@@ -25,8 +25,8 @@ struct Row
   Vectors vectors;
 
   /* CONSTRUCTORS */
-  Row(std::size_t const _n_elements);
-  Row(std::size_t const _n_elements, Tuint const val);
+  Row1(std::size_t const _n_elements);
+  Row1(std::size_t const _n_elements, Tuint const val);
 
 };
 
@@ -43,11 +43,11 @@ namespace paw
 {
 
 template<typename Tuint>
-std::size_t constexpr Row<Tuint>::vector_size;
+std::size_t constexpr Row1<Tuint>::vector_size;
 
 
 template <typename Tuint>
-Row<Tuint>::Row(std::size_t const _n_elements)
+Row1<Tuint>::Row1(std::size_t const _n_elements)
   : n_elements(_n_elements)
 {
   Tpack my_vector;
@@ -56,7 +56,7 @@ Row<Tuint>::Row(std::size_t const _n_elements)
 
 
 template <typename Tuint>
-Row<Tuint>::Row(std::size_t const _n_elements, Tuint const val)
+Row1<Tuint>::Row1(std::size_t const _n_elements, Tuint const val)
   : n_elements(_n_elements)
 {
   Tpack my_vector {
@@ -69,7 +69,7 @@ Row<Tuint>::Row(std::size_t const _n_elements, Tuint const val)
 
 template <typename Tint>
 std::ostream &
-operator<<(std::ostream & ss, Row<Tint> const & r)
+operator<<(std::ostream & ss, Row1<Tint> const & r)
 {
   std::size_t j = 0;
 

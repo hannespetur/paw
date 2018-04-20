@@ -109,7 +109,7 @@ else()
 endif()
 
 ## Setup other compiler flags
-set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors")
+set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors -m64 -march=x86-64 -mtune=generic")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON} -DNDEBUG")
@@ -122,7 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ## Include paw
 list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
-simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "${RUNNABLE_ARCHS}") # ${COMPILABLE_ARCHS}
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp ${RUNNABLE_ARCHS}) # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
 #add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
 
 ## Static and shared libraries

@@ -1056,7 +1056,7 @@ function(simdpp_multiarch FILE_LIST_VAR SRC_FILE)
     foreach(ARCH ${ARCHS})
         simdpp_get_arch_info(CXX_FLAGS DEFINES_LIST SUFFIX ${ARCH})
 
-        set(CXX_FLAGS "-Wall -Wextra -Wfatal-errors -I\"${CMAKE_CURRENT_SOURCE_DIR}/${SRC_PATH}\" ${CXX_FLAGS}")
+        set(CXX_FLAGS "-I\"${CMAKE_CURRENT_SOURCE_DIR}/${SRC_PATH}\" ${CXX_FLAGS}")
         if(NOT "${SUFFIX}" STREQUAL "")
             # Copy the source file and add the required flags
             set(DST_ABS_FILE "${CMAKE_CURRENT_BINARY_DIR}/${SRC_PATH}/${SRC_NAME}_simdpp_${SUFFIX}${SRC_EXT}")

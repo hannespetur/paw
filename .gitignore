@@ -9,3 +9,4 @@ GSYMS
 GTAGS
 .*/
 CMakeLists.txt.user
+/cmake-*/

@@ -33,10 +33,10 @@ template <typename Tuint, typename Tit>
 class Aligner
 {
 public:
-  using Trow = Row<Tuint>;   // A row of vectors that can be run in parallel
+  using Trow = Row1<Tuint>;   // A row of vectors that can be run in parallel
   using Tarr = std::array<Trow, 4>;
-  using Tpack = typename Row<Tuint>::Tpack;
-  using Tlogical_pack = typename Row<Tuint>::Tlogical_pack;
+  using Tpack = typename Trow::Tpack;
+  using Tlogical_pack = typename Trow::Tlogical_pack;
 
   // p is the length (or cardinality) of the SIMD vectors
   std::size_t static constexpr p = boost::simd::cardinal_of<Tpack>();
@@ -119,8 +119,8 @@ namespace
 {
 
 template <typename Tuint>
-inline paw::Row<Tuint> const &
-get_W(const char b, std::array<paw::Row<Tuint>, 4> const & W_profile)
+inline paw::Row1<Tuint> const &
+get_W(const char b, std::array<paw::Row1<Tuint>, 4> const & W_profile)
 {
   switch (b)
   {
@@ -172,7 +172,6 @@ print_score_vector_vectorized(Tpack const & v)
 }
 
 
-/*
 template <typename Tpack>
 inline void
 print_score_vectors(Tpack const & vH,
@@ -195,7 +194,6 @@ print_score_vectors(Tpack const & vH,
   std::cout << "Vectorized E   : "; print_score_vector_vectorized(vE);
   std::cout << "=====\n";
 }
-*/
 
 
 /*

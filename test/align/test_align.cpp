@@ -22,7 +22,7 @@ namespace io = boost::iostreams;
 namespace
 {
 
-std::string
+inline std::string
 get_sequence_from_fa(std::string const & fn, bool gzip = false)
 {
   std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
@@ -52,6 +52,7 @@ get_sequence_from_fa(std::string const & fn, bool gzip = false)
 } // namespace anon
 
 
+
 TEST_CASE("Aligment black box tests")
 {
   using namespace paw;
@@ -60,8 +61,8 @@ TEST_CASE("Aligment black box tests")
   using Tduration = std::chrono::duration<double, std::milli>;
 
   std::string database = "GGG";
-  std::string query =    "GAG";
-  std::swap(database, query);
+  std::string query =    "GGGG";
+  //std::swap(database, query);
 
   // Black box test with FASTA sequences runs too slowly in debug mode
 #ifdef NDEBUG
@@ -80,6 +81,7 @@ TEST_CASE("Aligment black box tests")
   //boost_simd_align<int8_t>(query, database);
   auto t0 = Ttime::now();
 
+  /*
   {
     AlignerOptions<uint8_t> opt;
     opt.match = 2;
@@ -97,6 +99,7 @@ TEST_CASE("Aligment black box tests")
     auto score = aligner.align(query.cbegin(), query.cend());
     //std::cout << "score = " << score << "\n";
   }
+  */
 
   auto t1 = Ttime::now();
   //std::cout << "int8_t  " << Tduration(t1 - t0).count() << " ms\n";
@@ -122,9 +125,9 @@ TEST_CASE("Aligment black box tests")
     //Aligner<uint16_t> aligner(database);
     //auto score = aligner.align(query);
     t1 = Ttime::now();
-    //std::cout << "score = " << score << "\n";
-    std::swap(database, query);
-    //std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
+    std::cout << "score = " << score << "\n";
+    //std::swap(database, query);
+    std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
 
     if (opt.backtracking)
     {
@@ -179,8 +182,8 @@ TEST_CASE("Aligment black box tests")
         }
       }
 
-      //std::cout << "\n";
-      //std::cout << "M,I,D = " << M << "," << I << "," << D << "\n";
+      std::cout << "\n";
+      std::cout << "M,I,D = " << M << "," << I << "," << D << "\n";
     }
   }
 }

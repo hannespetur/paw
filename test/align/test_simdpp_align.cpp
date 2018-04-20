@@ -52,6 +52,7 @@ get_sequence_from_fa(std::string const & fn, bool gzip = false)
 } // namespace anon
 
 
+/*
 TEST_CASE("W profile")
 {
   std::string database = "GCAG";
@@ -114,8 +115,10 @@ TEST_CASE("W profile")
 
   align.align(query.cbegin(), query.cend());
 }
+*/
 
 
+/*
 TEST_CASE("simdpp alignment black box tests")
 {
   using namespace paw;
@@ -123,9 +126,9 @@ TEST_CASE("simdpp alignment black box tests")
   using Ttime = std::chrono::high_resolution_clock;
   using Tduration = std::chrono::duration<double, std::milli>;
 
-  std::string database = "GGG";
-  std::string query =    "GAG";
-  std::swap(database, query);
+  std::string database = "GGGG";
+  std::string query =    "GGG";
+  //std::swap(database, query);
 
   // Black box test with FASTA sequences runs too slowly in debug mode
 #ifdef NDEBUG
@@ -144,7 +147,6 @@ TEST_CASE("simdpp alignment black box tests")
   //boost_simd_align<int8_t>(query, database);
   auto t0 = Ttime::now();
 
-  /*
   {
     paw::AlignerOptions<uint8_t> opt;
     opt.match = 2;
@@ -162,7 +164,6 @@ TEST_CASE("simdpp alignment black box tests")
     auto score = aligner.align(query.cbegin(), query.cend());
     std::cout << "score = " << score << "\n";
   }
-  */
 
   auto t1 = Ttime::now();
   //std::cout << "int8_t  " << Tduration(t1 - t0).count() << " ms\n";
@@ -183,29 +184,25 @@ TEST_CASE("simdpp alignment black box tests")
     opt.bottom_row_gap_open_free = false;
     opt.left_column_gap_open_free = false;
     opt.right_column_gap_open_free = false;
-    paw::Align<std::string::const_iterator> aligner(database.cbegin(), database.cend(), opt);
-    /*
-    auto score = aligner.align(query.cbegin(), query.cend());
-    //Aligner<uint16_t> aligner(database);
-    //auto score = aligner.align(query);
+    paw::Align<std::string::const_iterator> align(database.cbegin(), database.cend(), opt);
+    align.calculate_DNA_W_profile();
+    auto score = align.align(query.cbegin(), query.cend());
+
     t1 = Ttime::now();
     std::cout << "score = " << score << "\n";
-    std::swap(database, query);
+    //std::swap(database, query);
     std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
-    */
 
     if (opt.backtracking)
     {
-      /*
-      auto aligned_strings = aligner.get_aligned_strings();
+      auto aligned_strings = align.get_aligned_strings();
 
+      for (std::size_t i = 0; i < std::min(1000ul, aligned_strings.first.size()); i += 90)
+      {
+        std::cout << aligned_strings.first.substr(i, 90) << "\n"
+                  << aligned_strings.second.substr(i, 90) << "\n\n";
+      }
 
-      //for (std::size_t i = 0; i < std::min(1000ul, aligned_strings.first.size()); i += 100)
-      //{
-      //  std::cout << aligned_strings.first.substr(i, 90) << "\n"
-      //            << aligned_strings.second.substr(i, 90) << "\n\n";
-      //}
-      //
       //auto edit_script = get_edit_script(aligned_strings);
       //
       //for (auto const & e : edit_script)
@@ -215,8 +212,7 @@ TEST_CASE("simdpp alignment black box tests")
       //            << (e.alt.size() > 0 ? std::string(e.alt.begin(), e.alt.end()) : "-") << "\n";
       //}
 
-
-      auto cigar = aligner.get_cigar(aligned_strings);
+      auto cigar = align.get_cigar(aligned_strings);
       std::size_t M = 0;
       std::size_t I = 0;
       std::size_t D = 0;
@@ -250,7 +246,7 @@ TEST_CASE("simdpp alignment black box tests")
 
       std::cout << "\n";
       std::cout << "M,I,D = " << M << "," << I << "," << D << "\n";
-      */
     }
   }
 }
+*/

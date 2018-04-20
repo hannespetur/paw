@@ -6,7 +6,7 @@
 #include <simdpp/dispatch/get_arch_string_list.h>
 
 #include <paw/align/libsimdpp_align.hpp>
-//#include <paw/align/libsimdpp_row.hpp>
+#include <paw/internal/config.hpp>
 
 
 #define SIMDPP_USER_ARCH_INFO ::simdpp::get_arch_linux_cpuinfo()
@@ -14,26 +14,37 @@
 
 namespace paw
 {
+
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-namespace simd = simdpp;
-
-
-void
+long
 align(std::string const & seq1, std::string const & seq2)
 {
-  std::cerr << "Aligning " << seq1 << " to " << seq2 << "\n";
-
-  Align<std::string::const_iterator> align(seq1.cbegin(), seq2.cend());
+  std::string const nspace(STR(SIMDPP_ARCH_NAMESPACE));
+  std::cerr << "Namespace = " << nspace << std::endl;
+  //std::cerr << "Aligning " << seq1 << " to " << seq2 << "\n";
+  Align<std::string::const_iterator> align(seq1.cbegin(), seq1.cend());
   align.calculate_DNA_W_profile();
+  auto score = align.align(seq2.cbegin(), seq2.cend());
+  std::cerr << "score = " << score << std::endl;
+
+  //auto aligned_strings = align.get_aligned_strings();
+  //
+  //for (long i = 0; i < std::min(100000l, static_cast<long>(aligned_strings.first.size())); i += 140)
+  //{
+  //  std::cout << aligned_strings.first.substr(i, 140) << "\n"
+  //            << aligned_strings.second.substr(i, 140) << "\n\n";
+  //}
+
+  return score;
 }
 
 
 std::string
 get_current_arch()
 {
-  simd::Arch current_arch = simd::this_compile_arch();
+  simdpp::Arch current_arch = simdpp::this_compile_arch();
   std::ostringstream ss;
   const char * sep = "";
 
@@ -99,17 +110,17 @@ get_current_arch()
 
   if (static_cast<bool>(current_arch & simdpp::Arch::X86_AVX512VL))
   {
-    ss << sep << "AVX512VL"; sep = ",";
+    ss << sep << "AVX512VL";
   }
 
   return ss.str();
 
   /*
-  simd::int16<8> test3 = simd::make_zero();
-  simd::int16<8> test4 = simd::make_int(1, 0, 0, 0, 0, 0, 0, 42);
+  simdpp::int16<8> test3 = simdpp::make_zero();
+  simdpp::int16<8> test4 = simdpp::make_int(1, 0, 0, 0, 0, 0, 0, 42);
   auto test5 = add(test3, test4);
 
-  //simd::int16v vec = test3.vec(0);
+  //simdpp::int16v vec = test3.vec(0);
   constexpr int test = test3.vec_length / test3.length;
   std::cout << test << " "
             << test3.vec_length << " "
@@ -134,6 +145,6 @@ get_current_arch()
 } // namespace SIMDPP_ARCH_NAMESPACE
 
 SIMDPP_MAKE_DISPATCHER_RET0(get_current_arch, std::string)
-SIMDPP_MAKE_DISPATCHER_RET2(align, void, std::string const &, std::string const &)
+SIMDPP_MAKE_DISPATCHER_RET2(align, long, std::string const &, std::string const &)
 
 } // namespace paw

@@ -16,6 +16,6 @@ template struct paw::Backtracker<uint16_t>;
 //template struct paw::Backtracker<uint32_t>;
 //template struct paw::Backtracker<uint64_t>;
 
-template struct paw::Row<uint8_t>;
-template struct paw::Row<uint16_t>;
+template struct paw::Row1<uint8_t>;
+template struct paw::Row1<uint16_t>;
 //template struct paw::Row<uint32_t>;

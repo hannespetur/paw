@@ -1,13 +1,16 @@
 #pragma once
 
+#include <cstdint>
+
+
 namespace paw
 {
 
 template <typename Tuint>
 struct AlignerOptions
 {
-  bool default_options; // If set to true, all options are assumed to be the default
-  //                       This removes some of the runtime checks
+  bool default_options = false; // If set to true, all options are assumed to be the default
+                                // This can remove some of the runtime checks
 
   Tuint match = 2;
   Tuint mismatch = 2;
