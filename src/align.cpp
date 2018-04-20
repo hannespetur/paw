@@ -29,13 +29,13 @@ align(std::string const & seq1, std::string const & seq2)
   auto score = align.align(seq2.cbegin(), seq2.cend());
   std::cerr << "score = " << score << std::endl;
 
-  //auto aligned_strings = align.get_aligned_strings();
-  //
-  //for (long i = 0; i < std::min(100000l, static_cast<long>(aligned_strings.first.size())); i += 140)
-  //{
-  //  std::cout << aligned_strings.first.substr(i, 140) << "\n"
-  //            << aligned_strings.second.substr(i, 140) << "\n\n";
-  //}
+  auto aligned_strings = align.get_aligned_strings();
+
+  for (long i = 0; i < std::min(1000l, static_cast<long>(aligned_strings.first.size())); i += 140)
+  {
+    std::cout << aligned_strings.first.substr(i, 140) << "\n"
+              << aligned_strings.second.substr(i, 140) << "\n\n";
+  }
 
   return score;
 }
