@@ -381,4 +381,3 @@ typename V::mask_vector_type i_cmp_neq(const V& a, const V& b)
 } // namespace simdpp
 
 #endif
-
