@@ -12,8 +12,8 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <paw/align/aligner_options.hpp>
+#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 
@@ -25,32 +25,26 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-struct Row2
+struct Row
 {
-  using Tint = uint16_t;
-  using Tuint = Tint;
-  using Tpack = simdpp::uint16<S / sizeof(Tint), void>;
-  using Tlogical_pack = simdpp::mask_int16<S / sizeof(Tint), void>;
-  using Tvec = std::vector<Tpack, simdpp::aligned_allocator<Tpack, sizeof(Tpack)> >;
-
   long const n_elements = 0;
-  Tvec vectors;
+  T::vec vectors;
 
   /* CONSTRUCTORS */
-  Row2(std::size_t const _n_elements)
+  Row(std::size_t const _n_elements)
     : n_elements(_n_elements)
     , vectors(0)
   {
-    Tpack my_vector = simdpp::make_zero();
-    vectors.resize((n_elements + Tpack::length - 1) / Tpack::length, my_vector);
+    T::pack my_vector = simdpp::make_zero();
+    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
   }
 
 
-  Row2(std::size_t const _n_elements, Tuint const val)
+  Row(std::size_t const _n_elements, T::uint const val)
     : n_elements(_n_elements)
   {
-    Tpack my_vector = simdpp::make_uint(val);
-    vectors.resize((n_elements + Tpack::length - 1) / Tpack::length, my_vector);
+    T::pack my_vector = simdpp::make_uint(val);
+    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
   }
 };
 
@@ -60,20 +54,13 @@ template <typename Tit>
 class Align
 {
 public:
-  using Trow = Row2; // A row of vectors that can be run in parallel
-  using Tarr = std::array<Trow, 4>;
-  using Tpack = typename Trow::Tpack;
-  using Tlogical_pack = typename Trow::Tlogical_pack;
-  using Tint = typename Trow::Tint;
-  using Tuint = typename Trow::Tint;
-
   // p is the length (or cardinality) of the SIMD vectors
-  std::size_t static const p = Tpack::length;
+  std::size_t static const p = T::pack::length;
   void calculate_DNA_W_profile();
 
 
 private:
-  AlignerOptions<Tuint> const opt;
+  AlignerOptions<T::uint> const opt;
   //std::vector<Event> free_snp_edits;
   //std::vector<Event> free_del_edits;
   //std::vector<Event> free_ins_edits;
@@ -87,27 +74,26 @@ private:
   long n = 0;
   long const t = 0;
 
-  Tuint const x_gain;
-  Tuint const y_gain;
+  T::uint const x_gain;
+  T::uint const y_gain;
 
-  Tuint const gap_open_val_x;
-  Tuint const gap_open_val_y;
-  Tuint const gap_open_val;
+  T::uint const gap_open_val_x;
+  T::uint const gap_open_val_y;
+  T::uint const gap_open_val;
 
-  Tuint const max_score_val;
+  T::uint const max_score_val;
 
   long total_reductions = 0;
-  Trow vH_up; // Previous H row
-  Trow vH;    // Current H row
-  Trow vE;    // Current E row
-  Trow vF_up; // Previous F row
-  Trow vF;    // Current F row
-  Tarr W_profile;
-  Backtrack<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
-  Tuint top_left_score = 0;
+  T::row vH_up; // Previous H row
+  T::row vH;    // Current H row
+  T::row vE;    // Current E row
+  T::row vF_up; // Previous F row
+  T::row vF;    // Current F row
+  T::arr W_profile;
+  Backtrack mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
+  T::uint top_left_score = 0;
 
   void calculate_scores();
-  Tpack max_greater(Tpack & v1, Tpack const & v2);
   void check_gap_extend_deletions();
   void check_gap_extend_deletions_with_backtracking(std::size_t const i);
   void init_score_vectors();
@@ -115,7 +101,7 @@ private:
 public:
   Align(Tit _d_begin,
         Tit _d_end,
-        AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/),
+        AlignerOptions<T::uint> const & _opt = AlignerOptions<T::uint>(true /*default options*/),
         std::set<Event> const & /*free_edits*/ = std::set<Event>()
         )
     : opt(_opt)
@@ -128,11 +114,11 @@ public:
     , n(0)
     , t((m + p) / p)
     , x_gain(opt.gap_extend)
-    , y_gain(std::max(opt.gap_extend, static_cast<Tuint>(_opt.mismatch - x_gain)))
+    , y_gain(std::max(opt.gap_extend, static_cast<T::uint>(_opt.mismatch - x_gain)))
     , gap_open_val_x(opt.gap_open - x_gain)
     , gap_open_val_y(opt.gap_open - y_gain)
     , gap_open_val(std::max(gap_open_val_x, gap_open_val_y))
-    , max_score_val(std::numeric_limits<Tuint>::max() - gap_open_val)
+    , max_score_val(std::numeric_limits<T::uint>::max() - gap_open_val)
     , total_reductions(0)
     , vH_up(m + 1, gap_open_val)
     , vH(m + 1, gap_open_val)
@@ -142,10 +128,10 @@ public:
     , W_profile
     {
       {
-        Trow(m + 1),
-        Trow(m + 1),
-        Trow(m + 1),
-        Trow(m + 1)
+        T::row(m + 1),
+        T::row(m + 1),
+        T::row(m + 1),
+        T::row(m + 1)
       }
     }
     , mB()
@@ -209,13 +195,11 @@ public:
   std::set<Event> get_edit_script(std::pair<std::string, std::string> const & s);
   std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
 
-  inline Tarr const & get_W_profile()
+  inline T::arr const & get_W_profile()
   {
     return W_profile;
   }
 };
-
-
 
 
 inline long
@@ -225,18 +209,13 @@ magic_function(char const c)
 }
 
 
-template <typename Tit>
-typename Align<Tit>::Tpack
-Align<Tit>::max_greater(Tpack & v1, Tpack const & v2)
+inline T::mask
+max_greater(T::pack & v1, T::pack const & v2)
 {
-  // TODO: 1) Only use simdpp::max when no backtracking.
-  //       2) Return mask when backtracking and blend later with actual backtracking values
-  Tlogical_pack is_greater = v2 > v1;
+  // TODO: Only use simdpp::max when no backtracking.
+  T::mask is_greater = v2 > v1;
   v1 = simdpp::blend(v2, v1, is_greater);
-  return simdpp::blend(static_cast<Tpack>(simdpp::make_uint(1)),
-                       static_cast<Tpack>(simdpp::make_zero()),
-                       is_greater
-                       );
+  return is_greater;
 }
 
 
@@ -245,8 +224,8 @@ void
 Align<Tit>::calculate_DNA_W_profile()
 {
   std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
-  Tuint const match = x_gain + y_gain + opt.match;
-  Tuint const mismatch = x_gain + y_gain - opt.mismatch;
+  T::uint const match = x_gain + y_gain + opt.match;
+  T::uint const mismatch = x_gain + y_gain - opt.mismatch;
   long const t = W_profile[0].vectors.size();
   assert(t > 0);
 
@@ -257,19 +236,15 @@ Align<Tit>::calculate_DNA_W_profile()
 
     for (long v = 0; v < t; ++v)
     {
-      std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > seq(p, mismatch);
-      //seq.reserve(p);
+      T::vec_uint seq(p, mismatch);
 
       for (long e = 0, j = v; j < static_cast<long>(m); j += t, ++e)
       {
         if (dna_base == *(d_begin + j))
           seq[e] = match;
-        //else
-        //  seq.push_back(mismatch);
       }
 
-      //seq.resize(p, mismatch); // Make sure the vector is fully extended
-      W.vectors[v] = static_cast<Tpack>(simdpp::load_u(&seq[0]));
+      W.vectors[v] = static_cast<T::pack>(simdpp::load_u(&seq[0]));
     }
 
     // Update the W_profile if there are any free mismatches
@@ -354,10 +329,10 @@ Align<Tit>::align(Tit _q_begin, Tit _q_end)
 
   if (opt.backtracking)
   {
-    mB = Backtrack<Tuint>(n, t);
+    mB = Backtrack(n, t);
     //if (n > mB.matrix.size())
     //{
-    //  mB = Backtrack<Tuint>(n, t);
+    //  mB = Backtrack<(n, t);
     //}
     //else
     //{
@@ -429,7 +404,7 @@ Align<Tit>::align(Tit _q_begin, Tit _q_end)
   {
     alignment_end = m;
 
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > arr(S / sizeof(Tuint));
+    T::vec_uint arr(S / sizeof(T::uint));
 
     simdpp::store_u(&arr[0], vH_up.vectors[m % t]);
     return arr[m / t]
@@ -445,20 +420,20 @@ template <typename Tit>
 void
 Align<Tit>::calculate_scores()
 {
-  Tpack gap_open_pack = simdpp::make_uint(gap_open_val);
-  Tpack gap_open_pack_x = simdpp::make_uint(gap_open_val_x);
-  Tuint const max_gain_per_row = std::max(static_cast<Tuint>(0),
-                                          static_cast<Tuint>(opt.match + x_gain + y_gain)
-                                          );
+  T::pack gap_open_pack = simdpp::make_uint(gap_open_val);
+  T::pack gap_open_pack_x = simdpp::make_uint(gap_open_val_x);
+  T::uint const max_gain_per_row = std::max(static_cast<T::uint>(0),
+                                            static_cast<T::uint>(opt.match + x_gain + y_gain)
+                                            );
 
   // Keep track of current max score
-  Tuint current_max_score = top_left_score; //simdpp::extract<0>(vH_up.vectors[0]);
+  T::uint current_max_score = top_left_score; //simdpp::extract<0>(vH_up.vectors[0]);
 
   /// Start of outer loop
   for (long i = 0; i < n; ++i)
   {
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
-    Trow const & vW = W_profile[magic_function(*std::next(q_begin, i))];
+    T::row const & vW = W_profile[magic_function(*std::next(q_begin, i))];
 
     // Clear vE vectors
     for (auto & vE_vec : vE.vectors)
@@ -466,10 +441,10 @@ Align<Tit>::calculate_scores()
 
     /// Calculate vector 0
     {
-      auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up.vectors[0])),
-                                 static_cast<Tuint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
+      auto const left = std::max(static_cast<T::uint>(simdpp::extract<0>(vF_up.vectors[0])),
+                                 static_cast<T::uint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
 
-      vH.vectors[0] = shift_one_right<Tpack, Tuint>(vH_up.vectors[t - 1] + vW.vectors[t - 1], left);
+      vH.vectors[0] = shift_one_right<T::pack, T::uint>(vH_up.vectors[t - 1] + vW.vectors[t - 1], left);
       //vH.vectors[0] = simdpp::align8<7>(static_cast<Tpack>(simdpp::make_uint(left)),
       //                                  vH_up.vectors[t - 1] + vW.vectors[t - 1]
       //                                  );
@@ -569,7 +544,7 @@ Align<Tit>::calculate_scores()
 
     //std::cout << "q[" << i << "] = " << q[i] << "\n";
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
-    //std::cout << "max score = " << static_cast<uint16_t>(current_max_score) << "\n";
+    //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
     if (current_max_score + max_gain_per_row < max_score_val)
     {
@@ -584,7 +559,7 @@ Align<Tit>::calculate_scores()
       for (auto const & vec : vH.vectors)
       {
         //current_max_score = std::max(current_max_score, boost::simd::maximum(vec));
-        current_max_score = std::max(current_max_score, static_cast<Tuint>(simdpp::reduce_max(vec)));
+        current_max_score = std::max(current_max_score, static_cast<T::uint>(simdpp::reduce_max(vec)));
 
         if (current_max_score >= max_score_val)
         {
@@ -612,18 +587,16 @@ template <typename Tit>
 void
 Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
 {
-  using Tvec = std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> >;
-
   for (std::size_t c = 0; c < 2; ++c)
   {
-    Tvec vE0(S / sizeof(Tuint));
+    T::vec_uint vE0(S / sizeof(T::uint));
     simdpp::store_u(&vE0[0], simdpp::move8_r<1>(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
     for (long e = 2; e < static_cast<long>(p); ++e)
       vE0[e] = std::max(vE0[e - 1], vE0[e]);
 
-    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<Tpack>(simdpp::load_u(&vE0[0]))));
+    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<T::pack>(simdpp::load_u(&vE0[0]))));
 
     // Check for deletions in vectors 1,...,t-1
     for (std::size_t v = 1; v < vE.vectors.size(); ++v)

@@ -11,6 +11,7 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
+struct Row;
 
 #if SIMDPP_USE_AVX2
 constexpr int S = 32;
@@ -19,6 +20,21 @@ constexpr int S = 16;
 #else
 constexpr int S = 16;
 #endif
+
+
+namespace T
+{
+
+using uint = uint16_t;
+using pack = simdpp::uint16<S / sizeof(uint), void>;
+using mask = simdpp::mask_int16<S / sizeof(uint), void>;
+using vec = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+using matrix = std::vector<vec>;
+using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
+using row = Row; // A row of vectors that can be run in parallel
+using arr = std::array<row, 4>;
+
+} // namespace T
 
 
 template<typename Tpack, typename Tuint>
