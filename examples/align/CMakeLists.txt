@@ -7,6 +7,9 @@ target_link_libraries(align_ex2 shared)
 add_executable(align_ex3 ex3_benchmarks.cpp)
 target_link_libraries(align_ex3 shared)
 
+add_executable(align_ex4 ex4_input_sequences.cpp)
+target_link_libraries(align_ex4 shared)
+
 # Search for clang-tidy
 find_program(
     CLANG_TIDY_EXE

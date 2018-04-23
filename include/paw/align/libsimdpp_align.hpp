@@ -29,8 +29,8 @@ struct Row2
 {
   using Tint = uint16_t;
   using Tuint = Tint;
-  using Tpack = simdpp::uint16<16 / sizeof(Tint), void>;
-  using Tlogical_pack = simdpp::mask_int16<16 / sizeof(Tint), void>;
+  using Tpack = simdpp::uint16<S / sizeof(Tint), void>;
+  using Tlogical_pack = simdpp::mask_int16<S / sizeof(Tint), void>;
   using Tvec = std::vector<Tpack, simdpp::aligned_allocator<Tpack, sizeof(Tpack)> >;
 
   long const n_elements = 0;
@@ -257,19 +257,19 @@ Align<Tit>::calculate_DNA_W_profile()
 
     for (long v = 0; v < t; ++v)
     {
-      std::vector<Tint, simdpp::aligned_allocator<Tint, sizeof(Tint)> > seq;
-      seq.reserve(p);
+      std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > seq(p, mismatch);
+      //seq.reserve(p);
 
-      for (long j = v; j < static_cast<long>(m); j += t)
+      for (long e = 0, j = v; j < static_cast<long>(m); j += t, ++e)
       {
         if (dna_base == *(d_begin + j))
-          seq.push_back(match);
-        else
-          seq.push_back(mismatch);
+          seq[e] = match;
+        //else
+        //  seq.push_back(mismatch);
       }
 
-      seq.resize(p, mismatch); // Make sure the vector is fully extended
-      W.vectors[v] = simdpp::load(&seq[0]);
+      //seq.resize(p, mismatch); // Make sure the vector is fully extended
+      W.vectors[v] = static_cast<Tpack>(simdpp::load_u(&seq[0]));
     }
 
     // Update the W_profile if there are any free mismatches
@@ -429,9 +429,9 @@ Align<Tit>::align(Tit _q_begin, Tit _q_end)
   {
     alignment_end = m;
 
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > arr(16 / sizeof(Tuint));
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > arr(S / sizeof(Tuint));
 
-    simdpp::store(&arr[0], vH_up.vectors[m % t]);
+    simdpp::store_u(&arr[0], vH_up.vectors[m % t]);
     return arr[m / t]
            + total_reductions
            - top_left_score
@@ -469,9 +469,10 @@ Align<Tit>::calculate_scores()
       auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up.vectors[0])),
                                  static_cast<Tuint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
 
-      vH.vectors[0] = simdpp::align8<7>(static_cast<Tpack>(simdpp::make_uint(left)),
-                                        vH_up.vectors[t - 1] + vW.vectors[t - 1]
-                                        );
+      vH.vectors[0] = shift_one_right<Tpack, Tuint>(vH_up.vectors[t - 1] + vW.vectors[t - 1], left);
+      //vH.vectors[0] = simdpp::align8<7>(static_cast<Tpack>(simdpp::make_uint(left)),
+      //                                  vH_up.vectors[t - 1] + vW.vectors[t - 1]
+      //                                  );
     }
 
     // Check if any insertion have highest values
@@ -615,14 +616,14 @@ Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
 
   for (std::size_t c = 0; c < 2; ++c)
   {
-    Tvec vE0(16 / sizeof(Tuint));
-    simdpp::store(&vE0[0], simdpp::move8_r<1>(vE.vectors[t - 1]));
+    Tvec vE0(S / sizeof(Tuint));
+    simdpp::store_u(&vE0[0], simdpp::move8_r<1>(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
     for (long e = 2; e < static_cast<long>(p); ++e)
       vE0[e] = std::max(vE0[e - 1], vE0[e]);
 
-    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<Tpack>(simdpp::load(&vE0[0]))));
+    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<Tpack>(simdpp::load_u(&vE0[0]))));
 
     // Check for deletions in vectors 1,...,t-1
     for (std::size_t v = 1; v < vE.vectors.size(); ++v)

@@ -59,22 +59,4 @@ main(int, char **)
                 << " but I expected " << test.expected_score << std::endl;
     }
   }
-
-  //std::string const src_dir(STR(PAW_SOURCE_DIR));
-  //std::string database = get_sequence_from_fa(src_dir + "/test/data/MT-human.fa", false);
-  //database = get_sequence_from_fa(PROJECT_SOURCE_DIR + "/test/data/t2.fa.gz", true);
-
-  //std::string query = get_sequence_from_fa(src_dir + "/test/data/MT-orang.fa", false);
-
-  //using Ttime = std::chrono::high_resolution_clock;
-  //using Tduration = std::chrono::duration<double, std::milli>;
-
-  //database = database.substr(0, 100);
-  //query = database.substr(0, 100);
-
-  //auto t0 = Ttime::now();
-  //auto score = paw::align(database, query);
-  //auto t1 = Ttime::now();
-  //std::cout << "score = " << score << "\n";
-  //std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
 }

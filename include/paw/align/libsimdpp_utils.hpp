@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <vector>
 
 #include <simdpp/simd.h>
@@ -9,6 +10,37 @@ namespace paw
 {
 namespace SIMDPP_ARCH_NAMESPACE
 {
+
+
+#if SIMDPP_USE_AVX2
+constexpr int S = 32;
+#elif SIMDPP_USE_SSE2
+constexpr int S = 16;
+#else
+constexpr int S = 16;
+#endif
+
+
+template<typename Tpack, typename Tuint>
+inline Tpack
+shift_one_right(Tpack pack, Tuint const left)
+{
+  #if SIMDPP_USE_AVX2
+  std::vector<Tuint> vec(Tpack::length + 1, left);
+  simdpp::store_u(&vec[1], pack);
+  return simdpp::load_u(&vec[0]);
+  #else
+  return simdpp::align8<7, 8>(static_cast<Tpack>(simdpp::make_uint(left)), pack);
+  #endif
+}
+
+
+template<typename Tpack>
+inline Tpack
+shift_one_right(Tpack pack)
+{
+  return simdpp::move8_r<1>(pack);
+}
 
 
 template<typename Tpack>
@@ -26,7 +58,7 @@ print_pack(Tpack const & pack)
 
   std::vector<T, simdpp::aligned_allocator<T, sizeof(T)> > vector;
   vector.resize(pack.length);
-  simdpp::store(&vector[0], pack);
+  simdpp::store_u(&vector[0], pack);
 
   std::cout << "(" << static_cast<long>(vector[0]);
 
@@ -57,17 +89,19 @@ print_score_vector_standard(Trow const & vX)
 
   for (long v = 0; v < t; ++v)
   {
-    simdpp::store(&m[v][0], vX.vectors[v]);
+    simdpp::store_u(&m[v][0], vX.vectors[v]);
   }
 
-  for (std::size_t j = 0; j < vX.n_elements; ++j)
+  for (long j = 0; j < vX.n_elements; ++j)
   {
     std::size_t const v = j % t;
     std::size_t const e = j / t;
+    assert(v < m.size());
+    assert(e < m[v].size());
     std::cout << std::setw(4) << static_cast<uint64_t>(m[v][e]) << " ";
   }
 
-  std::cout << "\n";
+  std::cout << "(" << t << " vectors, " << vX.n_elements << " elements)\n";
 }
 
 

@@ -6,10 +6,9 @@
 
 #include "event.hpp"
 
-//#include <boost/simd.hpp>
-//#include <boost/simd/memory/allocator.hpp>
-
 #include <simdpp/simd.h>
+
+#include <paw/align/libsimdpp_utils.hpp>
 
 
 namespace paw
@@ -36,12 +35,15 @@ template <typename Tuint>
 struct Backtrack
 {
   using Tint = Tuint;
-  using Tpack = simdpp::int16<16 / sizeof(Tint), void>;
+  using Tpack = simdpp::uint16<S / sizeof(Tint), void>;
   using Tvec = std::vector<Tpack, simdpp::aligned_allocator<Tpack, sizeof(Tpack)> >;
   using Tmatrix = std::vector<Tvec>;
 
+
   std::size_t static const BACKTRACKS_PER_BYTE = 2;
   std::size_t static const BT_PER_CELL = sizeof(Tuint) * BACKTRACKS_PER_BYTE;
+
+  /// \short How many bits are required for one column of backtracks
   std::size_t static const N_BT_BITS = 8 / BACKTRACKS_PER_BYTE;
 
   Tuint static const DEL_SHIFT = 0;
@@ -113,8 +115,8 @@ struct Backtrack
          ) const
   {
     //Tpack tmp = matrix[i][v / BT_PER_CELL] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
-    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(S / sizeof(Tint));
+    simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     //
     //std::cerr << "IS DEL? e = " << e << "\n";
     //
@@ -135,8 +137,8 @@ struct Backtrack
          ) const
   {
     //Tpack tmp = matrix[i][v / BT_PER_CELL] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
-    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(S / sizeof(Tint));
+    simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
 
     //std::cerr << "IS INS? e = " << e << "\n";
     //
@@ -158,8 +160,8 @@ struct Backtrack
                 ) const
   {
     //Tpack tmp = matrix[i][v / BT_PER_CELL] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
-    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(S / sizeof(Tint));
+    simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
 
     //std::cerr << "e = " << e << "\n";
     //
@@ -182,8 +184,8 @@ struct Backtrack
                 ) const
   {
     //Tpack tmp = matrix[i][v / BT_PER_CELL] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
-    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(16 / sizeof(Tint));
-    simdpp::store(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
+    std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> > tmp_vec(S / sizeof(Tint));
+    simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     //assert(e < tmp_vec.size());
     return tmp_vec[e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
     //return matrix[i][v / BT_PER_CELL][e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
