@@ -14,18 +14,18 @@ namespace SIMDPP_ARCH_NAMESPACE
 struct Row;
 
 #if SIMDPP_USE_AVX2
-constexpr int S = 32;
+constexpr int S = 64;
 #elif SIMDPP_USE_SSE2
-constexpr int S = 16;
+constexpr int S = 32;
 #else
-constexpr int S = 16;
+constexpr int S = 32;
 #endif
 
 
 namespace T
 {
 
-using uint = uint16_t;
+using uint = uint8_t;
 using pack = simdpp::uint16<S / sizeof(uint), void>;
 using mask = simdpp::mask_int16<S / sizeof(uint), void>;
 using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
