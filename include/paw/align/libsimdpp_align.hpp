@@ -28,7 +28,7 @@ namespace SIMDPP_ARCH_NAMESPACE
 struct Row
 {
   long const n_elements = 0;
-  T::vec vectors;
+  T::vec_pack vectors;
 
   /* CONSTRUCTORS */
   Row(std::size_t const _n_elements)
