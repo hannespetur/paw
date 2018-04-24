@@ -67,7 +67,6 @@ private:
   T::arr_row W_profile;
   Backtrack mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   T::uint top_left_score = 0;
-  //std::array<uint64_t, S / sizeof(T::uint)> reductions;
 
   void calculate_scores();
   void check_gap_extend_deletions();
@@ -400,7 +399,9 @@ template <typename Tit>
 void
 Align<Tit>::calculate_scores()
 {
-  //reductions.fill(0);
+  std::array<uint64_t, S / sizeof(T::uint)> reductions;
+  reductions.fill(0);
+  T::pack reductions_diff_pack = simdpp::make_zero();
   T::pack gap_open_pack = simdpp::make_uint(gap_open_val);
   T::pack gap_open_pack_x = simdpp::make_uint(gap_open_val_x);
   T::uint const max_gain_per_row = std::max(static_cast<T::uint>(0),
@@ -526,37 +527,58 @@ Align<Tit>::calculate_scores()
     //    vH.vectors[v] = boost::simd::max(vH.vectors[v], vE.vectors[v]);
     //}
 
-
     //std::cout << "q[" << i << "] = " << q[i] << "\n";
 #ifndef NDEBUG
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
 #endif
     //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
-    /*
-    if (i % 100 == 0)
+    //if (i % 100 == 0)
     {
       T::arr_uint vH0;
       vH0.fill(0);
 
       // Store the optimal scores in vector 0
-      simdpp::store(&vH0[0], vH.vectors[0]);
-
+      simdpp::store_u(&vH0[0], vH.vectors[0]);
       assert(vH0.size() == reductions.size());
       print_pack(vH.vectors[0]);
 
+      T::arr_uint reduction_diff;
+      reduction_diff[0] = 0;
+      T::arr_uint new_reductions;
+      new_reductions[0] = 0;
+      assert(vH0.size() == new_reductions.size());
+
       for (long e = 1; e < static_cast<long>(vH0.size()); ++e)
       {
-        assert(vH0[e] >= vH0[e - 1]);
-        reductions[e] += static_cast<uint64_t>(vH0[e] - vH0[e - 1]);
-        std::cout << reductions[e] << " ";
+        assert(vH0[e] + gap_open_val_x >= vH0[e - 1]);
+
+        if (vH0[e] >= vH0[e - 1])
+        {
+          long const reduce_by = std::max(static_cast<long>(new_reductions[e - 1]),
+              static_cast<long>(vH0[e] - gap_open_val_x * 2));
+          assert(reduce_by >= 0);
+          new_reductions[e] = reduce_by;
+        }
+        else
+        {
+          new_reductions[e] = vH0[e] - gap_open_val_x;
+        }
+
+        reduction_diff[e] = new_reductions[e] - new_reductions[e - 1];
+        reductions[e] += static_cast<uint64_t>(new_reductions[e]);
       }
 
-      std::cout << "\n";
+      // Create a vector with the new reductions
+      T::pack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
+      std::cout << "new reductions: ";
+      print_pack(new_reductions_pack);
 
-      //print_pack(vH.vectors[0]);
+      reductions_diff_pack = simdpp::load_u(&reduction_diff[0]);
+      std::cout << "reductions diff: ";
+      print_pack(reductions_diff_pack);
+      std::cout << "===\n";
     }
-    */
 
     /*
     if (current_max_score + max_gain_per_row < max_score_val)
@@ -605,11 +627,12 @@ template <typename Tit>
 void
 Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
 {
+  T::arr_uint vE0;
+  vE0.fill(0);
+
   /// Two passes through the deletion vectors are required
   for (std::size_t c = 0; c < 2; ++c)
   {
-    T::arr_uint vE0;//(S / sizeof(T::uint));
-    vE0.fill(0);
     simdpp::store_u(&vE0[0], shift_one_right(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
@@ -720,6 +743,15 @@ Align<Tit>::get_aligned_strings()
 
   while (i > 0 || j > 0)
   {
+    if (j == 0)
+    {
+      while (i > 1)
+        add_ins_ext();
+
+      add_ins();
+      break;
+    }
+
     assert(i >= 0);
     assert(j >= 0);
     //std::cerr << "i,j = " << i << "," << j << std::endl;
