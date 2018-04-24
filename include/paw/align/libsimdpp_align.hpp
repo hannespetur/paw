@@ -67,6 +67,7 @@ private:
   T::arr_row W_profile;
   Backtrack mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   T::uint top_left_score = 0;
+  //std::array<uint64_t, S / sizeof(T::uint)> reductions;
 
   void calculate_scores();
   void check_gap_extend_deletions();
@@ -399,6 +400,7 @@ template <typename Tit>
 void
 Align<Tit>::calculate_scores()
 {
+  //reductions.fill(0);
   T::pack gap_open_pack = simdpp::make_uint(gap_open_val);
   T::pack gap_open_pack_x = simdpp::make_uint(gap_open_val_x);
   T::uint const max_gain_per_row = std::max(static_cast<T::uint>(0),
@@ -531,6 +533,32 @@ Align<Tit>::calculate_scores()
 #endif
     //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
+    /*
+    if (i % 100 == 0)
+    {
+      T::arr_uint vH0;
+      vH0.fill(0);
+
+      // Store the optimal scores in vector 0
+      simdpp::store(&vH0[0], vH.vectors[0]);
+
+      assert(vH0.size() == reductions.size());
+      print_pack(vH.vectors[0]);
+
+      for (long e = 1; e < static_cast<long>(vH0.size()); ++e)
+      {
+        assert(vH0[e] >= vH0[e - 1]);
+        reductions[e] += static_cast<uint64_t>(vH0[e] - vH0[e - 1]);
+        std::cout << reductions[e] << " ";
+      }
+
+      std::cout << "\n";
+
+      //print_pack(vH.vectors[0]);
+    }
+    */
+
+    /*
     if (current_max_score + max_gain_per_row < max_score_val)
     {
       // Assume the worst-case and only find the max score when it would be possible to overflow
@@ -561,13 +589,14 @@ Align<Tit>::calculate_scores()
         }
       }
     }
+    */
 
     std::swap(vF.vectors, vF_up.vectors);
     std::swap(vH.vectors, vH_up.vectors);
   } /// End of outer loop
 
 #ifndef NDEBUG
-  print_backtrack(mB);
+  //print_backtrack(mB);
 #endif
 }
 
@@ -576,6 +605,7 @@ template <typename Tit>
 void
 Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
 {
+  /// Two passes through the deletion vectors are required
   for (std::size_t c = 0; c < 2; ++c)
   {
     T::arr_uint vE0;//(S / sizeof(T::uint));
@@ -583,30 +613,21 @@ Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
     simdpp::store_u(&vE0[0], shift_one_right(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
-    for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
-      vE0[e] = std::max(vE0[e - 1], vE0[e]);
-
-    T::pack vE0_pack = simdpp::load_u(&vE0[0]);
-
-    if (i == 0)
     {
-      std::cout << "===\n";
-      print_pack(vE.vectors[0]);
-      print_pack(vE0_pack);
+      for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
+        vE0[e] = std::max(vE0[e - 1], vE0[e]);
+
+      T::pack const vE0_pack = simdpp::load_u(&vE0[0]);
+      T::mask const del_extend_mask_0 = max_greater(vE.vectors[0], vE0_pack);
+      mB.set_del_extend(i, 0, del_extend_mask_0);
     }
 
-    T::mask del_extend_mask = max_greater(vE.vectors[0], vE0_pack);
-
-    if (i == 0)
-    {
-      simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1)), static_cast<T::pack>(simdpp::make_zero()), del_extend_mask);
-    }
-
-    mB.set_del_extend(i, 0, del_extend_mask);
-
-    // Check for deletions in vectors 1,...,t-1
+    /// Check for deletions in vectors 1,...,t-1
     for (std::size_t v = 1; v < vE.vectors.size(); ++v)
-      mB.set_del_extend(i, v, max_greater(vE.vectors[v], vE.vectors[v - 1]));
+    {
+      T::mask const del_extend_mask_v = max_greater(vE.vectors[v], vE.vectors[v - 1]);
+      mB.set_del_extend(i, v, del_extend_mask_v);
+    }
   }
 }
 
