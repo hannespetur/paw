@@ -444,7 +444,7 @@ Align<Tit>::calculate_scores()
       auto const left = std::max(static_cast<T::uint>(simdpp::extract<0>(vF_up.vectors[0])),
                                  static_cast<T::uint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
 
-      vH.vectors[0] = shift_one_right<T::pack, T::uint>(vH_up.vectors[t - 1] + vW.vectors[t - 1], left);
+      vH.vectors[0] = shift_one_right(vH_up.vectors[t - 1] + vW.vectors[t - 1], left);
       //vH.vectors[0] = simdpp::align8<7>(static_cast<Tpack>(simdpp::make_uint(left)),
       //                                  vH_up.vectors[t - 1] + vW.vectors[t - 1]
       //                                  );
@@ -517,13 +517,13 @@ Align<Tit>::calculate_scores()
 
 
     /// Calculate vE.vector[0]
-    vE.vectors[0] = simdpp::move8_r<1>(vH.vectors[t - 1] - gap_open_pack_x);
+    vE.vectors[0] = shift_one_right(vH.vectors[t - 1] - gap_open_pack_x);
+    //vE.vectors[0] = simdpp::move8_r<1>(vH.vectors[t - 1] - gap_open_pack_x);
     //vE.vectors[0] =
     //  boost::simd::shuffle<boost::simd::pattern<shift_elements_right> >(
     //    vH.vectors[t - 1] - gap_open_pack_x);
 
-
-    // Deletions pass 2: Gap extends
+    /// Deletions pass 2: Gap extends
     //if (backtracking)
     {
       check_gap_extend_deletions_with_backtracking(i);
@@ -590,7 +590,7 @@ Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
   for (std::size_t c = 0; c < 2; ++c)
   {
     T::vec_uint vE0(S / sizeof(T::uint));
-    simdpp::store_u(&vE0[0], simdpp::move8_r<1>(vE.vectors[t - 1]));
+    simdpp::store_u(&vE0[0], shift_one_right(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
     for (long e = 2; e < static_cast<long>(p); ++e)

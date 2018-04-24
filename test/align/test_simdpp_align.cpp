@@ -14,7 +14,7 @@
 #include <fstream> // std::ifstream
 
 
-
+/*
 TEST_CASE("W profile")
 {
   using namespace paw::SIMDPP_ARCH_NAMESPACE;
@@ -79,6 +79,7 @@ TEST_CASE("W profile")
 
   align.align(query.cbegin(), query.cend());
 }
+*/
 
 
 /*

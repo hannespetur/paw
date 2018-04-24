@@ -59,7 +59,9 @@ struct Backtrack
 
   Backtrack(std::size_t const n_row, std::size_t const n_vectors)
     : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, simdpp::make_zero()})
-  {}
+  {
+    tmp_vec.fill(0);
+  }
 
   void inline
   set_del(std::size_t const i /*row index*/,

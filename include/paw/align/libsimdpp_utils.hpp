@@ -14,18 +14,18 @@ namespace SIMDPP_ARCH_NAMESPACE
 struct Row;
 
 #if SIMDPP_USE_AVX2
-constexpr int S = 64;
+constexpr int S = 32;
 #elif SIMDPP_USE_SSE2
-constexpr int S = 32;
+constexpr int S = 16;
 #else
-constexpr int S = 32;
+constexpr int S = 16;
 #endif
 
 
 namespace T
 {
 
-using uint = uint8_t;
+using uint = uint16_t;
 using pack = simdpp::uint16<S / sizeof(uint), void>;
 using mask = simdpp::mask_int16<S / sizeof(uint), void>;
 using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
@@ -38,23 +38,25 @@ using arr_uint = std::array<uint, S / sizeof(uint)>;
 } // namespace T
 
 
-template<typename Tpack, typename Tuint>
-inline Tpack
-shift_one_right(Tpack pack, Tuint const left)
+inline T::pack
+shift_one_right(T::pack pack, T::uint const left)
 {
-  #if SIMDPP_USE_AVX2
-  std::vector<Tuint> vec(Tpack::length + 1, left);
+  //#if SIMDPP_USE_AVX2
+  //std::vector<T::uint> vec(T::pack::length + 1, left);
+  std::array<T::uint, T::pack::length + 1> vec;
+  vec[0] = left;
   simdpp::store_u(&vec[1], pack);
   return simdpp::load_u(&vec[0]);
-  #else
-  return simdpp::align8<7, 8>(static_cast<Tpack>(simdpp::make_uint(left)), pack);
-  #endif
+  //#elif SIMDPP_USE_SSE2
+  //return simdpp::align16<15, 16>(static_cast<T::pack>(simdpp::make_uint(left)), pack);
+  //#else
+  //return simdpp::align16<15, 16>(static_cast<T::pack>(simdpp::make_uint(left)), pack);
+  //#endif
 }
 
 
-template<typename Tpack>
-inline Tpack
-shift_one_right(Tpack pack)
+inline T::pack
+shift_one_right(T::pack pack)
 {
   return simdpp::move8_r<1>(pack);
 }
