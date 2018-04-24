@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <vector>
 
@@ -25,17 +26,48 @@ constexpr int S = 16;
 namespace T
 {
 
+#define PAW_USE_UINT8
+
+#if defined(PAW_USE_UINT8)
+using uint = uint8_t;
+using pack = simdpp::uint8<S / sizeof(uint), void>;
+using mask = simdpp::mask_int8<S / sizeof(uint), void>;
+#else
 using uint = uint16_t;
 using pack = simdpp::uint16<S / sizeof(uint), void>;
 using mask = simdpp::mask_int16<S / sizeof(uint), void>;
+#endif
+
 using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
-using matrix = std::vector<vec_pack>;
 using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
-using row = Row; // A row of vectors that can be run in parallel
-using arr = std::array<row, 4>;
+using arr_row = std::array<Row, 4>;
 using arr_uint = std::array<uint, S / sizeof(uint)>;
 
 } // namespace T
+
+
+struct Row
+{
+  long const n_elements = 0;
+  T::vec_pack vectors;
+
+  /* CONSTRUCTORS */
+  Row(std::size_t const _n_elements)
+    : n_elements(_n_elements)
+    , vectors(0)
+  {
+    T::pack my_vector = simdpp::make_zero();
+    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
+  }
+
+
+  Row(std::size_t const _n_elements, T::uint const val)
+    : n_elements(_n_elements)
+  {
+    T::pack my_vector = simdpp::make_uint(val);
+    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
+  }
+};
 
 
 inline T::pack
@@ -44,6 +76,7 @@ shift_one_right(T::pack pack, T::uint const left)
   //#if SIMDPP_USE_AVX2
   //std::vector<T::uint> vec(T::pack::length + 1, left);
   std::array<T::uint, T::pack::length + 1> vec;
+  //vec.fill(left);
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
   return simdpp::load_u(&vec[0]);
@@ -58,7 +91,13 @@ shift_one_right(T::pack pack, T::uint const left)
 inline T::pack
 shift_one_right(T::pack pack)
 {
-  return simdpp::move8_r<1>(pack);
+  // TODO: Find and fix move16_r bug
+  return shift_one_right(pack, 0);
+//#if defined(PAW_USE_UINT8)
+//  return simdpp::move16_r<1>(pack);
+//#else
+//  return simdpp::move8_r<1>(pack);
+//#endif
 }
 
 
@@ -90,21 +129,16 @@ print_pack(Tpack const & pack)
 }
 
 
-template <typename Trow>
-void
-print_score_vector_standard(Trow const & vX)
+inline void
+print_score_vector_standard(Row const & vX)
 {
-  using Tuint = typename Trow::Tuint;
-  using Vec = std::vector<Tuint, simdpp::aligned_allocator<Tuint, sizeof(Tuint)> >;
-  using Mat = std::vector<Vec>;
-
   long const t = vX.vectors.size();
 
   if (t == 0)
     return;
 
-  Vec vec(vX.vectors[0].length, 0);
-  Mat m(vX.vectors.size(), vec);
+  T::vec_uint vec(vX.vectors[0].length, 0);
+  std::vector<T::vec_uint> m(vX.vectors.size(), vec);
 
   for (long v = 0; v < t; ++v)
   {
@@ -124,14 +158,14 @@ print_score_vector_standard(Trow const & vX)
 }
 
 
-template <typename Tpack>
-void
-print_score_vectors(Tpack const & vH,
-                    Tpack const & vH_up,
-                    Tpack const & vE,
-                    Tpack const & vF,
-                    Tpack const & vF_up,
-                    Tpack const & vW
+
+inline void
+print_score_vectors(Row const & vH,
+                    Row const & vH_up,
+                    Row const & vE,
+                    Row const & vF,
+                    Row const & vF_up,
+                    Row const & vW
                     )
 {
   std::cout << "Standard H_up  : "; print_score_vector_standard(vH_up);

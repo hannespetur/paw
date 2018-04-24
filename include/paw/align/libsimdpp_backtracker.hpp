@@ -49,7 +49,7 @@ struct Backtrack
   T::uint static const DEL_E_BT = 1 << DEL_E_SHIFT;
   T::uint static const INS_E_BT = 1 << INS_E_SHIFT;
 
-  T::matrix matrix;
+  std::vector<T::vec_pack> matrix;
   T::arr_uint tmp_vec;
 
   Backtrack()
@@ -58,10 +58,18 @@ struct Backtrack
 
 
   Backtrack(std::size_t const n_row, std::size_t const n_vectors)
-    : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, simdpp::make_zero()})
+    : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, static_cast<T::pack>(simdpp::make_zero())})
   {
     tmp_vec.fill(0);
   }
+
+
+  inline T::pack const &
+  get_pack(std::size_t const i /*row index*/, std::size_t const v /*vector index*/) const
+  {
+    return matrix[i][v / BT_PER_CELL];
+  }
+
 
   void inline
   set_del(std::size_t const i /*row index*/,
@@ -69,11 +77,11 @@ struct Backtrack
           T::mask const mask /*mask to set*/
           )
   {
-    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
-        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1 << (N_BT_BITS * (v % BT_PER_CELL) + DEL_SHIFT))),
-                       static_cast<T::pack>(simdpp::make_zero()),
-                       mask)
-         );
+    matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL]
+        | (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)))),
+                         static_cast<T::pack>(simdpp::make_zero()),
+                         mask)
+           );
   }
 
 
@@ -84,7 +92,7 @@ struct Backtrack
           )
   {
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
-        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1 << (N_BT_BITS * (v % BT_PER_CELL) + INS_SHIFT))),
+        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(INS_BT << (N_BT_BITS * (v % BT_PER_CELL)))),
                        static_cast<T::pack>(simdpp::make_zero()),
                        mask)
          );
@@ -98,7 +106,7 @@ struct Backtrack
                  )
   {
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
-        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1 << (N_BT_BITS * (v % BT_PER_CELL) + DEL_E_SHIFT))),
+        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)))),
                        static_cast<T::pack>(simdpp::make_zero()),
                        mask)
          );
@@ -112,7 +120,7 @@ struct Backtrack
                  )
   {
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
-        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1 << (N_BT_BITS * (v % BT_PER_CELL) + INS_E_SHIFT))),
+        (simdpp::blend(static_cast<T::pack>(simdpp::make_uint(INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)))),
                        static_cast<T::pack>(simdpp::make_zero()),
                        mask)
          );
@@ -126,7 +134,8 @@ struct Backtrack
          )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
-    return tmp_vec[e] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_BT;
+    //return tmp_vec[e] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -137,7 +146,8 @@ struct Backtrack
          )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
-    return tmp_vec[e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_BT;
+    //return tmp_vec[e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -148,7 +158,8 @@ struct Backtrack
                 )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
-    return tmp_vec[e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_E_BT;
+    //return tmp_vec[e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -159,7 +170,8 @@ struct Backtrack
                 )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
-    return tmp_vec[e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
+    return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_E_BT;
+    //return tmp_vec[e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
@@ -169,6 +181,10 @@ struct Backtrack
 template <typename Tint>
 std::ostream &
 operator<<(std::ostream & ss, std::vector<Cigar> const & cigar);
+
+
+
+inline void print_backtrack(Backtrack const & mB);
 
 
 } // namespace SIMDPP_ARCH_NAMESPACE
@@ -206,6 +222,47 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar)
   return ss;
 }
 
+
+inline void
+print_backtrack(Backtrack const & mB)
+{
+  std::cout << mB.BT_PER_CELL << "\n";
+  std::cout << mB.matrix[0].size() << "\n";
+
+  for (long i = 0; i < static_cast<long>(mB.matrix.size()); ++i)
+  {
+    long const t = mB.matrix[0].size();
+
+    T::vec_uint vec(S / sizeof(T::uint), 0);
+    std::vector<T::vec_uint> mat(t, vec);
+
+    for (long v = 0; v < t; ++v)
+    {
+      T::pack const & pack = mB.get_pack(i, v);
+      simdpp::store_u(&mat[v][0], pack);
+    }
+
+    for (long j = 0; j < t * T::pack::length; ++j)
+    {
+      std::size_t const v = j % t;
+      std::size_t const e = j / t;
+      T::uint const element = mat[v][e];
+
+      //for (long k = 0; k < static_cast<long>(mB.BT_PER_CELL); ++k)
+      //{
+      //  std::cout << std::setw(1) << std::hex << static_cast<uint64_t>((element >> (4 * k)) & static_cast<T::uint>(0x000F));
+      //}
+      for (long k = mB.BT_PER_CELL - 1; k >= 0; --k)
+      {
+        std::cout << std::setw(1) << std::hex << static_cast<uint64_t>((element >> (4 * k)) & static_cast<T::uint>(0x000F));
+      }
+
+      std::cout << "|";
+    }
+
+    std::cout << std::endl;
+  }
+}
 
 std::size_t constexpr Backtrack::BACKTRACKS_PER_BYTE;
 std::size_t constexpr Backtrack::BT_PER_CELL;

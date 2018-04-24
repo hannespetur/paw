@@ -25,31 +25,6 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-struct Row
-{
-  long const n_elements = 0;
-  T::vec_pack vectors;
-
-  /* CONSTRUCTORS */
-  Row(std::size_t const _n_elements)
-    : n_elements(_n_elements)
-    , vectors(0)
-  {
-    T::pack my_vector = simdpp::make_zero();
-    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
-  }
-
-
-  Row(std::size_t const _n_elements, T::uint const val)
-    : n_elements(_n_elements)
-  {
-    T::pack my_vector = simdpp::make_uint(val);
-    vectors.resize((n_elements + T::pack::length - 1) / T::pack::length, my_vector);
-  }
-};
-
-
-
 template <typename Tit>
 class Align
 {
@@ -84,12 +59,12 @@ private:
   T::uint const max_score_val;
 
   long total_reductions = 0;
-  T::row vH_up; // Previous H row
-  T::row vH;    // Current H row
-  T::row vE;    // Current E row
-  T::row vF_up; // Previous F row
-  T::row vF;    // Current F row
-  T::arr W_profile;
+  Row vH_up; // Previous H row
+  Row vH;    // Current H row
+  Row vE;    // Current E row
+  Row vF_up; // Previous F row
+  Row vF;    // Current F row
+  T::arr_row W_profile;
   Backtrack mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   T::uint top_left_score = 0;
 
@@ -128,10 +103,10 @@ public:
     , W_profile
     {
       {
-        T::row(m + 1),
-        T::row(m + 1),
-        T::row(m + 1),
-        T::row(m + 1)
+        Row(m + 1),
+        Row(m + 1),
+        Row(m + 1),
+        Row(m + 1)
       }
     }
     , mB()
@@ -195,7 +170,7 @@ public:
   std::set<Event> get_edit_script(std::pair<std::string, std::string> const & s);
   std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
 
-  inline T::arr const & get_W_profile()
+  inline T::arr_row const & get_W_profile()
   {
     return W_profile;
   }
@@ -288,8 +263,12 @@ Align<Tit>::init_score_vectors()
   {
     //for (auto & v : vH_up.vectors)
     //  v = simdpp::make_int(x);
-
-    vH_up.vectors[0] = simdpp::make_uint(x * 2, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x);
+    T::arr_uint new_vH0;
+    new_vH0.fill(x);
+    new_vH0[0] = x * 2;
+    vH_up.vectors[0] = simdpp::load_u(&new_vH0[0]);
+    //simdpp::insert<0>(vH_up.vectors[0], x * 2);
+    //vH_up.vectors[0] = simdpp::make_uint(x * 2, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x);
 
     //for (auto & v : vH.vectors)
     //  v = simdpp::make_int(x);
@@ -433,7 +412,7 @@ Align<Tit>::calculate_scores()
   for (long i = 0; i < n; ++i)
   {
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
-    T::row const & vW = W_profile[magic_function(*std::next(q_begin, i))];
+    Row const & vW = W_profile[magic_function(*std::next(q_begin, i))];
 
     // Clear vE vectors
     for (auto & vE_vec : vE.vectors)
@@ -454,7 +433,7 @@ Align<Tit>::calculate_scores()
     //if (backtracking)
     {
       //mB.matrix[i][0][0] = mB.INS_BT;
-      mB.matrix[i][0] = simdpp::make_uint(mB.INS_BT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      //mB.matrix[i][0] = simdpp::make_uint(mB.INS_BT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
       vF.vectors[0] = vH_up.vectors[0] - gap_open_pack;
 
       //if (left_column_gap_open_free)
@@ -517,7 +496,11 @@ Align<Tit>::calculate_scores()
 
 
     /// Calculate vE.vector[0]
-    vE.vectors[0] = shift_one_right(vH.vectors[t - 1] - gap_open_pack_x);
+    {
+      T::pack const new_vE0 = vH.vectors[t - 1] - gap_open_pack_x;
+      vE.vectors[0] = shift_one_right(new_vE0);
+    }
+
     //vE.vectors[0] = simdpp::move8_r<1>(vH.vectors[t - 1] - gap_open_pack_x);
     //vE.vectors[0] =
     //  boost::simd::shuffle<boost::simd::pattern<shift_elements_right> >(
@@ -543,7 +526,9 @@ Align<Tit>::calculate_scores()
 
 
     //std::cout << "q[" << i << "] = " << q[i] << "\n";
+#ifndef NDEBUG
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
+#endif
     //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
     if (current_max_score + max_gain_per_row < max_score_val)
@@ -580,6 +565,10 @@ Align<Tit>::calculate_scores()
     std::swap(vF.vectors, vF_up.vectors);
     std::swap(vH.vectors, vH_up.vectors);
   } /// End of outer loop
+
+#ifndef NDEBUG
+  print_backtrack(mB);
+#endif
 }
 
 
@@ -589,14 +578,31 @@ Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i)
 {
   for (std::size_t c = 0; c < 2; ++c)
   {
-    T::vec_uint vE0(S / sizeof(T::uint));
+    T::arr_uint vE0;//(S / sizeof(T::uint));
+    vE0.fill(0);
     simdpp::store_u(&vE0[0], shift_one_right(vE.vectors[t - 1]));
 
     /// Check for deletions in vector 0
-    for (long e = 2; e < static_cast<long>(p); ++e)
+    for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
       vE0[e] = std::max(vE0[e - 1], vE0[e]);
 
-    mB.set_del_extend(i, 0, max_greater(vE.vectors[0], static_cast<T::pack>(simdpp::load_u(&vE0[0]))));
+    T::pack vE0_pack = simdpp::load_u(&vE0[0]);
+
+    if (i == 0)
+    {
+      std::cout << "===\n";
+      print_pack(vE.vectors[0]);
+      print_pack(vE0_pack);
+    }
+
+    T::mask del_extend_mask = max_greater(vE.vectors[0], vE0_pack);
+
+    if (i == 0)
+    {
+      simdpp::blend(static_cast<T::pack>(simdpp::make_uint(1)), static_cast<T::pack>(simdpp::make_zero()), del_extend_mask);
+    }
+
+    mB.set_del_extend(i, 0, del_extend_mask);
 
     // Check for deletions in vectors 1,...,t-1
     for (std::size_t v = 1; v < vE.vectors.size(); ++v)
@@ -610,7 +616,7 @@ std::pair<std::string, std::string>
 Align<Tit>::get_aligned_strings()
 {
   long i = n;
-  long j = alignment_end; //d.size();
+  long j = alignment_end;
   std::pair<std::string, std::string> s;
 
   // TODO: Fix this mess
