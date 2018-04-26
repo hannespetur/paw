@@ -122,7 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ## Include paw
 list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
-simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_AVX2") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "${COMPILABLE_ARCHS}") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
 #add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
 
 ## Static and shared libraries
@@ -139,6 +139,19 @@ add_library(shared SHARED src/paw.cpp ${GEN_ARCH_FILES})
 set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(shared PUBLIC ${PAW_INCLUDE_DIRS})
+
+foreach(ARCH ${COMPILABLE_ARCHS})
+    simdpp_get_arch_info(CXX_FLAGS DEFINES_LIST SUFFIX ${ARCH})
+
+    if(NOT "${SUFFIX}" STREQUAL "")
+        set (LIBNAME static${SUFFIX})
+        add_library(${LIBNAME} STATIC src/paw.cpp src/align.cpp)
+        set_target_properties(${LIBNAME} PROPERTIES OUTPUT_NAME paw${SUFFIX})
+        set_target_properties(${LIBNAME} PROPERTIES COMPILE_FLAGS "${CXX_FLAGS}")
+        target_link_libraries(${LIBNAME} INTERFACE ${PAW_LINK_LIBRARIES})
+        target_include_directories(${LIBNAME} PUBLIC ${PAW_INCLUDE_DIRS})
+    endif()
+endforeach()
 
 #add_library(shared_sse2 SHARED paw.cpp)
 #SET_TARGET_PROPERTIES(shared_sse2 PROPERTIES OUTPUT_NAME paw_sse2)
