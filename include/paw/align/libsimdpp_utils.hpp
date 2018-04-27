@@ -73,12 +73,27 @@ struct Row
 inline T::pack
 shift_one_right(T::pack pack, T::uint const left)
 {
-  //#if SIMDPP_USE_AVX2
-  //std::vector<T::uint> vec(T::pack::length + 1, left);
   std::array<T::uint, T::pack::length + 1> vec;
   //vec.fill(left);
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
+  return simdpp::load_u(&vec[0]);
+}
+
+
+inline T::pack
+shift_one_right(T::pack pack, T::uint const left, std::array<long, S / sizeof(T::uint)> const & reductions)
+{
+  std::array<T::uint, T::pack::length + 1> vec;
+  vec[0] = left;
+  simdpp::store_u(&vec[1], pack);
+
+  for (long e = 1; e < static_cast<long>(T::pack::length); ++e)
+  {
+    long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
+    vec[e] = val > 0 ? val : 0;
+  }
+
   return simdpp::load_u(&vec[0]);
   //#elif SIMDPP_USE_SSE2
   //return simdpp::align16<15, 16>(static_cast<T::pack>(simdpp::make_uint(left)), pack);
@@ -91,13 +106,7 @@ shift_one_right(T::pack pack, T::uint const left)
 inline T::pack
 shift_one_right(T::pack pack)
 {
-  // TODO: Find and fix move16_r bug
   return shift_one_right(pack, 0);
-//#if defined(PAW_USE_UINT8)
-//  return simdpp::move16_r<1>(pack);
-//#else
-//  return simdpp::move8_r<1>(pack);
-//#endif
 }
 
 
