@@ -96,7 +96,7 @@ public:
     , gap_open_val_x(opt.gap_open - x_gain)
     , gap_open_val_y(opt.gap_open - y_gain)
     , gap_open_val(std::max(gap_open_val_x, gap_open_val_y))
-    , max_score_val(std::numeric_limits<T::uint>::max() - gap_open_val)
+    , max_score_val(std::numeric_limits<T::uint>::max() - 2 * gap_open_val)
     , reductions({})
     , total_reductions(0)
     , vH_up(m + 1, gap_open_val)
@@ -465,7 +465,6 @@ Align<Tit>::calculate_scores()
     {
       // Check for substitutions and if it has a higher score than the insertion
       vH.vectors[v] = vH_up.vectors[v - 1] + vW.vectors[v - 1];
-      //vF.vectors[v] = boost::simd::max(vH_up.vectors[v] - gap_open_pack, vF_up.vectors[v]);
 
       //if (backtracking)
       {
@@ -501,9 +500,6 @@ Align<Tit>::calculate_scores()
     }
 
     //vE.vectors[0] = simdpp::move8_r<1>(vH.vectors[t - 1] - gap_open_pack_x);
-    //vE.vectors[0] =
-    //  boost::simd::shuffle<boost::simd::pattern<shift_elements_right> >(
-    //    vH.vectors[t - 1] - gap_open_pack_x);
 
     /// Deletions pass 2: Gap extends
     //if (backtracking)
@@ -523,7 +519,6 @@ Align<Tit>::calculate_scores()
     //    vH.vectors[v] = boost::simd::max(vH.vectors[v], vE.vectors[v]);
     //}
 
-    //std::cout << "q[" << i << "] = " << q[i] << "\n";
 #ifndef NDEBUG
     print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
 #endif
@@ -537,59 +532,60 @@ Align<Tit>::calculate_scores()
       simdpp::store_u(&vF0[0], vF.vectors[0]);
       assert(vF0.size() == reductions.size());
       T::arr_uint new_reductions;
-      new_reductions[0] = 0;
+      new_reductions.fill(0);
       assert(vF0.size() == new_reductions.size());
+      bool any_reductions = false;
 
       for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
       {
         assert(vF0[e] + gap_open_val_x >= vF0[e - 1]);
         long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * gap_open_val_x);
-        new_reductions[e] = new_reduction_val <= 0 ? 0 : new_reduction_val;
-        reductions[e] += static_cast<long>(new_reductions[e]);
+
+        if (new_reduction_val > 0)
+        {
+          new_reductions[e] = new_reduction_val;
+          any_reductions = true;
+          reductions[e] += static_cast<long>(new_reductions[e]);
+        }
       }
 
       // Reduce values
-      T::pack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
-
-      for (long v = 0; v < t; ++v)
+      if (any_reductions)
       {
-        vH.vectors[v] = vH.vectors[v] - new_reductions_pack;
-        vF.vectors[v] = vF.vectors[v] - new_reductions_pack;
-      }
-    }
+        T::pack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
 
-    /*
-    if (current_max_score + max_gain_per_row < max_score_val)
-    {
-      // Assume the worst-case and only find the max score when it would be possible to overflow
-      current_max_score += max_gain_per_row;
-    }
-    else
-    {
-      // Find the correct max score (accurate but computationally expensive)
-      current_max_score = 0;
-
-      for (auto const & vec : vH.vectors)
-      {
-        //current_max_score = std::max(current_max_score, boost::simd::maximum(vec));
-        current_max_score = std::max(current_max_score, static_cast<T::uint>(simdpp::reduce_max(vec)));
-
-        if (current_max_score >= max_score_val)
+        for (long v = 0; v < t; ++v)
         {
-          current_max_score -= gap_open_val;
-          total_reductions += gap_open_val;
+          vF.vectors[v] = vF.vectors[v] - new_reductions_pack;
+          vH.vectors[v] = vH.vectors[v] - new_reductions_pack;
+        }
+      }
 
-          for (auto & vH_vec : vH.vectors)
-            vH_vec = simdpp::max(vH_vec - gap_open_pack, gap_open_pack);
+      T::pack const max_scores = vH.vectors[t - 1];
+      T::uint const max_score = simdpp::reduce_max(max_scores);
 
-          for (auto & vF_vec : vF.vectors)
-            vF_vec = simdpp::max(vF_vec - gap_open_pack, gap_open_pack);
+      if (max_score > max_score_val)
+      {
+        T::pack max_score_pack = simdpp::make_uint(max_score_val);
+        T::mask is_about_to_overflow = max_scores > max_score_pack;
+        T::pack overflow_reduction = simdpp::blend(gap_open_pack, static_cast<T::pack>(simdpp::make_zero()), is_about_to_overflow);
 
-          break;
+        {
+          T::arr_uint overflow_reduction_arr;
+          overflow_reduction_arr.fill(0);
+          simdpp::store_u(&overflow_reduction_arr[0], overflow_reduction);
+
+          for (long e = 0; e < static_cast<long>(S / sizeof(T::uint)); ++e)
+            reductions[e] += overflow_reduction_arr[e];
+        }
+
+        for (long v = 0; v < t; ++v)
+        {
+          vH.vectors[v] = simdpp::max(vH.vectors[v] - overflow_reduction, gap_open_pack);
+          vF.vectors[v] = simdpp::max(vF.vectors[v] - overflow_reduction, gap_open_pack);
         }
       }
     }
-    */
 
     std::swap(vF.vectors, vF_up.vectors);
     std::swap(vH.vectors, vH_up.vectors);

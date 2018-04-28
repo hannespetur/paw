@@ -26,7 +26,7 @@ constexpr int S = 16;
 namespace T
 {
 
-//#define PAW_USE_UINT8
+#define PAW_USE_UINT8
 
 #if defined(PAW_USE_UINT8)
 using uint = uint8_t;
