@@ -122,7 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ## Include paw
 list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
-simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "${COMPILABLE_ARCHS}") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_SSE2;X86_SSE3;X86_SSSE3;X86_SSE4_1;X86_AVX2") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
 #add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
 
 ## Static and shared libraries
