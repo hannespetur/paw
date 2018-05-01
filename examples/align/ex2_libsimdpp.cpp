@@ -69,8 +69,32 @@ main(int, char **)
   //query = query.substr(0, 25);
 
   auto t0 = Ttime::now();
-  auto score = paw::align(database, query);
+  auto score = paw::arch_null::align(database, query);
   auto t1 = Ttime::now();
+  std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
-  std::cout << "int16_t " << Tduration(t1 - t0).count() << " ms\n";
+
+  t0 = Ttime::now();
+  score = paw::arch_sse2::align(database, query);
+  t1 = Ttime::now();
+  std::cout << "sse2 " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << "score = " << score << "\n";
+
+  t0 = Ttime::now();
+  score = paw::arch_sse3::align(database, query);
+  t1 = Ttime::now();
+  std::cout << "sse3 " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << "score = " << score << "\n";
+
+  t0 = Ttime::now();
+  score = paw::arch_sse4p1::align(database, query);
+  t1 = Ttime::now();
+  std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << "score = " << score << "\n";
+
+  t0 = Ttime::now();
+  score = paw::align(database, query);
+  t1 = Ttime::now();
+  std::cout << "best " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << "score = " << score << "\n";
 }

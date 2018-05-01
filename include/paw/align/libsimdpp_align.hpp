@@ -60,11 +60,11 @@ private:
 
   std::array<long, S / sizeof(T::uint)> reductions;
   long total_reductions = 0;
-  Row vH_up; // Previous H row
-  Row vH;    // Current H row
-  Row vE;    // Current E row
-  Row vF_up; // Previous F row
-  Row vF;    // Current F row
+  T::row vH_up; // Previous H row
+  T::row vH;    // Current H row
+  T::row vE;    // Current E row
+  T::row vF_up; // Previous F row
+  T::row vF;    // Current F row
   T::arr_row W_profile;
   Backtrack mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
   T::uint top_left_score = 0;
@@ -107,10 +107,10 @@ public:
     , W_profile
     {
       {
-        Row(m + 1),
-        Row(m + 1),
-        Row(m + 1),
-        Row(m + 1)
+        T::row(m + 1),
+        T::row(m + 1),
+        T::row(m + 1),
+        T::row(m + 1)
       }
     }
     , mB()
@@ -417,7 +417,7 @@ Align<Tit>::calculate_scores()
   for (long i = 0; i < n; ++i)
   {
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
-    Row const & vW = W_profile[magic_function(*std::next(q_begin, i))];
+    T::row const & vW = W_profile[magic_function(*std::next(q_begin, i))];
 
     // Clear vE vectors
     for (auto & vE_vec : vE.vectors)
