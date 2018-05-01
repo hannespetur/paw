@@ -16,9 +16,9 @@
 
 namespace paw
 {
-
 namespace SIMDPP_ARCH_NAMESPACE
 {
+
 
 long
 align(std::string const & seq1, std::string const & seq2)
@@ -30,11 +30,16 @@ align(std::string const & seq1, std::string const & seq2)
   auto score = align.align(seq2.cbegin(), seq2.cend());
   auto aligned_strings = align.get_aligned_strings();
 
-  for (long i = 0; i < std::min(1000l, static_cast<long>(aligned_strings.first.size())); i += 140)
+  if (aligned_strings.first.size() == 0)
   {
-    std::cout << aligned_strings.first.substr(i, 140) << "\n"
-              << aligned_strings.second.substr(i, 140) << "\n\n";
+    std::cout << aligned_strings.first.substr(i, 140) << std::endl;
   }
+
+  //for (long i = 0; i < std::min(1000l, static_cast<long>(aligned_strings.first.size())); i += 140)
+  //{
+  //  std::cout << aligned_strings.first.substr(i, 140) << "\n"
+  //            << aligned_strings.second.substr(i, 140) << "\n\n";
+  //}
 
   return score;
 }
