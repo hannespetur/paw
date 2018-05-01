@@ -32,7 +32,7 @@ align(std::string const & seq1, std::string const & seq2)
 
   if (aligned_strings.first.size() == 0)
   {
-    std::cout << aligned_strings.first.substr(i, 140) << std::endl;
+    std::cout << aligned_strings.first.substr(0, 140) << std::endl;
   }
 
   //for (long i = 0; i < std::min(1000l, static_cast<long>(aligned_strings.first.size())); i += 140)
