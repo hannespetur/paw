@@ -27,7 +27,7 @@ constexpr int S = 16;
 namespace T
 {
 
-#define PAW_USE_UINT8
+//#define PAW_USE_UINT8
 
 using pack_8 = simdpp::uint8<S / sizeof(uint8_t), void>;
 using pack_16 = simdpp::uint16<S / sizeof(uint16_t), void>;
