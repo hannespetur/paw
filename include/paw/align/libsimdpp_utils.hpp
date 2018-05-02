@@ -9,11 +9,9 @@
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
-
 struct Row8;
 struct Row16;
+
 
 #if SIMDPP_USE_AVX512BW
 constexpr int S = 64;
@@ -36,10 +34,10 @@ using pack_16 = simdpp::uint16<S / sizeof(uint16_t), void>;
 
 #if defined(PAW_USE_UINT8)
 using pack = pack_8;
-using row = Row8;
+using row = paw::Row8;
 #else
 using pack = pack_16;
-using row = Row16;
+using row = paw::Row16;
 #endif
 
 using mask_8 = pack_8::mask_vector_type;
@@ -117,6 +115,9 @@ struct Row16
 
 };
 
+
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 inline T::pack
 shift_one_right(T::pack pack, T::uint const left)

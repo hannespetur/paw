@@ -10,19 +10,13 @@ namespace paw
 
 struct AlignerOptions
 {
-  #if defined(PAW_USE_UINT8)
-  using uint = uint8_t;
-  #else
-  using uint = uint16_t;
-  #endif
-
   bool default_options = false; // If set to true, all options are assumed to be the default
                                 // This can remove some of the runtime checks
 
-  uint match = 2;
-  uint mismatch = 2;
-  uint gap_open = 5;
-  uint gap_extend = 1;
+  T::uint match = 2;
+  T::uint mismatch = 2;
+  T::uint gap_open = 5;
+  T::uint gap_extend = 1;
 
   bool backtracking = true;
   bool top_row_free = false;
