@@ -35,7 +35,7 @@ public:
 
 
 private:
-  AlignerOptions<T::uint> const opt;
+  AlignerOptions const opt;
   //std::vector<Event> free_snp_edits;
   //std::vector<Event> free_del_edits;
   //std::vector<Event> free_ins_edits;
@@ -79,7 +79,7 @@ private:
 public:
   Align(Tit _d_begin,
         Tit _d_end,
-        AlignerOptions<T::uint> const & _opt = AlignerOptions<T::uint>(true /*default options*/),
+        AlignerOptions const & _opt = AlignerOptions(true /*default options*/),
         std::set<Event> const & /*free_edits*/ = std::set<Event>()
         )
     : opt(_opt)
@@ -105,16 +105,16 @@ public:
     , vF_up(m + 1)
     , vF(m + 1)
     , W_profile
+  {
     {
-      {
-        T::row(m + 1),
-        T::row(m + 1),
-        T::row(m + 1),
-        T::row(m + 1)
-      }
+      T::row(m + 1),
+      T::row(m + 1),
+      T::row(m + 1),
+      T::row(m + 1)
     }
-    , mB()
-    , top_left_score(0)
+  }
+  , mB()
+  , top_left_score(0)
   {
     /*
     for (auto const & e : free_edits)
@@ -174,10 +174,13 @@ public:
   std::set<Event> get_edit_script(std::pair<std::string, std::string> const & s);
   std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
 
-  inline T::arr_row const & get_W_profile()
+  inline T::arr_row const &
+  get_W_profile()
   {
     return W_profile;
   }
+
+
 };
 
 
@@ -426,7 +429,8 @@ Align<Tit>::calculate_scores()
     /// Calculate vector 0
     {
       auto const left = std::max(static_cast<T::uint>(simdpp::extract<0>(vF_up.vectors[0])),
-                                 static_cast<T::uint>(simdpp::extract<0>(vH_up.vectors[0]) - gap_open_val));
+                                 static_cast<T::uint>(simdpp::extract<0>(vH_up.vectors[0]) -
+                                                      gap_open_val));
 
       vH.vectors[0] = shift_one_right(vH_up.vectors[t - 1] + vW.vectors[t - 1], left, reductions);
     }
@@ -568,7 +572,9 @@ Align<Tit>::calculate_scores()
       {
         T::pack max_score_pack = simdpp::make_uint(max_score_val);
         T::mask is_about_to_overflow = max_scores > max_score_pack;
-        T::pack overflow_reduction = simdpp::blend(gap_open_pack, static_cast<T::pack>(simdpp::make_zero()), is_about_to_overflow);
+        T::pack overflow_reduction =
+          simdpp::blend(gap_open_pack,
+                        static_cast<T::pack>(simdpp::make_zero()), is_about_to_overflow);
 
         {
           T::arr_uint overflow_reduction_arr;
@@ -599,7 +605,10 @@ Align<Tit>::calculate_scores()
 
 template <typename Tit>
 void
-Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i, std::array<long, S / sizeof(T::uint)> const & reductions)
+Align<Tit>::check_gap_extend_deletions_with_backtracking(std::size_t const i,
+                                                         std::array<long,
+                                                                    S /
+                                                                    sizeof(T::uint)> const & reductions)
 {
   T::arr_uint vE0;
   vE0.fill(0);
@@ -679,13 +688,13 @@ Align<Tit>::get_aligned_strings()
                  };
 
   auto add_del_ext = [&]()
-                 {
-                   //std::cerr << "DEL SELECTED" << j << "\n";
-                   s.first.push_back(*std::next(d_begin, j - 1));
-                   s.second.push_back('-');
-                   --j;
-                   ++del_ext_count;
-                 };
+                     {
+                       //std::cerr << "DEL SELECTED" << j << "\n";
+                       s.first.push_back(*std::next(d_begin, j - 1));
+                       s.second.push_back('-');
+                       --j;
+                       ++del_ext_count;
+                     };
 
   auto add_ins = [&]()
                  {
@@ -697,13 +706,13 @@ Align<Tit>::get_aligned_strings()
                  };
 
   auto add_ins_ext = [&]()
-                 {
-                   //std::cerr << "INS SELECTED" << "\n";
-                   s.first.push_back('-');
-                   s.second.push_back(*std::next(q_begin, i - 1));
-                   --i;
-                   ++ins_ext_count;
-                 };
+                     {
+                       //std::cerr << "INS SELECTED" << "\n";
+                       s.first.push_back('-');
+                       s.second.push_back(*std::next(q_begin, i - 1));
+                       --i;
+                       ++ins_ext_count;
+                     };
 
   auto add_sub = [&]()
                  {

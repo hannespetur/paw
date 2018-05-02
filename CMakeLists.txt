@@ -131,7 +131,6 @@ add_library(static STATIC EXCLUDE_FROM_ALL src/paw.cpp ${GEN_ARCH_FILES})
 set_target_properties(static PROPERTIES
     OUTPUT_NAME paw
     )
-
 target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(static PUBLIC ${PAW_INCLUDE_DIRS})
 
@@ -140,29 +139,6 @@ set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_COD
 target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
 target_include_directories(shared PUBLIC ${PAW_INCLUDE_DIRS})
 
-foreach(ARCH ${COMPILABLE_ARCHS})
-    simdpp_get_arch_info(CXX_FLAGS DEFINES_LIST SUFFIX ${ARCH})
-
-    if(NOT "${SUFFIX}" STREQUAL "")
-        set (LIBNAME static${SUFFIX})
-        add_library(${LIBNAME} STATIC src/paw.cpp src/align.cpp)
-        set_target_properties(${LIBNAME} PROPERTIES OUTPUT_NAME paw${SUFFIX})
-        set_target_properties(${LIBNAME} PROPERTIES COMPILE_FLAGS "${CXX_FLAGS}")
-        target_link_libraries(${LIBNAME} INTERFACE ${PAW_LINK_LIBRARIES})
-        target_include_directories(${LIBNAME} PUBLIC ${PAW_INCLUDE_DIRS})
-    endif()
-endforeach()
-
-#add_library(shared_sse2 SHARED paw.cpp)
-#SET_TARGET_PROPERTIES(shared_sse2 PROPERTIES OUTPUT_NAME paw_sse2)
-#set_property(TARGET shared_sse2 PROPERTY POSITION_INDEPENDENT_CODE ON)
-#set_target_properties(shared_sse2 PROPERTIES COMPILE_FLAGS "-msse2")
-
-#set_target_properties(test_sse3 PROPERTIES COMPILE_FLAGS "-msse3")
-#set_target_properties(test_sse4.1 PROPERTIES COMPILE_FLAGS "-msse4.1")
-#set_target_properties(test_sse4.2 PROPERTIES COMPILE_FLAGS "-msse4.2")
-#set_target_properties(test_avx PROPERTIES COMPILE_FLAGS "-mavx")
-#set_target_properties(test_avx2 PROPERTIES COMPILE_FLAGS "-mavx2")
 
 ## Examples
 add_subdirectory(examples)

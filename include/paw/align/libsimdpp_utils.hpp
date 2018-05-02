@@ -12,7 +12,6 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-//struct Row;
 struct Row8;
 struct Row16;
 
@@ -88,6 +87,8 @@ struct Row8
     T::pack_8 my_vector = simdpp::make_uint(val);
     vectors.resize((n_elements + T::pack_8::length - 1) / T::pack_8::length, my_vector);
   }
+
+
 };
 
 
@@ -112,6 +113,8 @@ struct Row16
     T::pack_16 my_vector = simdpp::make_uint(val);
     vectors.resize((n_elements + T::pack_16::length - 1) / T::pack_16::length, my_vector);
   }
+
+
 };
 
 
@@ -127,7 +130,9 @@ shift_one_right(T::pack pack, T::uint const left)
 
 
 inline T::pack
-shift_one_right(T::pack pack, T::uint const left, std::array<long, S / sizeof(T::uint)> const & reductions)
+shift_one_right(T::pack pack,
+                T::uint const left,
+                std::array<long, S / sizeof(T::uint)> const & reductions)
 {
   std::array<T::uint, T::pack::length + 1> vec;
   vec[0] = left;
@@ -155,7 +160,7 @@ shift_one_right(T::pack pack)
 }
 
 
-template<typename Tpack>
+template <typename Tpack>
 void
 print_pack(Tpack const & pack)
 {
@@ -210,7 +215,6 @@ print_score_vector_standard(T::row const & vX)
 
   std::cout << "(" << t << " vectors, " << vX.n_elements << " elements)\n";
 }
-
 
 
 inline void
