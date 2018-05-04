@@ -64,36 +64,37 @@ main(int, char **)
 
   using Ttime = std::chrono::high_resolution_clock;
   using Tduration = std::chrono::duration<double, std::milli>;
+  paw::AlignerOptions<uint16_t> opts(true /*default options*/);
 
   //database = database.substr(200, 25);
   //query = query.substr(0, 25);
 
   auto t0 = Ttime::now();
-  auto score = paw::arch_null::align(database, query);
+  auto score = paw::arch_null::align(database, query, opts);
   auto t1 = Ttime::now();
   std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse2::align(database, query);
+  score = paw::arch_sse2::align(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse2 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse3::align(database, query);
+  score = paw::arch_sse3::align(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse3 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse4p1::align(database, query);
+  score = paw::arch_sse4p1::align(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::align(database, query);
+  score = paw::align(database, query, opts);
   t1 = Ttime::now();
   std::cout << "best " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";

@@ -50,7 +50,8 @@ main(int, char **)
   for (long i = 0; i < static_cast<long>(tests.size()); ++i)
   {
     auto const & test = tests[i];
-    auto score = paw::align(test.seq1, test.seq2);
+    paw::AlignerOptions<uint8_t> opts;
+    auto score = paw::align(test.seq1, test.seq2, opts);
 
     if (score != test.expected_score)
     {

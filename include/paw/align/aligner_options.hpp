@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
+
 
 #include <paw/align/libsimdpp_utils.hpp>
 
@@ -8,15 +10,18 @@
 namespace paw
 {
 
+template<typename Tuint>
 struct AlignerOptions
 {
+  using uint = typename std::make_unsigned<Tuint>::type;
+
   bool default_options = false; // If set to true, all options are assumed to be the default
                                 // This can remove some of the runtime checks
 
-  T::uint match = 2;
-  T::uint mismatch = 2;
-  T::uint gap_open = 5;
-  T::uint gap_extend = 1;
+  uint match = 2;
+  uint mismatch = 2;
+  uint gap_open = 5;
+  uint gap_extend = 1;
 
   bool backtracking = true;
   bool top_row_free = false;

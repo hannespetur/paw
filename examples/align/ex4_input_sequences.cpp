@@ -14,10 +14,10 @@ main(int argc, char ** argv)
 
   try
   {
-  paw::Parser parser(argc, argv);
-  parser.parse_positional_argument(seq1, "SEQ1", "Sequence 1");
-  parser.parse_positional_argument(seq2, "SEQ2", "Sequence 2");
-  parser.finalize();
+    paw::Parser parser(argc, argv);
+    parser.parse_positional_argument(seq1, "SEQ1", "Sequence 1");
+    parser.parse_positional_argument(seq2, "SEQ2", "Sequence 2");
+    parser.finalize();
   }
   catch(std::exception const & e)
   {
@@ -25,7 +25,8 @@ main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
-  auto score = paw::align(seq1, seq2);
+  paw::AlignerOptions<uint8_t> opts;
+  auto score = paw::align(seq1, seq2, opts);
   std::cerr << "Score = " << score << std::endl;
   return EXIT_SUCCESS;
 }

@@ -9,9 +9,6 @@
 
 namespace paw
 {
-struct Row8;
-struct Row16;
-
 
 #if SIMDPP_USE_AVX512BW
 constexpr int S = 64;
@@ -23,106 +20,156 @@ constexpr int S = 16;
 constexpr int S = 16;
 #endif
 
+struct Row8;
+struct Row16;
 
-namespace T
+template<typename Tuint>
+struct T : std::false_type
+{};
+
+template<>
+struct T<uint8_t>
 {
+  using pack = simdpp::uint8<S / sizeof(uint8_t), void>;
+  using row = paw::Row8;
+  using mask = pack::mask_vector_type;
+  using uint = pack::uint_element_type;
+  using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+  using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
+  using arr_row = std::array<row, 4>;
+  using arr_uint = std::array<uint, S / sizeof(uint)>;
+};
 
+template<>
+struct T<uint16_t>
+{
+  using pack = simdpp::uint16<S / sizeof(uint16_t), void>;
+  using row = paw::Row16;
+  using mask = pack::mask_vector_type;
+  using uint = pack::uint_element_type;
+  using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+  using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
+  using arr_row = std::array<row, 4>;
+  using arr_uint = std::array<uint, S / sizeof(uint)>;
+};
+
+
+namespace T2
+{
 //#define PAW_USE_UINT8
 
-using pack_8 = simdpp::uint8<S / sizeof(uint8_t), void>;
-using pack_16 = simdpp::uint16<S / sizeof(uint16_t), void>;
+  using pack_8 = simdpp::uint8<S / sizeof(uint8_t), void>;
+  using pack_16 = simdpp::uint16<S / sizeof(uint16_t), void>;
 
 #if defined(PAW_USE_UINT8)
-using pack = pack_8;
-using row = paw::Row8;
+  using pack = pack_8;
+  using row = paw::Row8;
 #else
-using pack = pack_16;
-using row = paw::Row16;
+  using pack = pack_16;
+  using row = paw::Row16;
 #endif
 
-using mask_8 = pack_8::mask_vector_type;
-using uint_8 = pack_8::uint_element_type;
-using vec_pack_8 = std::vector<pack_8, simdpp::aligned_allocator<pack_8, sizeof(pack_8)> >;
-using vec_uint_8 = std::vector<uint_8, simdpp::aligned_allocator<uint_8, sizeof(uint_8)> >;
-using arr_row_8 = std::array<Row8, 4>;
-using arr_uint_8 = std::array<uint_8, S / sizeof(uint_8)>;
+  using mask_8 = pack_8::mask_vector_type;
+  using uint_8 = pack_8::uint_element_type;
+  using vec_pack_8 = std::vector<pack_8, simdpp::aligned_allocator<pack_8, sizeof(pack_8)> >;
+  using vec_uint_8 = std::vector<uint_8, simdpp::aligned_allocator<uint_8, sizeof(uint_8)> >;
+  using arr_row_8 = std::array<Row8, 4>;
+  using arr_uint_8 = std::array<uint_8, S / sizeof(uint_8)>;
 
-using mask_16 = pack_16::mask_vector_type;
-using uint_16 = pack_16::uint_element_type;
-using vec_pack_16 = std::vector<pack_16, simdpp::aligned_allocator<pack_16, sizeof(pack_16)> >;
-using vec_uint_16 = std::vector<uint_16, simdpp::aligned_allocator<uint_16, sizeof(uint_16)> >;
-using arr_row_16 = std::array<Row16, 4>;
-using arr_uint_16 = std::array<uint_16, S / sizeof(uint_16)>;
+  using mask_16 = pack_16::mask_vector_type;
+  using uint_16 = pack_16::uint_element_type;
+  using vec_pack_16 = std::vector<pack_16, simdpp::aligned_allocator<pack_16, sizeof(pack_16)> >;
+  using vec_uint_16 = std::vector<uint_16, simdpp::aligned_allocator<uint_16, sizeof(uint_16)> >;
+  using arr_row_16 = std::array<Row16, 4>;
+  using arr_uint_16 = std::array<uint_16, S / sizeof(uint_16)>;
 
-using mask = pack::mask_vector_type;
-using uint = pack::uint_element_type;
-using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
-using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
-using arr_row = std::array<row, 4>;
-using arr_uint = std::array<uint, S / sizeof(uint)>;
-
+  using mask = pack::mask_vector_type;
+  using uint = pack::uint_element_type;
+  using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+  using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
+  using arr_row = std::array<row, 4>;
+  using arr_uint = std::array<uint, S / sizeof(uint)>;
 } // namespace T
 
 
 struct Row8
 {
+  using pack = simdpp::uint8<S / sizeof(uint8_t), void>;
+  using mask = pack::mask_vector_type;
+  using uint = pack::uint_element_type;
+  using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+  using vec_uint = std::vector<pack, simdpp::aligned_allocator<uint8_t, sizeof(uint8_t)> >;
+  using arr_row = std::array<Row8, 4>;
+  using arr_uint = std::array<uint8_t, S / sizeof(uint8_t)>;
+
   long const n_elements = 0;
-  T::vec_pack_8 vectors;
+  vec_pack vectors;
 
   /* CONSTRUCTORS */
   Row8(std::size_t const _n_elements)
     : n_elements(_n_elements)
     , vectors(0)
   {
-    T::pack_8 my_vector = simdpp::make_zero();
-    vectors.resize((n_elements + T::pack_8::length - 1) / T::pack_8::length, my_vector);
+    pack my_vector = simdpp::make_zero();
+    vectors.resize((n_elements + pack::length - 1) / pack::length, my_vector);
   }
 
 
-  Row8(std::size_t const _n_elements, T::uint_8 const val)
+  Row8(std::size_t const _n_elements, uint8_t const val)
     : n_elements(_n_elements)
   {
-    T::pack_8 my_vector = simdpp::make_uint(val);
-    vectors.resize((n_elements + T::pack_8::length - 1) / T::pack_8::length, my_vector);
+    pack my_vector = simdpp::make_uint(val);
+    vectors.resize((n_elements + pack::length - 1) / pack::length, my_vector);
   }
-
 
 };
 
 
 struct Row16
 {
-  long const n_elements = 0;
-  T::vec_pack_16 vectors;
+  using pack = simdpp::uint16<S / sizeof(uint16_t), void>;
+  using mask = pack::mask_vector_type;
+  using uint = pack::uint_element_type;
+  using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
+  using vec_uint = std::vector<uint16_t, simdpp::aligned_allocator<uint16_t, sizeof(uint16_t)> >;
+  using arr_row = std::array<Row16, 4>;
+  using arr_uint = std::array<uint16_t, S / sizeof(uint16_t)>;
 
-  /* CONSTRUCTORS */
+  long const n_elements = 0;
+  vec_pack vectors;
+
+  // CONSTRUCTORS
   Row16(std::size_t const _n_elements)
     : n_elements(_n_elements)
     , vectors(0)
   {
-    T::pack_16 my_vector = simdpp::make_zero();
-    vectors.resize((n_elements + T::pack_16::length - 1) / T::pack_16::length, my_vector);
+    pack my_vector = simdpp::make_zero();
+    vectors.resize((n_elements + pack::length - 1) / pack::length, my_vector);
   }
 
 
-  Row16(std::size_t const _n_elements, T::uint_16 const val)
+  Row16(std::size_t const _n_elements, uint16_t const val)
     : n_elements(_n_elements)
   {
-    T::pack_16 my_vector = simdpp::make_uint(val);
-    vectors.resize((n_elements + T::pack_16::length - 1) / T::pack_16::length, my_vector);
+    pack my_vector = simdpp::make_uint(val);
+    vectors.resize((n_elements + pack::length - 1) / pack::length, my_vector);
   }
 
 
 };
 
 
+
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-inline T::pack
-shift_one_right(T::pack pack, T::uint const left)
+template<typename Tuint>
+inline typename T<Tuint>::pack
+shift_one_right(typename T<Tuint>::pack pack,
+                typename T<Tuint>::uint const left
+                )
 {
-  std::array<T::uint, T::pack::length + 1> vec;
+  std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   //vec.fill(left);
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
@@ -130,16 +177,18 @@ shift_one_right(T::pack pack, T::uint const left)
 }
 
 
-inline T::pack
-shift_one_right(T::pack pack,
-                T::uint const left,
-                std::array<long, S / sizeof(T::uint)> const & reductions)
+template<typename Tuint>
+inline typename T<Tuint>::pack
+shift_one_right(typename T<Tuint>::pack pack,
+                typename T<Tuint>::uint const left,
+                std::array<long, S / sizeof(typename T<Tuint>::uint)> const & reductions
+  )
 {
-  std::array<T::uint, T::pack::length + 1> vec;
+  std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
 
-  for (long e = 1; e < static_cast<long>(T::pack::length); ++e)
+  for (long e = 1; e < static_cast<long>(T<Tuint>::pack::length); ++e)
   {
     long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
     vec[e] = val > 0 ? val : 0;
@@ -154,8 +203,9 @@ shift_one_right(T::pack pack,
 }
 
 
-inline T::pack
-shift_one_right(T::pack pack)
+template<typename Tuint>
+inline typename T<Tuint>::pack
+shift_one_right(typename T<Tuint>::pack pack)
 {
   return shift_one_right(pack, 0);
 }
@@ -189,16 +239,17 @@ print_pack(Tpack const & pack)
 }
 
 
+template <typename Trow>
 inline void
-print_score_vector_standard(T::row const & vX)
+print_score_vector_standard(Trow const & vX)
 {
   long const t = vX.vectors.size();
 
   if (t == 0)
     return;
 
-  T::vec_uint vec(vX.vectors[0].length, 0);
-  std::vector<T::vec_uint> m(vX.vectors.size(), vec);
+  typename Trow::vec_uint vec(vX.vectors[0].length, 0);
+  std::vector<typename Trow::vec_uint> m(vX.vectors.size(), vec);
 
   for (long v = 0; v < t; ++v)
   {
@@ -218,13 +269,14 @@ print_score_vector_standard(T::row const & vX)
 }
 
 
+template <typename Trow>
 inline void
-print_score_vectors(T::row const & vH,
-                    T::row const & vH_up,
-                    T::row const & vE,
-                    T::row const & vF,
-                    T::row const & vF_up,
-                    T::row const & vW
+print_score_vectors(Trow const & vH,
+                    Trow const & vH_up,
+                    Trow const & vE,
+                    Trow const & vF,
+                    Trow const & vF_up,
+                    Trow const & vW
                     )
 {
   std::cout << "Standard H_up  : "; print_score_vector_standard(vH_up);

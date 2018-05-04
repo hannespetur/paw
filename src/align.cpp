@@ -20,13 +20,14 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 
+template <typename Tuint>
 long
 align(std::string const & seq1,
       std::string const & seq2,
-      AlignerOptions const & _opt
+      AlignerOptions<Tuint> const & _opt
       )
 {
-  Align<std::string::const_iterator> align(seq1.cbegin(), seq1.cend(), _opt);
+  Align align(seq1.cbegin(), seq1.cend(), _opt);
   align.calculate_DNA_W_profile();
   auto score = align.align(seq2.cbegin(), seq2.cend());
   //auto aligned_strings = align.get_aligned_strings();
@@ -144,11 +145,27 @@ get_current_arch()
 } // namespace SIMDPP_ARCH_NAMESPACE
 
 SIMDPP_MAKE_DISPATCHER_RET0(get_current_arch, std::string)
+
+SIMDPP_MAKE_DISPATCHER((template <typename Tuint>)(< Tuint >)(long)(align)((std::string const &) x,
+                                                                           (std::string const &)y,
+                                                                           (AlignerOptions<Tuint>
+                                                                            const &)z))
+
+SIMDPP_INSTANTIATE_DISPATCHER(
+  (template long align<uint8_t>(std::string const & s1, std::string const & s2,
+                                AlignerOptions<uint8_t> const & o)),
+  (template long align<uint16_t>(std::string const & s1, std::string const & s2,
+                                 AlignerOptions<uint16_t> const & o))
+  )
+
+
+/*
 SIMDPP_MAKE_DISPATCHER_RET3(align,
                             long,
                             std::string const &,
                             std::string const &,
-                            AlignerOptions const &
+                            AlignerOptions<Tuint> const &
                             )
+                            */
 
 } // namespace paw
