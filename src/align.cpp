@@ -28,8 +28,9 @@ align(std::string const & seq1,
       )
 {
   Align align(seq1.cbegin(), seq1.cend(), _opt);
-  align.calculate_DNA_W_profile();
+  //align.calculate_DNA_W_profile();
   auto score = align.align(seq2.cbegin(), seq2.cend());
+  //std::cout << score << "\n";
   //auto aligned_strings = align.get_aligned_strings();
   //
   //if (aligned_strings.first.size() == 0)
