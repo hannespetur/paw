@@ -93,15 +93,17 @@ public:
     , gap_open_val_y(opt.gap_open - y_gain)
     , gap_open_val(std::max(gap_open_val_x, gap_open_val_y))
     , W_profile
-  {
     {
-      Trow(m + 1),
-      Trow(m + 1),
-      Trow(m + 1),
-      Trow(m + 1)
+        {
+          Trow(m + 1),
+          Trow(m + 1),
+          Trow(m + 1),
+          Trow(m + 1)
+        }
+
+
     }
-  }
-  , mB()
+    , mB()
   {}
 
   long align(Tit q_begin, Tit q_end);   // Align query
@@ -115,6 +117,7 @@ public:
     return W_profile;
   }
 
+
 };
 
 
@@ -125,7 +128,7 @@ magic_function(char const c)
 }
 
 
-template<typename Trow>
+template <typename Trow>
 inline Trow
 init_vH_up(std::size_t const n_elements, typename Trow::uint gap_open_val)
 {
@@ -138,7 +141,7 @@ init_vH_up(std::size_t const n_elements, typename Trow::uint gap_open_val)
 }
 
 
-template<typename Tuint>
+template <typename Tuint>
 inline typename T<Tuint>::mask
 max_greater(typename T<Tuint>::pack & v1, typename T<Tuint>::pack const & v2)
 {
@@ -249,9 +252,11 @@ Align<Tit, Tuint>::calculate_scores()
     {
       auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up.vectors[0])),
                                  static_cast<Tuint>(simdpp::extract<0>(vH_up.vectors[0]) -
-                                                      gap_open_val));
+                                                    gap_open_val));
 
-      vH.vectors[0] = shift_one_right<Tuint>(vH_up.vectors[t - 1] + vW.vectors[t - 1], left, reductions);
+      vH.vectors[0] = shift_one_right<Tuint>(vH_up.vectors[t - 1] + vW.vectors[t - 1],
+                                             left,
+                                             reductions);
     }
 
     // Check if any insertion have highest values
@@ -381,10 +386,10 @@ Align<Tit, Tuint>::calculate_scores()
 
 template <typename Tit, typename Tuint>
 void
-Align<Tit, Tuint>::check_gap_extend_deletions_with_backtracking(typename Align<Tit, Tuint>::Trow & vE,
+Align<Tit, Tuint>::check_gap_extend_deletions_with_backtracking(typename T<Tuint>::row & vE,
                                                                 std::size_t const i,
                                                                 std::array<long, S / sizeof(Tuint)> const & reductions
-  )
+                                                                )
 {
   Tarr_uint vE0;
   vE0.fill(0);
