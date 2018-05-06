@@ -299,7 +299,7 @@ Align<Tit, Tuint>::calculate_scores()
 #endif
     //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
-    if (i % 1000000 == 999999)
+    //if (i % 1000000 == 999999)
     {
       Tarr_uint vF0;
       vF0.fill(0);
