@@ -49,7 +49,7 @@ struct T<uint16_t>
   using uint = pack::uint_element_type;
   using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
   using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
-  using arr_row = std::vector<row>;
+  using arr_row = std::array<row, 4>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
 };
 

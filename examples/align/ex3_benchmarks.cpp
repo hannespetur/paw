@@ -13,9 +13,9 @@ struct Test
   long expected_score;
 
   Test(std::string _seq1, std::string _seq2, long _expected_score)
-      : seq1(_seq1)
-      , seq2(_seq2)
-      , expected_score(_expected_score)
+    : seq1(_seq1)
+    , seq2(_seq2)
+    , expected_score(_expected_score)
   {}
 };
 
@@ -23,25 +23,25 @@ struct Test
 int
 main(int, char **)
 {
-  std::vector<Test> const tests = {
-      {"GGG", "GGG", 6},
-      {"GGGG", "GGG", 1},
-      {"GGGGG", "GGG", 0},
-      {"GGG", "GGGG", 1},
-      {"GGG", "GGGGG", 0},
-      {"AAA", "GGG", -6},
-      {"CCCCCAAGGGGG", "CCCCCGGGGG", 14},
-      {"TTTTTCCCCCAAGGGGGTTTTT", "TTTTTCCCCCGGGGGTTTTT", 34},
-      {"AAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAAAAAA", 40},
-      {"AAAAAAAAAAAAAAAAAAAA", "TTTTTTTTTTTTTTTTTTTT", -40},
-      {"AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-       "AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-       160
-      },
-      {"AAGTGTGTTAATTAATTAATGCTTGTAGGA", "GTTTATGTAGCTTATTCTATCCAAAGCAAT", -12},
-      {"AAGTGTGTTAATTAATTAATGCTT", "TGTTAATTAATTAATGCTTGGCAAT", 19},
-      {"GT", "GAT", -1},
-      {"AAGACATCACGATG", "AAGACACCCCGCACG", 11}
+  std::vector<Test> const tests =
+  {
+    {"GGG", "GGG", 6},
+    {"GGGG", "GGG", 1},
+    {"GGGGG", "GGG", 0},
+    {"GGG", "GGGG", 1},
+    {"GGG", "GGGGG", 0},
+    {"AAA", "GGG", -6},
+    {"CCCCCAAGGGGG", "CCCCCGGGGG", 14},
+    {"TTTTTCCCCCAAGGGGGTTTTT", "TTTTTCCCCCGGGGGTTTTT", 34},
+    {"AAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAAAAAA", 40},
+    {"AAAAAAAAAAAAAAAAAAAA", "TTTTTTTTTTTTTTTTTTTT", -40},
+    {"AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+     "AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+     160},
+    {"AAGTGTGTTAATTAATTAATGCTTGTAGGA", "GTTTATGTAGCTTATTCTATCCAAAGCAAT", -12},
+    {"AAGTGTGTTAATTAATTAATGCTT", "TGTTAATTAATTAATGCTTGGCAAT", 19},
+    {"GT", "GAT", -1},
+    {"AAGACATCACGATG", "AAGACACCCCGCACG", 11}
   };
 
   std::string const current_archs = paw::get_current_arch();
@@ -55,9 +55,13 @@ main(int, char **)
 
     if (score != test.expected_score)
     {
-      std::cerr << "Score mismatch in test " << i
+      std::cerr << "NOT OK. Score mismatch in test " << i
                 << ". Got score " << score
                 << " but I expected " << test.expected_score << std::endl;
+    }
+    else
+    {
+      std::cerr << "OK\n";
     }
   }
 }
