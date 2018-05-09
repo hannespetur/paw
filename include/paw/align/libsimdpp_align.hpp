@@ -39,7 +39,6 @@ public:
 
   // p is the length (or cardinality) of the SIMD vectors
   std::size_t static const p = Tpack::length;
-  //void calculate_DNA_W_profile();
 
 
 private:
@@ -346,7 +345,7 @@ Align<Tit, Tuint>::calculate_scores()
 #endif
     //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
 
-    //if (i % 1000000 == 999999)
+    if (simdpp::reduce_max(vH[t - 1]) >= max_score_val)
     {
       Tarr_uint vF0;
       vF0.fill(0);
@@ -386,12 +385,14 @@ Align<Tit, Tuint>::calculate_scores()
       Tpack const max_scores = vH[t - 1];
       Tuint const max_score = simdpp::reduce_max(max_scores);
 
-      if (max_score > max_score_val)
+      if (max_score >= max_score_val)
       {
-        Tmask is_about_to_overflow = max_scores > max_score_pack;
+        Tmask is_about_to_overflow = max_scores >= max_score_pack;
         Tpack overflow_reduction =
           simdpp::blend(gap_open_pack,
-                        static_cast<Tpack>(simdpp::make_zero()), is_about_to_overflow);
+                        static_cast<Tpack>(simdpp::make_zero()),
+                        is_about_to_overflow
+                        );
 
         {
           Tarr_uint overflow_reduction_arr;
