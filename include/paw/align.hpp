@@ -98,22 +98,7 @@ align(std::string const & seq1,
 }
 
 
-namespace arch_popcnt_avx_fm4
-{
-
-std::string get_current_arch();
-
-template <typename Tuint>
-long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
-
-}
-
-
-namespace arch_popcnt_avx2_fm3
+namespace arch_popcnt_avx2
 {
 
 std::string get_current_arch();

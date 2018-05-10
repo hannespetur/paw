@@ -25,6 +25,50 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
+std::vector<Cigar>
+get_cigar(std::pair<std::string, std::string> const & s)
+{
+  std::vector<Cigar> cigar;
+
+  if (s.first.size() == 0)
+    return cigar;
+
+  auto get_op = [](char const c1, char const c2) -> CigarOperation
+                {
+                  if (c1 == '-')
+                    return INSERTION;
+                  else if (c2 == '-')
+                    return DELETION;
+                  else
+                    return MATCH;
+                };
+
+  std::size_t prev_pos = 0;
+  CigarOperation op = get_op(s.first[0], s.second[0]);
+
+  for (std::size_t i = 1; i < s.first.size(); ++i)
+  {
+    // Both string cant have a gap
+    assert(s.first[i] != '-' || s.second[i] != '-');
+    CigarOperation const new_op = get_op(s.first[i], s.second[i]);
+
+    if (op == new_op)
+    {
+      continue;
+    }
+    else
+    {
+      cigar.push_back({i - prev_pos, op});
+      op = new_op;
+      prev_pos = i;
+    }
+  }
+
+  cigar.push_back({s.first.size() - prev_pos, op});
+  return cigar;
+}
+
+
 template <typename Tit, typename Tuint>
 class Align
 {
@@ -81,8 +125,7 @@ public:
 
   long align(Tit q_begin, Tit q_end);   // Align query
   std::pair<std::string, std::string> get_aligned_strings();
-  std::set<Event> get_edit_script(std::pair<std::string, std::string> const & s);
-  std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
+  //std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
 
 };
 
@@ -573,51 +616,6 @@ Align<Tit, Tuint>::get_aligned_strings()
 
   assert(out.first.size() == out.second.size());
   return out;
-}
-
-
-template <typename Tit, typename Tuint>
-std::vector<Cigar>
-Align<Tit, Tuint>::get_cigar(std::pair<std::string, std::string> const & s)
-{
-  std::vector<Cigar> cigar;
-
-  if (s.first.size() == 0)
-    return cigar;
-
-  auto get_op = [](char const c1, char const c2) -> CigarOperation
-                {
-                  if (c1 == '-')
-                    return INSERTION;
-                  else if (c2 == '-')
-                    return DELETION;
-                  else
-                    return MATCH;
-                };
-
-  std::size_t prev_pos = 0;
-  CigarOperation op = get_op(s.first[0], s.second[0]);
-
-  for (std::size_t i = 1; i < s.first.size(); ++i)
-  {
-    // Both string cant have a gap
-    assert(s.first[i] != '-' || s.second[i] != '-');
-    CigarOperation const new_op = get_op(s.first[i], s.second[i]);
-
-    if (op == new_op)
-    {
-      continue;
-    }
-    else
-    {
-      cigar.push_back({i - prev_pos, op});
-      op = new_op;
-      prev_pos = i;
-    }
-  }
-
-  cigar.push_back({s.first.size() - prev_pos, op});
-  return cigar;
 }
 
 
