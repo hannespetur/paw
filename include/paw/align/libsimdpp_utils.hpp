@@ -38,6 +38,7 @@ struct T<uint8_t>
   using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
   using arr_row = std::vector<row>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
+  using arr_vec_pack = std::array<vec_pack, 4>;
 };
 
 template <>
@@ -51,45 +52,8 @@ struct T<uint16_t>
   using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
   using arr_row = std::array<row, 4>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
+  using arr_vec_pack = std::array<vec_pack, 4>;
 };
-
-
-namespace T2
-{
-//#define PAW_USE_UINT8
-
-using pack_8 = simdpp::uint8<S / sizeof(uint8_t), void>;
-using pack_16 = simdpp::uint16<S / sizeof(uint16_t), void>;
-
-#if defined(PAW_USE_UINT8)
-using pack = pack_8;
-using row = paw::Row8;
-#else
-using pack = pack_16;
-using row = paw::Row16;
-#endif
-
-using mask_8 = pack_8::mask_vector_type;
-using uint_8 = pack_8::uint_element_type;
-using vec_pack_8 = std::vector<pack_8, simdpp::aligned_allocator<pack_8, sizeof(pack_8)> >;
-using vec_uint_8 = std::vector<uint_8, simdpp::aligned_allocator<uint_8, sizeof(uint_8)> >;
-using arr_row_8 = std::array<Row8, 4>;
-using arr_uint_8 = std::array<uint_8, S / sizeof(uint_8)>;
-
-using mask_16 = pack_16::mask_vector_type;
-using uint_16 = pack_16::uint_element_type;
-using vec_pack_16 = std::vector<pack_16, simdpp::aligned_allocator<pack_16, sizeof(pack_16)> >;
-using vec_uint_16 = std::vector<uint_16, simdpp::aligned_allocator<uint_16, sizeof(uint_16)> >;
-using arr_row_16 = std::array<Row16, 4>;
-using arr_uint_16 = std::array<uint_16, S / sizeof(uint_16)>;
-
-using mask = pack::mask_vector_type;
-using uint = pack::uint_element_type;
-using vec_pack = std::vector<pack, simdpp::aligned_allocator<pack, sizeof(pack)> >;
-using vec_uint = std::vector<uint, simdpp::aligned_allocator<uint, sizeof(uint)> >;
-using arr_row = std::array<row, 4>;
-using arr_uint = std::array<uint, S / sizeof(uint)>;
-} // namespace T
 
 
 struct Row8

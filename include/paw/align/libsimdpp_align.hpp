@@ -75,10 +75,8 @@ class Align
 public:
   using Tpack = typename T<Tuint>::pack;
   using Tmask = typename T<Tuint>::mask;
-  using Trow = typename T<Tuint>::row;
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tvec_uint = typename T<Tuint>::vec_uint;
-  using Tarr_row = typename T<Tuint>::arr_row;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
   // p is the length (or cardinality) of the SIMD vectors
@@ -100,11 +98,6 @@ private:
   Backtrack<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
 
   long calculate_scores();
-  void check_gap_extend_deletions();
-  void check_gap_extend_deletions_with_backtracking(typename T<Tuint>::vec_pack & vE,
-                                                    std::size_t const i,
-                                                    std::array<long, S / sizeof(Tuint)> const &
-                                                    );
 
 public:
   Align(Tit _d_begin,
@@ -164,7 +157,7 @@ max_greater(typename T<Tuint>::pack & v1, typename T<Tuint>::pack const & v2)
 
 template <typename Tit, typename Tuint>
 inline void
-calculate_DNA_W_profile(typename T<Tuint>::arr_row & W_profile,
+calculate_DNA_W_profile(typename T<Tuint>::arr_vec_pack & W_profile,
                         Tit d_begin,
                         long const m,
                         Tuint const match,
@@ -173,19 +166,12 @@ calculate_DNA_W_profile(typename T<Tuint>::arr_row & W_profile,
 {
   std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
   long const t = (m + T<Tuint>::pack::length) / T<Tuint>::pack::length;
-  //long const t = W_profile[0].vectors.size();
-  //
-
-  //std::cout << static_cast<long>(W_profile[0].vectors.size()) << "\n";
-  //assert(t > 0);
-
-  //assert(static_cast<std::size_t>(t) == W_profile[3].vectors.size());
 
   for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
   {
     char const dna_base = DNA_BASES[i];
-    //auto & W = W_profile[i];
-    W_profile[i].vectors.reserve(t);
+    auto & W = W_profile[i];
+    W.reserve(t);
 
     for (long v = 0; v < t; ++v)
     {
@@ -197,59 +183,14 @@ calculate_DNA_W_profile(typename T<Tuint>::arr_row & W_profile,
           seq[e] = match;
       }
 
-      W_profile[i].vectors.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
+      W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
     }
   }
 
-  assert(static_cast<std::size_t>(t) == W_profile[0].vectors.size());
-  assert(static_cast<std::size_t>(t) == W_profile[1].vectors.size());
-  assert(static_cast<std::size_t>(t) == W_profile[2].vectors.size());
-  assert(static_cast<std::size_t>(t) == W_profile[3].vectors.size());
-}
-
-
-template <typename Tit, typename Tuint>
-void
-Align<Tit, Tuint>::check_gap_extend_deletions_with_backtracking(typename T<Tuint>::vec_pack & vE,
-                                                                std::size_t const i,
-                                                                std::array<long, S / sizeof(Tuint)> const & reductions
-                                                                )
-{
-  Tarr_uint vE0;
-  vE0.fill(0);
-
-  /// Two passes through the deletion vectors are required
-  for (std::size_t c = 0; c < 2; ++c)
-  {
-    {
-      Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], 0, reductions);
-      simdpp::store_u(&vE0[0], vE0_pack);
-    }
-
-    /// Check for deletions in vector 0
-    {
-      for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
-      {
-        long val = static_cast<long>(vE0[e - 1]) + reductions[e - 1] - reductions[e];
-
-        if (val > 0)
-        {
-          vE0[e] = std::max(val, static_cast<long>(vE0[e]));
-        }
-      }
-
-      Tpack const vE0_pack = simdpp::load_u(&vE0[0]);
-      Tmask const del_extend_mask_0 = max_greater<Tuint>(vE[0], vE0_pack);
-      mB.set_del_extend(i, 0, del_extend_mask_0);
-    }
-
-    /// Check for deletions in vectors 1,...,t-1
-    for (std::size_t v = 1; v < vE.size(); ++v)
-    {
-      Tmask const del_extend_mask_v = max_greater<Tuint>(vE[v], vE[v - 1]);
-      mB.set_del_extend(i, v, del_extend_mask_v);
-    }
-  }
+  assert(static_cast<std::size_t>(t) == W_profile[0].size());
+  assert(static_cast<std::size_t>(t) == W_profile[1].size());
+  assert(static_cast<std::size_t>(t) == W_profile[2].size());
+  assert(static_cast<std::size_t>(t) == W_profile[3].size());
 }
 
 
@@ -297,15 +238,13 @@ Align<Tit, Tuint>::calculate_scores()
   init_vH_up<Tuint>(vH_up, gap_open_val);
   Tvec_pack vH(t, simdpp::make_uint(gap_open_val));
   Tvec_pack vF_up(t, simdpp::make_zero());
-  Tvec_pack vF(t, simdpp::make_zero());
-  Tvec_pack vE(t, simdpp::make_zero());
+  Tvec_pack vF(vF_up);
+  Tvec_pack vE(vF_up);
   Tuint const top_left_score = gap_open_val * 2;
   Tuint const max_score_val = std::numeric_limits<Tuint>::max() - 2 * gap_open_val;
   Tpack const max_score_pack = simdpp::make_uint(max_score_val);
 
-  Tarr_row W_profile {{
-                        Trow(0), Trow(0), Trow(0), Trow(0)
-                      }};
+  typename T<Tuint>::arr_vec_pack W_profile;
 
   calculate_DNA_W_profile<Tit, Tuint>(W_profile,
                                       d_begin,
@@ -319,23 +258,12 @@ Align<Tit, Tuint>::calculate_scores()
   reductions.fill(0);
   Tpack gap_open_pack = simdpp::make_uint(gap_open_val);
   Tpack gap_open_pack_x = simdpp::make_uint(gap_open_val_x);
-  /*Tuint const max_gain_per_row = std::max(static_cast<Tuint>(0),
-                                            static_cast<Tuint>(opt.match + x_gain + y_gain)
-                                            );
-
-  // Keep track of current max score
-  Tuint current_max_score = top_left_score; //simdpp::extract<0>(vH_up.vectors[0]);
-  */
 
   /// Start of outer loop
   for (long i = 0; i < n; ++i)
   {
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
-    Trow const & vW = W_profile[magic_function(*std::next(q_begin, i))];
-
-    // Clear vE vectors
-    for (auto & vE_vec : vE)
-      vE_vec = simdpp::make_zero();
+    Tvec_pack const & vW = W_profile[magic_function(*std::next(q_begin, i))];
 
     /// Calculate vector 0
     {
@@ -343,7 +271,7 @@ Align<Tit, Tuint>::calculate_scores()
                                  static_cast<Tuint>(simdpp::extract<0>(vH_up[0]) -
                                                     gap_open_val));
 
-      vH[0] = shift_one_right<Tuint>(vH_up[t - 1] + vW.vectors[t - 1],
+      vH[0] = shift_one_right<Tuint>(vH_up[t - 1] + vW[t - 1],
                                      left,
                                      reductions);
     }
@@ -354,40 +282,73 @@ Align<Tit, Tuint>::calculate_scores()
     mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
 
-    /// Calculate vectors 1,...,v-1
+    //vE[0] = static_cast<Tpack>(simdpp::make_zero());
+
+    /// Calculate vectors v=1,...,t-1
     for (long v = 1; v < t; ++v)
     {
       // Check for substitutions and if it has a higher score than the insertion
-      vH[v] = vH_up[v - 1] + vW.vectors[v - 1];
+      vH[v] = vH_up[v - 1] + vW[v - 1];
       vF[v] = vH_up[v] - gap_open_pack;
       mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
       mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
 
       // Deletions pass 1: Gap opens
       vE[v] = vH[v - 1] - gap_open_pack;
-    } /// Done calculating vectors 1,...,v-1
+    } /// Done calculating vectors v=1,...,t-1
 
-
-    /// Calculate vE.vector[0]
+    /// Calculate vE[0] after vH[t - 1] has been calculated
     {
       Tpack const new_vE0 = vH[t - 1] - gap_open_pack_x;
       vE[0] = shift_one_right<Tuint>(new_vE0, 0, reductions);
     }
 
-    //vE[0] = simdpp::move8_r<1>(vH[t - 1] - gap_open_pack_x);
-
     /// Deletions pass 2: Gap extends
-    check_gap_extend_deletions_with_backtracking(vE, i, reductions);
+    {
+      Tarr_uint vE0;
+      vE0.fill(0);
+
+      /// Two passes through the deletion vectors are required
+      for (std::size_t c = 0; c < 2; ++c)
+      {
+        {
+          Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], 0, reductions);
+          simdpp::store_u(&vE0[0], vE0_pack);
+        }
+        //simdpp::store_u(&vE0[0], static_cast<Tpack>(vE[0]));
+
+        /// Check for deletions in vector 0
+        {
+          for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
+          {
+            long val = static_cast<long>(vE0[e - 1]) + reductions[e - 1] - reductions[e];
+
+            if (val > 0)
+            {
+              vE0[e] = std::max(val, static_cast<long>(vE0[e]));
+            }
+          }
+
+          Tpack const vE0_pack = simdpp::load_u(&vE0[0]);
+          mB.set_del_extend(i, 0, static_cast<Tmask>(max_greater<Tuint>(vE[0], vE0_pack)));
+          mB.set_del(i, 0, static_cast<Tmask>(max_greater<Tuint>(vH[0], vE[0])));
+        }
+
+        /// Check for deletions in vectors 1,...,t-1
+        for (std::size_t v = 1; v < vE.size(); ++v)
+        {
+          mB.set_del_extend(i, v, static_cast<Tmask>(max_greater<Tuint>(vE[v], vE[v - 1])));
+        }
+      }
+    }
 
     // Check if any vE has higher scores than vH
-    for (long v = 0; v < t; ++v)
+    for (long v = 1; v < t; ++v)
       mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
 
 #ifndef NDEBUG
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
 #endif
-    //std::cout << "max score = " << static_cast<uint64_t>(current_max_score) << "\n";
-
     if (simdpp::reduce_max(vH[t - 1]) >= max_score_val)
     {
       Tarr_uint vF0;
@@ -574,7 +535,6 @@ Align<Tit, Tuint>::get_aligned_strings()
 
     assert(i >= 0);
     assert(j >= 0);
-    //std::cerr << "i,j = " << i << "," << j << std::endl;
     std::size_t const v = j % t;
     std::size_t const e = j / t;
 
