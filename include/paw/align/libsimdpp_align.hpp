@@ -282,7 +282,7 @@ Align<Tit, Tuint>::calculate_scores()
     mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
 
-    //vE[0] = static_cast<Tpack>(simdpp::make_zero());
+    vE[0] = static_cast<Tpack>(simdpp::make_zero());
 
     /// Calculate vectors v=1,...,t-1
     for (long v = 1; v < t; ++v)
@@ -293,58 +293,57 @@ Align<Tit, Tuint>::calculate_scores()
       mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
       mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
 
-      // Deletions pass 1: Gap opens
+      // Deletions pass 1
       vE[v] = vH[v - 1] - gap_open_pack;
+      mB.set_del_extend(i, v, static_cast<Tmask>(max_greater<Tuint>(vE[v], vE[v - 1])));
+      //mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
     } /// Done calculating vectors v=1,...,t-1
 
-    /// Calculate vE[0] after vH[t - 1] has been calculated
+    /// Deletions pass 2
     {
+      // Calculate vE[0] after vH[t - 1] has been calculated
       Tpack const new_vE0 = vH[t - 1] - gap_open_pack_x;
       vE[0] = shift_one_right<Tuint>(new_vE0, 0, reductions);
-    }
-
-    /// Deletions pass 2: Gap extends
-    {
+      //mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
       Tarr_uint vE0;
       vE0.fill(0);
 
-      /// Two passes through the deletion vectors are required
-      for (std::size_t c = 0; c < 2; ++c)
+      /// Check for deletions in vector 0
+      bool is_any_new_extend_better = false;
+      Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], 0, reductions);
+      simdpp::store_u(&vE0[0], vE0_pack);
+
+      for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
       {
+        long val = static_cast<long>(vE0[e - 1]) + reductions[e - 1] - reductions[e];
+
+        if (val > static_cast<long>(vE0[e]))
         {
-          Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], 0, reductions);
-          simdpp::store_u(&vE0[0], vE0_pack);
-        }
-        //simdpp::store_u(&vE0[0], static_cast<Tpack>(vE[0]));
-
-        /// Check for deletions in vector 0
-        {
-          for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
-          {
-            long val = static_cast<long>(vE0[e - 1]) + reductions[e - 1] - reductions[e];
-
-            if (val > 0)
-            {
-              vE0[e] = std::max(val, static_cast<long>(vE0[e]));
-            }
-          }
-
-          Tpack const vE0_pack = simdpp::load_u(&vE0[0]);
-          mB.set_del_extend(i, 0, static_cast<Tmask>(max_greater<Tuint>(vE[0], vE0_pack)));
-          mB.set_del(i, 0, static_cast<Tmask>(max_greater<Tuint>(vH[0], vE[0])));
-        }
-
-        /// Check for deletions in vectors 1,...,t-1
-        for (std::size_t v = 1; v < vE.size(); ++v)
-        {
-          mB.set_del_extend(i, v, static_cast<Tmask>(max_greater<Tuint>(vE[v], vE[v - 1])));
+          is_any_new_extend_better = true;
+          vE0[e] = val;
         }
       }
-    }
 
-    // Check if any vE has higher scores than vH
-    for (long v = 1; v < t; ++v)
-      mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+      if (is_any_new_extend_better)
+      {
+        Tpack const new_vE0_pack = simdpp::load_u(&vE0[0]);
+        mB.set_del_extend(i, 0, static_cast<Tmask>(max_greater<Tuint>(vE[0], new_vE0_pack)));
+        mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
+
+        /// Check for deletions in vectors 1,...,t-1
+        for (long v = 1; v < t; ++v)
+        {
+          mB.set_del_extend(i, v, static_cast<Tmask>(max_greater<Tuint>(vE[v], vE[v - 1])));
+          mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+        }
+      }
+      else
+      {
+        // Check if any vE has higher scores than vH
+        for (long v = 0; v < t; ++v)
+          mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+      }
+    }
 
 #ifndef NDEBUG
     //print_score_vectors(vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
