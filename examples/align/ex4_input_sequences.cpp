@@ -19,14 +19,14 @@ main(int argc, char ** argv)
     parser.parse_positional_argument(seq2, "SEQ2", "Sequence 2");
     parser.finalize();
   }
-  catch(std::exception const & e)
+  catch (std::exception const & e)
   {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
   }
 
   paw::AlignerOptions<uint8_t> opts;
-  auto score = paw::align(seq1, seq2, opts);
+  auto score = paw::global_alignment(seq1, seq2, opts);
   std::cerr << "Score = " << score << std::endl;
   return EXIT_SUCCESS;
 }

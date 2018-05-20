@@ -51,7 +51,7 @@ main(int, char **)
   {
     auto const & test = tests[i];
     paw::AlignerOptions<uint8_t> opts;
-    auto score = paw::align(test.seq1, test.seq2, opts);
+    auto score = paw::global_alignment(test.seq1, test.seq2, opts);
 
     if (score != test.expected_score)
     {

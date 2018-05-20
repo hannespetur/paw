@@ -18,12 +18,13 @@ namespace paw
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 // See: https://github.com/p12tic/libsimdpp/blob/3ab0be0e5aa0773f152d7d759400173d64253534/simdpp/detail/insn_id.h
 
@@ -32,12 +33,13 @@ namespace arch_null
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 }
 
@@ -46,12 +48,13 @@ namespace arch_sse2
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 }
 
@@ -60,12 +63,12 @@ namespace arch_sse3
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 }
 
@@ -74,12 +77,13 @@ namespace arch_sse4p1
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 }
 
@@ -88,12 +92,13 @@ namespace arch_popcnt_avx
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 
 }
 
@@ -103,12 +108,13 @@ namespace arch_popcnt_avx2
 
 std::string get_current_arch();
 
-template <typename Tuint>
+template <typename Tseq, typename Tuint>
 long
-align(std::string const & seq1,
-      std::string const & seq2,
-      AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
-      );
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignerOptions<Tuint> const & _opt =
+                   AlignerOptions<Tuint>(true /*default options*/)
+                 );
 }
 
 } // namespace paw

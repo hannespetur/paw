@@ -43,6 +43,7 @@ get_sequence_from_fa(std::string const & fn, bool gzip = false)
   return ss.str();
 }
 
+
 } // anon namespace
 
 
@@ -70,31 +71,31 @@ main(int, char **)
   //query = query.substr(0, 25);
 
   auto t0 = Ttime::now();
-  auto score = paw::arch_null::align(database, query, opts);
+  auto score = paw::arch_null::global_alignment(database, query, opts);
   auto t1 = Ttime::now();
   std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse2::align(database, query, opts);
+  score = paw::arch_sse2::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse2 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse3::align(database, query, opts);
+  score = paw::arch_sse3::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse3 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::arch_sse4p1::align(database, query, opts);
+  score = paw::arch_sse4p1::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";
 
   t0 = Ttime::now();
-  score = paw::align(database, query, opts);
+  score = paw::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "best " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << score << "\n";

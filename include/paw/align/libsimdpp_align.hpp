@@ -74,10 +74,6 @@ class Align
 {
 public:
   using Tpack = typename T<Tuint>::pack;
-  using Tmask = typename T<Tuint>::mask;
-  using Tvec_pack = typename T<Tuint>::vec_pack;
-  using Tvec_uint = typename T<Tuint>::vec_uint;
-  using Tarr_uint = typename T<Tuint>::arr_uint;
 
   // p is the length (or cardinality) of the SIMD vectors
   std::size_t static const p = Tpack::length;
@@ -87,17 +83,15 @@ private:
   AlignerOptions<Tuint> const opt;
   Tit d_begin;
   Tit d_end;
-  Tit q_begin;
-  Tit q_end;
+  //Tit q_begin;
+  //Tit q_end;
 
   long const m;
   long alignment_end = m;
   long n = 0;
   long const t;
 
-  Backtrack<Tuint> mB; //(n /*n_row*/, t /*n_vectors in each score row*/);
-
-  long calculate_scores();
+  //(n /*n_row*/, t /*n_vectors in each score row*/);
 
 public:
   Align(Tit _d_begin,
@@ -107,52 +101,18 @@ public:
     : opt(_opt)
     , d_begin(_d_begin)
     , d_end(_d_end)
-    , q_begin(_d_begin)
-    , q_end(_d_end)
+    //, q_begin(_d_begin)
+    //, q_end(_d_end)
     , m(std::distance(_d_begin, _d_end))
     , alignment_end(m)
     , n(0)
     , t((m + p) / p)
-    , mB()
+    //, mB()
   {}
 
   long align(Tit q_begin, Tit q_end);   // Align query
-  std::pair<std::string, std::string> get_aligned_strings();
-  //std::vector<Cigar> get_cigar(std::pair<std::string, std::string> const & s);
 
 };
-
-
-inline long
-magic_function(char const c)
-{
-  return 0x03 & ((c >> 2) ^ (c >> 1));
-}
-
-
-template <typename Tuint>
-inline void
-init_vH_up(typename T<Tuint>::vec_pack & vH_up,
-           Tuint const gap_open_val
-           )
-{
-  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, gap_open_val);
-  assert(vH_up.size() > 0);
-  //new_vH0.fill(gap_open_val);
-  new_vH0[0] = gap_open_val * 2;
-  vH_up[0] = simdpp::load_u(&new_vH0[0]);
-}
-
-
-template <typename Tuint>
-inline typename T<Tuint>::mask
-max_greater(typename T<Tuint>::pack & v1, typename T<Tuint>::pack const & v2)
-{
-  // TODO: Only use simdpp::max when no backtracking.
-  typename T<Tuint>::mask is_greater = v2 > v1;
-  v1 = simdpp::blend(v2, v1, is_greater);
-  return is_greater;
-}
 
 
 template <typename Tit, typename Tuint>
@@ -196,11 +156,15 @@ calculate_DNA_W_profile(typename T<Tuint>::arr_vec_pack & W_profile,
 
 template <typename Tit, typename Tuint>
 long
-Align<Tit, Tuint>::align(Tit _q_begin, Tit _q_end)
+Align<Tit, Tuint>::align(Tit q_begin, Tit q_end)
 {
-  q_begin = _q_begin;
-  q_end = _q_end;
+  using Tmask = typename T<Tuint>::mask;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+  using Tvec_uint = typename T<Tuint>::vec_uint;
+  using Tarr_uint = typename T<Tuint>::arr_uint;
+
   n = std::distance(q_begin, q_end);
+  Backtrack<Tuint> mB;//(n, t);
 
   if (opt.backtracking)
   {
@@ -220,14 +184,6 @@ Align<Tit, Tuint>::align(Tit _q_begin, Tit _q_end)
     }
   }
 
-  return this->calculate_scores();
-}
-
-
-template <typename Tit, typename Tuint>
-long
-Align<Tit, Tuint>::calculate_scores()
-{
   Tuint const x_gain = opt.gap_extend;
   Tuint const y_gain = std::max(static_cast<Tuint>(opt.gap_extend),
                                 static_cast<Tuint>(opt.mismatch - x_gain));
@@ -435,6 +391,7 @@ Align<Tit, Tuint>::calculate_scores()
 }
 
 
+/*
 template <typename Tit, typename Tuint>
 std::pair<std::string, std::string>
 Align<Tit, Tuint>::get_aligned_strings()
@@ -576,7 +533,7 @@ Align<Tit, Tuint>::get_aligned_strings()
   assert(out.first.size() == out.second.size());
   return out;
 }
-
+*/
 
 } // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
