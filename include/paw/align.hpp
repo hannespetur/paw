@@ -26,6 +26,15 @@ global_alignment(Tseq const & seq1,
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
 
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
+
 // See: https://github.com/p12tic/libsimdpp/blob/3ab0be0e5aa0773f152d7d759400173d64253534/simdpp/detail/insn_id.h
 
 namespace arch_null
@@ -40,6 +49,15 @@ global_alignment(Tseq const & seq1,
                  AlignerOptions<Tuint> const & _opt =
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
+
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
 
 }
 
@@ -56,6 +74,15 @@ global_alignment(Tseq const & seq1,
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
 
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
+
 }
 
 namespace arch_sse3
@@ -69,6 +96,15 @@ global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
                  AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
                  );
+
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
 
 }
 
@@ -85,6 +121,15 @@ global_alignment(Tseq const & seq1,
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
 
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
+
 }
 
 namespace arch_popcnt_avx
@@ -99,6 +144,15 @@ global_alignment(Tseq const & seq1,
                  AlignerOptions<Tuint> const & _opt =
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
+
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
 
 }
 
@@ -115,6 +169,15 @@ global_alignment(Tseq const & seq1,
                  AlignerOptions<Tuint> const & _opt =
                    AlignerOptions<Tuint>(true /*default options*/)
                  );
+
+template <typename Tseq, typename Tuint>
+long
+global_alignment_score(Tseq const & seq1,
+                       Tseq const & seq2,
+                       AlignerOptions<Tuint> const & _opt =
+                         AlignerOptions<Tuint>(true /*default options*/)
+                       );
+
 }
 
 } // namespace paw
