@@ -25,11 +25,11 @@ struct T : std::false_type
 {};
 
 template <>
-struct T<uint8_t>
+struct T<int8_t>
 {
-  using pack = simdpp::uint8<S / sizeof(uint8_t), void>;
+  using pack = simdpp::int8<S / sizeof(int8_t), void>;
   using mask = pack::mask_vector_type;
-  using uint = pack::uint_element_type;
+  using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
   using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
@@ -37,11 +37,11 @@ struct T<uint8_t>
 };
 
 template <>
-struct T<uint16_t>
+struct T<int16_t>
 {
-  using pack = simdpp::uint16<S / sizeof(uint16_t), void>;
+  using pack = simdpp::int16<S / sizeof(int16_t), void>;
   using mask = pack::mask_vector_type;
-  using uint = pack::uint_element_type;
+  using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
   using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
@@ -76,22 +76,15 @@ shift_one_right(typename T<Tuint>::pack pack,
   std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
+  Tuint const min_value = std::numeric_limits<Tuint>::min();
 
   for (long e = 1; e < static_cast<long>(T<Tuint>::pack::length); ++e)
   {
     long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
-    vec[e] = val > 0 ? val : 0;
+    vec[e] = val > min_value ? val : min_value;
   }
 
   return simdpp::load_u(&vec[0]);
-}
-
-
-template <typename Tuint>
-inline typename T<Tuint>::pack
-shift_one_right(typename T<Tuint>::pack pack)
-{
-  return shift_one_right(pack, 0);
 }
 
 
@@ -105,12 +98,13 @@ magic_function(char const c)
 template <typename Tuint>
 inline void
 init_vH_up(typename T<Tuint>::vec_pack & vH_up,
-           Tuint const gap_open_val
+           Tuint const gap_open_val,
+           Tuint const min_value
            )
 {
-  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, gap_open_val);
+  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, gap_open_val + min_value);
   assert(vH_up.size() > 0);
-  new_vH0[0] = gap_open_val * 2;
+  new_vH0[0] = gap_open_val * 2 + min_value;
   vH_up[0] = simdpp::load_u(&new_vH0[0]);
 }
 
@@ -119,18 +113,17 @@ template <typename Tuint>
 inline typename T<Tuint>::mask
 max_greater(typename T<Tuint>::pack & v1, typename T<Tuint>::pack const & v2)
 {
-  // TODO: Only use simdpp::max when no backtracking.
   typename T<Tuint>::mask is_greater = v2 > v1;
   v1 = simdpp::blend(v2, v1, is_greater);
   return is_greater;
 }
 
 
-template <typename Tpack>
+template <typename Tuint>
 void
-print_pack(Tpack const & pack)
+print_pack(typename T<Tuint>::pack const & pack)
 {
-  using T = typename Tpack::uint_element_type;
+  using T = typename T<Tuint>::uint;
 
   // Guard for when the pack is empty
   if (pack.length == 0)
@@ -154,52 +147,55 @@ print_pack(Tpack const & pack)
 }
 
 
-template <typename Trow>
+template <typename Tuint>
 inline void
-print_score_vector_standard(Trow const & vX)
+print_score_vector_standard(long m, typename T<Tuint>::vec_pack const & vX)
 {
-  long const t = vX.vectors.size();
+  using Tvec_uint = typename T<Tuint>::vec_uint;
+
+  long const t = vX.size();
 
   if (t == 0)
     return;
 
-  typename Trow::vec_uint vec(vX.vectors[0].length, 0);
-  std::vector<typename Trow::vec_uint> m(vX.vectors.size(), vec);
+  Tvec_uint vec(vX[0].length, 0);
+  std::vector<Tvec_uint> mat(t, vec);
 
   for (long v = 0; v < t; ++v)
   {
-    simdpp::store_u(&m[v][0], vX.vectors[v]);
+    simdpp::store_u(&mat[v][0], vX[v]);
   }
 
-  for (long j = 0; j < vX.n_elements; ++j)
+  for (long j = 0; j < static_cast<long>(m); ++j)
   {
     std::size_t const v = j % t;
     std::size_t const e = j / t;
-    assert(v < m.size());
-    assert(e < m[v].size());
-    std::cout << std::setw(4) << static_cast<uint64_t>(m[v][e]) << " ";
+    assert(v < mat.size());
+    assert(e < mat[v].size());
+    std::cout << std::setw(4) << static_cast<long>(mat[v][e]) << " ";
   }
 
-  std::cout << "(" << t << " vectors, " << vX.n_elements << " elements)\n";
+  std::cout << "(" << t << " vectors, " << m << " elements)\n";
 }
 
 
-template <typename Trow>
+template <typename Tuint>
 inline void
-print_score_vectors(Trow const & vH,
-                    Trow const & vH_up,
-                    Trow const & vE,
-                    Trow const & vF,
-                    Trow const & vF_up,
-                    Trow const & vW
+print_score_vectors(long m,
+                    typename T<Tuint>::vec_pack const & vH,
+                    typename T<Tuint>::vec_pack const & vH_up,
+                    typename T<Tuint>::vec_pack const & vE,
+                    typename T<Tuint>::vec_pack const & vF,
+                    typename T<Tuint>::vec_pack const & vF_up,
+                    typename T<Tuint>::vec_pack const & vW
                     )
 {
-  std::cout << "Standard H_up  : "; print_score_vector_standard(vH_up);
-  std::cout << "Standard H     : "; print_score_vector_standard(vH);
-  std::cout << "Standard E     : "; print_score_vector_standard(vE);
-  std::cout << "Standard F_up  : "; print_score_vector_standard(vF_up);
-  std::cout << "Standard F     : "; print_score_vector_standard(vF);
-  std::cout << "Standard W     : "; print_score_vector_standard(vW);
+  std::cout << "Standard H_up  : "; print_score_vector_standard<Tuint>(m, vH_up);
+  std::cout << "Standard H     : "; print_score_vector_standard<Tuint>(m, vH);
+  std::cout << "Standard E     : "; print_score_vector_standard<Tuint>(m, vE);
+  std::cout << "Standard F_up  : "; print_score_vector_standard<Tuint>(m, vF_up);
+  std::cout << "Standard F     : "; print_score_vector_standard<Tuint>(m, vF);
+  std::cout << "Standard W     : "; print_score_vector_standard<Tuint>(m, vW);
   std::cout << "=====\n";
 }
 

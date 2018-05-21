@@ -65,7 +65,7 @@ main(int, char **)
 
   using Ttime = std::chrono::high_resolution_clock;
   using Tduration = std::chrono::duration<double, std::milli>;
-  paw::AlignerOptions<uint16_t> opts(true /*default options*/);
+  paw::AlignerOptions<int16_t> opts(true /*default options*/);
 
   //database = database.substr(200, 25);
   //query = query.substr(0, 25);
