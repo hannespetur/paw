@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <vector> // std::vector
 
 namespace paw
