@@ -57,15 +57,14 @@ global_alignment(Tseq const & seq1,
   Tvec_pack vF(vF_up);
   Tvec_pack vE(vF_up);
   Tuint const top_left_score = gap_open_val * 2 + min_value;
-  Tuint const max_score_val = std::numeric_limits<Tuint>::max() - 2 * gap_open_val;
-  Tpack const max_score_pack = simdpp::make_int(max_score_val);
+  Tuint const match = x_gain + y_gain + opt.match;
+  Tuint const mismatch = x_gain + y_gain - opt.mismatch;
+  Tuint max_score_val = std::numeric_limits<Tuint>::max() - match;
 
   Tarr_vec_pack W_profile;
 
   /// Calculate DNA W_profile
   {
-    Tuint const match = x_gain + y_gain + opt.match;
-    Tuint const mismatch = x_gain + y_gain - opt.mismatch;
     std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
     long const t = (m + T<Tuint>::pack::length) / T<Tuint>::pack::length;
 
@@ -95,10 +94,12 @@ global_alignment(Tseq const & seq1,
     assert(static_cast<std::size_t>(t) == W_profile[3].size());
   } /// Done calculating DNA W_profile
 
+  Tpack const max_score_pack = simdpp::make_int(max_score_val);
   std::array<long, S / sizeof(Tuint)> reductions;
   reductions.fill(0);
   Tpack gap_open_pack = simdpp::make_int(gap_open_val);
   Tpack gap_open_pack_x = simdpp::make_int(gap_open_val_x);
+  //Tpack gap_open_pack_y = simdpp::make_int(gap_open_val_y);
 
   /// Start of outer loop
   for (long i = 0; i < n; ++i)
@@ -202,7 +203,7 @@ global_alignment(Tseq const & seq1,
       for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
       {
         //assert(vF0[e] + gap_open_val_x >= vF0[e - 1]);
-        long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * gap_open_val_x);
+        long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * gap_open_val);
 
         if (new_reduction_val > 0)
         {
@@ -260,14 +261,18 @@ global_alignment(Tseq const & seq1,
 #ifndef NDEBUG
   //print_backtrack(mB);
 #endif
-
   Tvec_uint arr(S / sizeof(Tuint));
   simdpp::store_u(&arr[0], vH_up[m % t]);
-  return arr[m / t]
-         + reductions[m / t]
-         - top_left_score
-         - n * y_gain
-         - m * x_gain;
+
+  //std::cerr << (long)arr[m / t] << " + " << reductions[m / t] << " -("
+  //          << (long)top_left_score << ") " << (n * y_gain) << " "
+  //          << (m * x_gain) << std::endl;
+
+  return static_cast<long>(arr[m / t])
+         + (long)reductions[m / t]
+         - (long)top_left_score
+         - (long)n * y_gain
+         - (long)m * x_gain;
 }
 
 

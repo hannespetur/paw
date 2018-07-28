@@ -83,15 +83,11 @@ private:
   AlignerOptions<Tuint> const opt;
   Tit d_begin;
   Tit d_end;
-  //Tit q_begin;
-  //Tit q_end;
 
   long const m;
   long alignment_end = m;
   long n = 0;
   long const t;
-
-  //(n /*n_row*/, t /*n_vectors in each score row*/);
 
 public:
   Align(Tit _d_begin,
@@ -101,13 +97,10 @@ public:
     : opt(_opt)
     , d_begin(_d_begin)
     , d_end(_d_end)
-    //, q_begin(_d_begin)
-    //, q_end(_d_end)
     , m(std::distance(_d_begin, _d_end))
     , alignment_end(m)
     , n(0)
     , t((m + p) / p)
-    //, mB()
   {}
 
   long align(Tit q_begin, Tit q_end);   // Align query
@@ -164,11 +157,10 @@ Align<Tit, Tuint>::align(Tit q_begin, Tit q_end)
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
   n = std::distance(q_begin, q_end);
-  Backtrack<Tuint> mB;//(n, t);
+  Backtrack<Tuint> mB;
 
   if (opt.backtracking)
   {
-    //mB = Backtrack<Tuint>(n, t);
     if (n > static_cast<long>(mB.matrix.size()))
     {
       mB = Backtrack<Tuint>(n, t);
@@ -187,6 +179,9 @@ Align<Tit, Tuint>::align(Tit q_begin, Tit q_end)
   Tuint const x_gain = opt.gap_extend;
   Tuint const y_gain = std::max(static_cast<Tuint>(opt.gap_extend),
                                 static_cast<Tuint>(opt.mismatch - x_gain));
+
+  std::cout << "x, y gains = " << x_gain << "," << y_gain << "\n";
+
   Tuint const gap_open_val_x = opt.gap_open - x_gain;
   Tuint const gap_open_val_y = opt.gap_open - y_gain;
   Tuint const gap_open_val = std::max(gap_open_val_x, gap_open_val_y);

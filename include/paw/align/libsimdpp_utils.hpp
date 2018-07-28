@@ -166,7 +166,7 @@ print_score_vector_standard(long m, typename T<Tuint>::vec_pack const & vX)
     simdpp::store_u(&mat[v][0], vX[v]);
   }
 
-  for (long j = 0; j < static_cast<long>(m); ++j)
+  for (long j = 0; j <= static_cast<long>(m); ++j)
   {
     std::size_t const v = j % t;
     std::size_t const e = j / t;
