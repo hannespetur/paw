@@ -10,13 +10,15 @@
 
 struct Test
 {
-  std::string seq1;
-  std::string seq2;
+  std::string seq1{};
+  std::string seq2{};
   long expected_score = 0;
   uint8_t match = 2;
   uint8_t mismatch = 2;
   uint8_t gap_open = 5;
   uint8_t gap_extend = 1;
+
+  Test() = default;
 
   Test(std::string _seq1,
        std::string _seq2,
@@ -82,63 +84,67 @@ main(int argc, char ** argv)
     {"GGG", "GGG", 12, 4 /*match*/, 2 /*mismatch*/, 1 /*gap_open*/, 1 /*gap extend*/}, //test 17
     {"GGGGG", "GGGGG", 150, 30, 4, 5, 1}, // test 18
     {"GGGGG", "GGGGG", 250, 50, 2, 5, 1}, // test 19
+    {"AAAAA", "AAAA", 2, 2, 4, 6, 1}, // test 20
+    {"AAAA", "AAAAA", 2, 2, 4, 6, 1}, // test 21
+    {"TTTTT", "TTTT", -1, 0, 1, 1, 1}, // test 22
+    {"TTTT", "TTTTT", -1, 0, 1, 1, 1}, // test 23
+    {"AAAAAAAAAAAAGAAAAAA",
+     "AAAAAAAAAAAAGAAAA",
+     27, 2, 4, 6, 1}, // test 24
+    {"A", "AAA", -5, 2, 4, 6, 1} // test 25
   };
 
   // Run all tests if no specific tests are specified
   if (tests_to_run.size() == 0)
   {
-    for (long i = 0; i < static_cast<long>(tests.size()); ++i)
+    for (int i = 0; i < static_cast<int>(tests.size()); ++i)
       tests_to_run.insert(tests_to_run.end(), i);
   }
 
   std::string const current_archs = paw::get_current_arch();
-  std::cerr << "Current archs are: " << current_archs << "\n";
-  std::cerr << "== global_alignment ==\n";
+  std::cout << "Current archs are: " << current_archs << "\n";
+  std::cout << "== global_alignment ==\n";
+
+  auto test_if_expected = [&](long score, Test const & test, long i)
+  {
+    if (score != test.expected_score)
+    {
+      std::cout << "\nINCORRECT. Score mismatch in test " << i
+                << ". Got score " << score
+                << " but I expected " << test.expected_score << "\n\n";
+    }
+    else
+    {
+      std::cout << i << " OK!  ";
+    }
+  };
 
   for (auto i : tests_to_run)
   {
     assert(i < static_cast<long>(tests.size()));
     auto const & test = tests[i];
-    paw::AlignerOptions<int8_t> opts;
-    opts.match = test.match;
-    opts.mismatch = test.mismatch;
-    opts.gap_open = test.gap_open;
-    opts.gap_extend = test.gap_extend;
+    paw::AlignerOptions<uint8_t> opts(false);
+    opts.set_match(test.match);
+    opts.set_mismatch(test.mismatch);
+    opts.set_gap_open(test.gap_open);
+    opts.set_gap_extend(test.gap_extend);
     auto score = paw::global_alignment(test.seq1, test.seq2, opts);
-
-    if (score != test.expected_score)
-    {
-      std::cerr << "INCORRECT. Score mismatch in test " << i
-                << ". Got score " << score
-                << " but I expected " << test.expected_score << std::endl;
-    }
-    else
-    {
-      std::cerr << "OK\n";
-    }
+    test_if_expected(score, test, i);
   }
 
-  std::cerr << "== global_alignment_score ==\n";
+  std::cout << "\n== global_alignment_score ==\n";
 
   for (auto i : tests_to_run)
   {
     auto const & test = tests[i];
-    paw::AlignerOptions<int8_t> opts;
-    opts.match = test.match;
-    opts.mismatch = test.mismatch;
-    opts.gap_open = test.gap_open;
-    opts.gap_extend = test.gap_extend;
+    paw::AlignerOptions<uint8_t> opts(false);
+    opts.set_match(test.match);
+    opts.set_mismatch(test.mismatch);
+    opts.set_gap_open(test.gap_open);
+    opts.set_gap_extend(test.gap_extend);
     auto score = paw::global_alignment_score(test.seq1, test.seq2, opts);
-
-    if (score != test.expected_score)
-    {
-      std::cerr << "INCORRECT. Score mismatch in test " << i
-                << ". Got score " << score
-                << " but I expected " << test.expected_score << std::endl;
-    }
-    else
-    {
-      std::cerr << "OK\n";
-    }
+    test_if_expected(score, test, i);
   }
+
+  std::cout << "\n";
 }

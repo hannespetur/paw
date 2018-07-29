@@ -3,6 +3,8 @@
 #include <array>
 #include <cassert>
 #include <vector>
+#include <iomanip>
+#include <iostream>
 
 #include <simdpp/simd.h>
 
@@ -25,9 +27,9 @@ struct T : std::false_type
 {};
 
 template <>
-struct T<int8_t>
+struct T<uint8_t>
 {
-  using pack = simdpp::int8<S / sizeof(int8_t), void>;
+  using pack = simdpp::uint8<S / sizeof(uint8_t), void>;
   using mask = pack::mask_vector_type;
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
@@ -37,9 +39,9 @@ struct T<int8_t>
 };
 
 template <>
-struct T<int16_t>
+struct T<uint16_t>
 {
-  using pack = simdpp::int16<S / sizeof(int16_t), void>;
+  using pack = simdpp::uint16<S / sizeof(uint16_t), void>;
   using mask = pack::mask_vector_type;
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
@@ -51,19 +53,6 @@ struct T<int16_t>
 
 namespace SIMDPP_ARCH_NAMESPACE
 {
-
-template <typename Tuint>
-inline typename T<Tuint>::pack
-shift_one_right(typename T<Tuint>::pack pack,
-                typename T<Tuint>::uint const left
-                )
-{
-  std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
-  //vec.fill(left);
-  vec[0] = left;
-  simdpp::store_u(&vec[1], pack);
-  return simdpp::load_u(&vec[0]);
-}
 
 
 template <typename Tuint>
@@ -81,7 +70,7 @@ shift_one_right(typename T<Tuint>::pack pack,
   for (long e = 1; e < static_cast<long>(T<Tuint>::pack::length); ++e)
   {
     long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
-    vec[e] = val > min_value ? val : min_value;
+    vec[e] = val >= min_value ? val : min_value;
   }
 
   return simdpp::load_u(&vec[0]);
@@ -102,9 +91,9 @@ init_vH_up(typename T<Tuint>::vec_pack & vH_up,
            Tuint const min_value
            )
 {
-  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, gap_open_val + min_value);
+  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, 2 * gap_open_val + min_value);
   assert(vH_up.size() > 0);
-  new_vH0[0] = gap_open_val * 2 + min_value;
+  new_vH0[0] = gap_open_val * 3 + min_value;
   vH_up[0] = simdpp::load_u(&new_vH0[0]);
 }
 
@@ -166,12 +155,16 @@ print_score_vector_standard(long m, typename T<Tuint>::vec_pack const & vX)
     simdpp::store_u(&mat[v][0], vX[v]);
   }
 
-  for (long j = 0; j <= static_cast<long>(m); ++j)
+  for (long j = 0; j <= m; ++j)
   {
     std::size_t const v = j % t;
     std::size_t const e = j / t;
     assert(v < mat.size());
     assert(e < mat[v].size());
+
+    if (v == 0 && j > 0)
+      std::cout << " | ";
+
     std::cout << std::setw(4) << static_cast<long>(mat[v][e]) << " ";
   }
 

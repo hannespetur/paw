@@ -63,23 +63,24 @@ struct Backtrack
   {}
 
 
-  Backtrack(std::size_t const n_row, std::size_t const n_vectors)
-    : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, static_cast<Tpack>(simdpp::make_zero())})
+  Backtrack(long const n_row, long const n_vectors)
+    : matrix(static_cast<std::size_t>(n_row), {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, static_cast<Tpack>(simdpp::make_zero())})
   {
+    assert(n_row >= 0);
     tmp_vec.fill(0);
   }
 
 
   inline Tpack const &
-  get_pack(std::size_t const i /*row index*/, std::size_t const v /*vector index*/) const
+  get_pack(long const i /*row index*/, long const v /*vector index*/) const
   {
     return matrix[i][v / BT_PER_CELL];
   }
 
 
   void inline
-  set_del(std::size_t const i /*row index*/,
-          std::size_t const v /*vector index*/,
+  set_del(long const i /*row index*/,
+          long const v /*vector index*/,
           Tmask const mask /*mask to set*/
           )
   {
@@ -92,8 +93,8 @@ struct Backtrack
 
 
   void inline
-  set_ins(std::size_t const i /*row index*/,
-          std::size_t const v /*vector index*/,
+  set_ins(long const i /*row index*/,
+          long const v /*vector index*/,
           Tmask const mask /*mask to set*/
           )
   {
@@ -106,8 +107,8 @@ struct Backtrack
 
 
   void inline
-  set_del_extend(std::size_t const i /*row index*/,
-                 std::size_t const v /*vector index*/,
+  set_del_extend(long const i /*row index*/,
+                 long const v /*vector index*/,
                  Tmask const mask /*mask to set*/
                  )
   {
@@ -120,8 +121,8 @@ struct Backtrack
 
 
   void inline
-  set_ins_extend(std::size_t const i /*row index*/,
-                 std::size_t const v /*vector index*/,
+  set_ins_extend(long const i /*row index*/,
+                 long const v /*vector index*/,
                  Tmask const mask /*mask to set*/
                  )
   {
@@ -133,51 +134,57 @@ struct Backtrack
   }
 
 
+  /// \short Checks if an element is a deletion
+  /// \param[in] i row index
+  /// \param[in] v vector index
+  /// \param[in] e element index
+  /// \return True is the element is a deletion, otherwise false
   bool inline
-  is_del(std::size_t const i /*row index*/,
-         std::size_t const v /*vector index*/,
-         std::size_t const e /*element index*/
+  is_del(long i,
+         long const v,
+         long const e
          )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_BT;
-    //return tmp_vec[e] & (DEL_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
+  /// \short Checks if an element is an insertion
+  /// \param[in] i row index
+  /// \param[in] v vector index
+  /// \param[in] e element index
+  /// \return True is the element is an insertion, otherwise false
   bool inline
-  is_ins(std::size_t const i /*row index*/,
-         std::size_t const v /*vector index*/,
-         std::size_t const e /*element index*/
+  is_ins(long const i,
+         long const v,
+         long const e
          )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_BT;
-    //return tmp_vec[e] & (INS_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
   bool inline
-  is_del_extend(std::size_t const i /*row index*/,
-                std::size_t const v /*vector index*/,
-                std::size_t const e /*element index*/
+  is_del_extend(long const i /*row index*/,
+                long const v /*vector index*/,
+                long const e /*element index*/
                 )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_E_BT;
-    //return tmp_vec[e] & (DEL_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 
   bool inline
-  is_ins_extend(std::size_t const i /*row index*/,
-                std::size_t const v /*vector index*/,
-                std::size_t const e /*element index*/
+  is_ins_extend(long const i /*row index*/,
+                long const v /*vector index*/,
+                long const e /*element index*/
                 )
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_E_BT;
-    //return tmp_vec[e] & (INS_E_BT << (N_BT_BITS * (v % BT_PER_CELL)));
   }
 
 

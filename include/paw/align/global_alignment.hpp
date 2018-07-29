@@ -41,6 +41,7 @@ global_alignment(Tseq const & seq1,
   long const m = std::distance(d_begin, d_end);
   long const t = (m + Tpack::length) / Tpack::length;
   long const n = std::distance(q_begin, q_end);
+  assert(t >= 0);
   Backtrack<Tuint> mB(n, t);
   Tuint const x_gain = opt.gap_extend;
   Tuint const y_gain = std::max(static_cast<Tuint>(opt.gap_extend),
@@ -50,23 +51,22 @@ global_alignment(Tseq const & seq1,
   Tuint const gap_open_val = std::max(gap_open_val_x, gap_open_val_y);
   Tuint const min_value = std::numeric_limits<Tuint>::min();
   Tpack const min_value_pack = simdpp::make_int(min_value);
-  Tvec_pack vH_up(t, static_cast<Tpack>(simdpp::make_int(gap_open_val + min_value)));
+  Tvec_pack vH_up(static_cast<std::size_t>(t), static_cast<Tpack>(simdpp::make_int(2 * gap_open_val + min_value)));
   init_vH_up<Tuint>(vH_up, gap_open_val, min_value);
-  Tvec_pack vH(t, simdpp::make_int(gap_open_val + min_value));
-  Tvec_pack vF_up(t, min_value_pack);
+  Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * gap_open_val + min_value));
+  Tvec_pack vF_up(static_cast<std::size_t>(t), min_value_pack);
   Tvec_pack vF(vF_up);
   Tvec_pack vE(vF_up);
-  Tuint const top_left_score = gap_open_val * 2 + min_value;
   Tuint const match = x_gain + y_gain + opt.match;
   Tuint const mismatch = x_gain + y_gain - opt.mismatch;
-  Tuint max_score_val = std::numeric_limits<Tuint>::max() - match;
+  Tuint max_score_val = std::numeric_limits<Tuint>::max() - match - gap_open_val;
+  Tpack const max_score_pack = simdpp::make_int(max_score_val);
 
   Tarr_vec_pack W_profile;
 
   /// Calculate DNA W_profile
   {
     std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
-    long const t = (m + T<Tuint>::pack::length) / T<Tuint>::pack::length;
 
     for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
     {
@@ -78,7 +78,7 @@ global_alignment(Tseq const & seq1,
       {
         Tvec_uint seq(T<Tuint>::pack::length, mismatch);
 
-        for (long e = 0, j = v; j < static_cast<long>(m); j += t, ++e)
+        for (long e = 0, j = v; j < m; j += t, ++e)
         {
           if (dna_base == *(d_begin + j))
             seq[e] = match;
@@ -94,16 +94,23 @@ global_alignment(Tseq const & seq1,
     assert(static_cast<std::size_t>(t) == W_profile[3].size());
   } /// Done calculating DNA W_profile
 
-  Tpack const max_score_pack = simdpp::make_int(max_score_val);
   std::array<long, S / sizeof(Tuint)> reductions;
   reductions.fill(0);
-  Tpack gap_open_pack = simdpp::make_int(gap_open_val);
-  Tpack gap_open_pack_x = simdpp::make_int(gap_open_val_x);
-  //Tpack gap_open_pack_y = simdpp::make_int(gap_open_val_y);
+  //Tpack const gap_open_pack = simdpp::make_int(gap_open_val);
+  Tpack const two_gap_open_pack = simdpp::make_int(2 * gap_open_val);
+  Tpack const gap_open_pack_x = simdpp::make_int(gap_open_val_x);
+  Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
 
   /// Start of outer loop
   for (long i = 0; i < n; ++i)
   {
+    // We need to increase fix vF_up if y_gain is more than gap_extend cost
+    if (i > 0 && y_gain > opt.gap_extend)
+    {
+      for (long v = 0; v < t; ++v)
+        vF_up[v] = vF_up[v] + static_cast<Tpack>(simdpp::make_uint(y_gain - opt.gap_extend));
+    }
+
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
     Tvec_pack const & vW = W_profile[magic_function(*std::next(q_begin, i))];
 
@@ -111,7 +118,7 @@ global_alignment(Tseq const & seq1,
     {
       auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up[0])),
                                  static_cast<Tuint>(simdpp::extract<0>(vH_up[0]) -
-                                                    gap_open_val));
+                                                    gap_open_val_y));
 
       vH[0] = shift_one_right<Tuint>(vH_up[t - 1] + vW[t - 1],
                                      left,
@@ -119,7 +126,7 @@ global_alignment(Tseq const & seq1,
     }
 
     // Check if any insertion have highest values
-    vF[0] = vH_up[0] - gap_open_pack;
+    vF[0] = vH_up[0] - gap_open_pack_y;
     mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], vF_up[0]));
     mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
@@ -131,13 +138,13 @@ global_alignment(Tseq const & seq1,
     {
       // Check for substitutions and if it has a higher score than the insertion
       vH[v] = vH_up[v - 1] + vW[v - 1];
-      vF[v] = vH_up[v] - gap_open_pack;
+      vF[v] = vH_up[v] - gap_open_pack_y;
       mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
       mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
 
       // Deletions pass 1
-      vE[v] = vH[v - 1] - gap_open_pack;
-      mB.set_del_extend(i, v, static_cast<Tmask>(max_greater<Tuint>(vE[v], vE[v - 1])));
+      vE[v] = vH[v - 1] - gap_open_pack_x;
+      mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
     } /// Done calculating vectors v=1,...,t-1
 
     /// Deletions pass 2
@@ -167,7 +174,7 @@ global_alignment(Tseq const & seq1,
       if (is_any_new_extend_better)
       {
         Tpack const new_vE0_pack = simdpp::load_u(&vE0[0]);
-        mB.set_del_extend(i, 0, static_cast<Tmask>(max_greater<Tuint>(vE[0], new_vE0_pack)));
+        mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], new_vE0_pack));
         mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
 
         /// Check for deletions in vectors 1,...,t-1
@@ -186,10 +193,13 @@ global_alignment(Tseq const & seq1,
     }
 
 #ifndef NDEBUG
-    //print_score_vectors<Tuint>(m, vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
+    //if (i == 0)
+    //  print_score_vectors<Tuint>(m, vH, vH_up, vE, vF, vF_up, vW); // Useful when debugging
 #endif
+
     if (simdpp::reduce_max(vH[t - 1]) >= max_score_val)
     {
+      /// Reducing value losslessly
       Tarr_uint vF0;
       vF0.fill(0);
       // Store the optimal scores in vector 0
@@ -207,9 +217,9 @@ global_alignment(Tseq const & seq1,
 
         if (new_reduction_val > 0)
         {
+          reductions[e] += new_reduction_val;
           new_reductions[e] = new_reduction_val;
           any_reductions = true;
-          reductions[e] += static_cast<long>(new_reductions[e]);
         }
       }
 
@@ -230,9 +240,10 @@ global_alignment(Tseq const & seq1,
 
       if (max_score >= max_score_val)
       {
+        /// Reducing values lossily
         Tmask is_about_to_overflow = max_scores >= max_score_pack;
         Tpack overflow_reduction =
-          simdpp::blend(gap_open_pack,
+          simdpp::blend(two_gap_open_pack,
                         static_cast<Tpack>(simdpp::make_zero()),
                         is_about_to_overflow
                         );
@@ -248,8 +259,8 @@ global_alignment(Tseq const & seq1,
 
         for (long v = 0; v < t; ++v)
         {
-          vH[v] = simdpp::max(vH[v] - overflow_reduction, gap_open_pack);
-          vF[v] = simdpp::max(vF[v] - overflow_reduction, gap_open_pack);
+          vH[v] = simdpp::max(vH[v] - overflow_reduction, two_gap_open_pack);
+          vF[v] = simdpp::max(vF[v] - overflow_reduction, two_gap_open_pack);
         }
       }
     }
@@ -263,16 +274,18 @@ global_alignment(Tseq const & seq1,
 #endif
   Tvec_uint arr(S / sizeof(Tuint));
   simdpp::store_u(&arr[0], vH_up[m % t]);
+  Tuint const top_left_score = gap_open_val * 3 + min_value;
 
-  //std::cerr << (long)arr[m / t] << " + " << reductions[m / t] << " -("
-  //          << (long)top_left_score << ") " << (n * y_gain) << " "
-  //          << (m * x_gain) << std::endl;
+  /*
+  std::cout << static_cast<long>(arr[m / t]) << " + " << static_cast<long>(reductions[m / t]) << " - "
+            << static_cast<long>(top_left_score) << " - " << n * y_gain << " - " << m * x_gain << "\n";*/
 
-  return static_cast<long>(arr[m / t])
-         + (long)reductions[m / t]
-         - (long)top_left_score
-         - (long)n * y_gain
-         - (long)m * x_gain;
+  long const final_score = static_cast<long>(arr[m / t])
+                           + static_cast<long>(reductions[m / t])
+                           - static_cast<long>(top_left_score)
+                           - n * y_gain
+                           - m * x_gain;
+  return final_score;
 }
 
 
