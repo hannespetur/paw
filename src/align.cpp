@@ -7,7 +7,8 @@
 #include <simdpp/simd.h>
 #include <simdpp/dispatch/get_arch_linux_cpuinfo.h>
 
-#include <paw/align/aligner_options.hpp>
+#include <paw/align/alignment_options.hpp>
+#include <paw/align/alignment_results.hpp>
 #include <paw/align/global_alignment.hpp>
 #include <paw/align/global_alignment_score.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
@@ -107,10 +108,10 @@ SIMDPP_MAKE_DISPATCHER_RET0(get_current_arch, std::string)
 
 SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          (< Tseq, Tuint >)
-                         (long)
+                         (AlignmentResults<Tuint>)
                          (global_alignment)
                          ((Tseq const &) x, (Tseq const &)y, (
-                           AlignerOptions<Tuint> const &)z
+                           AlignmentOptions<Tuint> const &)z
                          )
                        )
 
@@ -119,23 +120,23 @@ SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          (long)
                          (global_alignment_score)
                          ((Tseq const &) x, (Tseq const &)y, (
-                           AlignerOptions<Tuint> const &)z
+                           AlignmentOptions<Tuint> const &)z
                          )
                        )
 
 SIMDPP_INSTANTIATE_DISPATCHER(
-  (template long global_alignment<std::string, uint8_t>(
+  (template AlignmentResults<uint8_t> global_alignment<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
-     AlignerOptions<uint8_t> const & o)),
-  (template long global_alignment<std::string, uint16_t>(
+     AlignmentOptions<uint8_t> const & o)),
+  (template AlignmentResults<uint16_t> global_alignment<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
-     AlignerOptions<uint16_t> const & o)),
+     AlignmentOptions<uint16_t> const & o)),
   (template long global_alignment_score<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
-     AlignerOptions<uint8_t> const & o)),
+     AlignmentOptions<uint8_t> const & o)),
   (template long global_alignment_score<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
-     AlignerOptions<uint16_t> const & o))
+     AlignmentOptions<uint16_t> const & o))
   )
 
 

@@ -11,7 +11,7 @@ namespace paw
 {
 
 template<typename Tuint>
-struct AlignerOptions
+struct AlignmentOptions
 {
   using uint = typename std::make_unsigned<Tuint>::type;
 
@@ -32,7 +32,7 @@ struct AlignerOptions
   bool left_column_gap_open_free = gap_open_free;
   bool right_column_gap_open_free = gap_open_free;
 
-  explicit AlignerOptions(bool const _default_options = false)
+  explicit AlignmentOptions(bool const _default_options = false)
     : default_options(_default_options)
   {}
 

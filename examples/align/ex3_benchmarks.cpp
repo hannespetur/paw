@@ -105,7 +105,7 @@ main(int argc, char ** argv)
   std::cout << "Current archs are: " << current_archs << "\n";
   std::cout << "== global_alignment ==\n";
 
-  auto test_if_expected = [&](long score, Test const & test, long i)
+  auto test_if_expected = [&](long const score, Test const & test, long i)
   {
     if (score != test.expected_score)
     {
@@ -123,13 +123,13 @@ main(int argc, char ** argv)
   {
     assert(i < static_cast<long>(tests.size()));
     auto const & test = tests[i];
-    paw::AlignerOptions<uint8_t> opts(false);
+    paw::AlignmentOptions<uint8_t> opts(false);
     opts.set_match(test.match);
     opts.set_mismatch(test.mismatch);
     opts.set_gap_open(test.gap_open);
     opts.set_gap_extend(test.gap_extend);
-    auto score = paw::global_alignment(test.seq1, test.seq2, opts);
-    test_if_expected(score, test, i);
+    paw::AlignmentResults<uint8_t> ar = paw::global_alignment(test.seq1, test.seq2, opts);
+    test_if_expected(ar.score, test, i);
   }
 
   std::cout << "\n== global_alignment_score ==\n";
@@ -137,12 +137,12 @@ main(int argc, char ** argv)
   for (auto i : tests_to_run)
   {
     auto const & test = tests[i];
-    paw::AlignerOptions<uint8_t> opts(false);
+    paw::AlignmentOptions<uint8_t> opts(false);
     opts.set_match(test.match);
     opts.set_mismatch(test.mismatch);
     opts.set_gap_open(test.gap_open);
     opts.set_gap_extend(test.gap_extend);
-    auto score = paw::global_alignment_score(test.seq1, test.seq2, opts);
+    long const score = paw::global_alignment_score(test.seq1, test.seq2, opts);
     test_if_expected(score, test, i);
   }
 

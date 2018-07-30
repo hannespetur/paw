@@ -1,6 +1,6 @@
 #pragma once
 
-#include <paw/align/aligner_options.hpp>
+#include <paw/align/alignment_options.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -23,7 +23,7 @@ template <typename Tseq, typename Tuint>
 long
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignerOptions<Tuint> const & opt
+                       AlignmentOptions<Tuint> const & opt
                        )
 {
   using Tpack = typename T<Tuint>::pack;

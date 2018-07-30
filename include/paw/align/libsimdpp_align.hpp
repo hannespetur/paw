@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <paw/align/aligner_options.hpp>
+#include <paw/align/alignment_options.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -80,7 +80,7 @@ public:
 
 
 private:
-  AlignerOptions<Tuint> const opt;
+  AlignmentOptions<Tuint> const opt;
   Tit d_begin;
   Tit d_end;
 
@@ -92,7 +92,7 @@ private:
 public:
   Align(Tit _d_begin,
         Tit _d_end,
-        AlignerOptions<Tuint> const & _opt = AlignerOptions<Tuint>(true /*default options*/)
+        AlignmentOptions<Tuint> const & _opt = AlignmentOptions<Tuint>(true /*default options*/)
         )
     : opt(_opt)
     , d_begin(_d_begin)

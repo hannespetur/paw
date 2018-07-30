@@ -25,8 +25,8 @@ main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
-  paw::AlignerOptions<int8_t> opts;
-  auto score = paw::global_alignment(seq1, seq2, opts);
-  std::cerr << "Score = " << score << std::endl;
+  paw::AlignmentOptions<uint8_t> opts;
+  paw::AlignmentResults<uint8_t> ar = paw::global_alignment(seq1, seq2, opts);
+  std::cerr << "Score = " << ar.score << std::endl;
   return EXIT_SUCCESS;
 }

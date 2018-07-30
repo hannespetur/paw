@@ -1,9 +1,11 @@
 #pragma once
 
-#include <paw/align/aligner_options.hpp>
+#include <paw/align/alignment_options.hpp>
+#include <paw/align/alignment_results.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
+
 
 #include <simdpp/simd.h>
 
@@ -20,10 +22,10 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignerOptions<Tuint> const & opt
+                 AlignmentOptions<Tuint> const & opt
                  )
 {
   using Tpack = typename T<Tuint>::pack;
@@ -42,7 +44,8 @@ global_alignment(Tseq const & seq1,
   long const t = (m + Tpack::length) / Tpack::length;
   long const n = std::distance(q_begin, q_end);
   assert(t >= 0);
-  Backtrack<Tuint> mB(n, t);
+  AlignmentResults<Tuint> ar;
+  ar.mB = Backtrack<Tuint>(n, t);
   Tuint const x_gain = opt.gap_extend;
   Tuint const y_gain = std::max(static_cast<Tuint>(opt.gap_extend),
                                 static_cast<Tuint>(opt.mismatch - x_gain));
@@ -127,8 +130,8 @@ global_alignment(Tseq const & seq1,
 
     // Check if any insertion have highest values
     vF[0] = vH_up[0] - gap_open_pack_y;
-    mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], vF_up[0]));
-    mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
+    ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], vF_up[0]));
+    ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
 
     vE[0] = min_value_pack;
@@ -139,12 +142,12 @@ global_alignment(Tseq const & seq1,
       // Check for substitutions and if it has a higher score than the insertion
       vH[v] = vH_up[v - 1] + vW[v - 1];
       vF[v] = vH_up[v] - gap_open_pack_y;
-      mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
-      mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
+      ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
+      ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
 
       // Deletions pass 1
       vE[v] = vH[v - 1] - gap_open_pack_x;
-      mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+      ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
     } /// Done calculating vectors v=1,...,t-1
 
     /// Deletions pass 2
@@ -174,21 +177,21 @@ global_alignment(Tseq const & seq1,
       if (is_any_new_extend_better)
       {
         Tpack const new_vE0_pack = simdpp::load_u(&vE0[0]);
-        mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], new_vE0_pack));
-        mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
+        ar.mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], new_vE0_pack));
+        ar.mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
 
         /// Check for deletions in vectors 1,...,t-1
         for (long v = 1; v < t; ++v)
         {
-          mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
-          mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+          ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+          ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
         }
       }
       else
       {
         // Check if any vE has higher scores than vH
         for (long v = 0; v < t; ++v)
-          mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+          ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
       }
     }
 
@@ -270,7 +273,7 @@ global_alignment(Tseq const & seq1,
   } /// End of outer loop
 
 #ifndef NDEBUG
-  //print_backtrack(mB);
+  //print_backtrack(ar.mB);
 #endif
   Tvec_uint arr(S / sizeof(Tuint));
   simdpp::store_u(&arr[0], vH_up[m % t]);
@@ -280,12 +283,12 @@ global_alignment(Tseq const & seq1,
   std::cout << static_cast<long>(arr[m / t]) << " + " << static_cast<long>(reductions[m / t]) << " - "
             << static_cast<long>(top_left_score) << " - " << n * y_gain << " - " << m * x_gain << "\n";*/
 
-  long const final_score = static_cast<long>(arr[m / t])
-                           + static_cast<long>(reductions[m / t])
-                           - static_cast<long>(top_left_score)
-                           - n * y_gain
-                           - m * x_gain;
-  return final_score;
+  ar.score = static_cast<long>(arr[m / t])
+             + static_cast<long>(reductions[m / t])
+             - static_cast<long>(top_left_score)
+             - n * y_gain
+             - m * x_gain;
+  return ar;
 }
 
 
