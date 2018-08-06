@@ -46,11 +46,11 @@ global_alignment(Tseq const & seq1,
   assert(t >= 0);
   AlignmentResults<Tuint> ar;
   ar.mB = Backtrack<Tuint>(n, t);
-  Tuint const x_gain = opt.gap_extend;
-  Tuint const y_gain = std::max(static_cast<Tuint>(opt.gap_extend),
-                                static_cast<Tuint>(opt.mismatch - x_gain));
-  Tuint const gap_open_val_x = opt.gap_open - x_gain;
-  Tuint const gap_open_val_y = opt.gap_open - y_gain;
+  Tuint const x_gain = opt.get_gap_extend();
+  Tuint const y_gain = std::max(static_cast<Tuint>(opt.get_gap_extend()),
+                                static_cast<Tuint>(opt.get_mismatch() - x_gain));
+  Tuint const gap_open_val_x = opt.get_gap_open() - x_gain;
+  Tuint const gap_open_val_y = opt.get_gap_open() - y_gain;
   Tuint const gap_open_val = std::max(gap_open_val_x, gap_open_val_y);
   Tuint const min_value = std::numeric_limits<Tuint>::min();
   Tpack const min_value_pack = simdpp::make_int(min_value);
@@ -60,9 +60,9 @@ global_alignment(Tseq const & seq1,
   Tvec_pack vF_up(static_cast<std::size_t>(t), min_value_pack);
   Tvec_pack vF(vF_up);
   Tvec_pack vE(vF_up);
-  Tuint const match = x_gain + y_gain + opt.match;
-  Tuint const mismatch = x_gain + y_gain - opt.mismatch;
-  Tuint max_score_val = std::numeric_limits<Tuint>::max() - match - gap_open_val;
+  Tuint const match = x_gain + y_gain + opt.get_match();
+  Tuint const mismatch = x_gain + y_gain - opt.get_mismatch();
+  Tuint const max_score_val = std::numeric_limits<Tuint>::max() - match - gap_open_val;
   Tpack const max_score_pack = simdpp::make_int(max_score_val);
 
   Tarr_vec_pack W_profile;
@@ -99,7 +99,6 @@ global_alignment(Tseq const & seq1,
 
   std::array<long, S / sizeof(Tuint)> reductions;
   reductions.fill(0);
-  //Tpack const gap_open_pack = simdpp::make_int(gap_open_val);
   Tpack const two_gap_open_pack = simdpp::make_int(2 * gap_open_val);
   Tpack const gap_open_pack_x = simdpp::make_int(gap_open_val_x);
   Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
@@ -108,10 +107,10 @@ global_alignment(Tseq const & seq1,
   for (long i = 0; i < n; ++i)
   {
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
-    if (i > 0 && y_gain > opt.gap_extend)
+    if (i > 0 && y_gain > opt.get_gap_extend())
     {
       for (long v = 0; v < t; ++v)
-        vF_up[v] = vF_up[v] + static_cast<Tpack>(simdpp::make_uint(y_gain - opt.gap_extend));
+        vF_up[v] = vF_up[v] + static_cast<Tpack>(simdpp::make_uint(y_gain - opt.get_gap_extend()));
     }
 
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
@@ -279,15 +278,14 @@ global_alignment(Tseq const & seq1,
   simdpp::store_u(&arr[0], vH_up[m % t]);
   Tuint const top_left_score = gap_open_val * 3 + min_value;
 
-  /*
-  std::cout << static_cast<long>(arr[m / t]) << " + " << static_cast<long>(reductions[m / t]) << " - "
-            << static_cast<long>(top_left_score) << " - " << n * y_gain << " - " << m * x_gain << "\n";*/
-
   ar.score = static_cast<long>(arr[m / t])
              + static_cast<long>(reductions[m / t])
              - static_cast<long>(top_left_score)
              - n * y_gain
              - m * x_gain;
+
+  ar.last_vF = std::move(vF_up);
+  ar.last_vH = std::move(vH_up);
   return ar;
 }
 

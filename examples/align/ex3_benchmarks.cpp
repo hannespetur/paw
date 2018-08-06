@@ -128,7 +128,7 @@ main(int argc, char ** argv)
     opts.set_mismatch(test.mismatch);
     opts.set_gap_open(test.gap_open);
     opts.set_gap_extend(test.gap_extend);
-    paw::AlignmentResults<uint8_t> ar = paw::global_alignment(test.seq1, test.seq2, opts);
+    paw::AlignmentResults<uint8_t> const ar = paw::global_alignment(test.seq1, test.seq2, opts);
     test_if_expected(ar.score, test, i);
   }
 
@@ -142,8 +142,8 @@ main(int argc, char ** argv)
     opts.set_mismatch(test.mismatch);
     opts.set_gap_open(test.gap_open);
     opts.set_gap_extend(test.gap_extend);
-    long const score = paw::global_alignment_score(test.seq1, test.seq2, opts);
-    test_if_expected(score, test, i);
+    paw::AlignmentResults<uint8_t> const ar = paw::global_alignment_score(test.seq1, test.seq2, opts);
+    test_if_expected(ar.score, test, i);
   }
 
   std::cout << "\n";

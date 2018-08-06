@@ -117,7 +117,7 @@ SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
 
 SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          (< Tseq, Tuint >)
-                         (long)
+                         (AlignmentResults<Tuint>)
                          (global_alignment_score)
                          ((Tseq const &) x, (Tseq const &)y, (
                            AlignmentOptions<Tuint> const &)z
@@ -131,10 +131,10 @@ SIMDPP_INSTANTIATE_DISPATCHER(
   (template AlignmentResults<uint16_t> global_alignment<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint16_t> const & o)),
-  (template long global_alignment_score<std::string, uint8_t>(
+  (template AlignmentResults<uint8_t> global_alignment_score<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint8_t> const & o)),
-  (template long global_alignment_score<std::string, uint16_t>(
+  (template AlignmentResults<uint16_t> global_alignment_score<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint16_t> const & o))
   )

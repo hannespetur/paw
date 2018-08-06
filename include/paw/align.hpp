@@ -21,7 +21,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -45,7 +45,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -69,7 +69,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -92,7 +92,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -116,7 +116,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -140,7 +140,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -164,7 +164,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
@@ -189,7 +189,7 @@ global_alignment(Tseq const & seq1,
                  );
 
 template <typename Tseq, typename Tuint>
-long
+AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
                        AlignmentOptions<Tuint> const & _opt =
