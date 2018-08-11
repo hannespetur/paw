@@ -145,7 +145,6 @@ print_score_vector_standard(long m,
                             std::array<long, S / sizeof(Tuint)> const & reductions
                             )
 {
-  // TODO: Changes this function such that it prints the actual scores!
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
   long const t = vX.size();
