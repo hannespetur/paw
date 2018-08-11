@@ -16,16 +16,33 @@ struct AlignmentOptions
 {
 
 public:
-  using uint = typename std::make_unsigned<Tuint>::type;
+  using Tpack = typename T<Tuint>::pack;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+
   std::string query{""};
-  long query_size{0}; // Size of query sequence
+  long query_size{0}; // Size of query sequence, sometimes also noted as 'm'
+  long num_vectors{0}; // Number of SIMD vectors per row
+  Tvec_pack vH_up;
+  Tvec_pack vF_up;
+  Tuint x_gain{0};
+  Tuint y_gain{0};
+
+  Tuint match_val{0};
+  Tuint mismatch_val{0};
+  Tuint gap_open_val_x{0};
+  Tuint gap_open_val_y{0};
+  Tuint gap_open_val{0};
+
+  Tpack gap_open_pack_x = simdpp::make_int(0);
+  Tpack gap_open_pack_y = simdpp::make_int(0);
+  Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
 
 private:
   /// User options
-  uint match = 2;
-  uint mismatch = 2;
-  uint gap_open = 5;
-  uint gap_extend = 1;
+  Tuint match = 2;
+  Tuint mismatch = 2;
+  Tuint gap_open = 5;
+  Tuint gap_extend = 1;
 
   bool backtracking = true;
   bool top_row_free = false;
@@ -39,8 +56,6 @@ private:
   /// Derived options
   long last_score{0};
   SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> last_backtrack;
-  typename T<Tuint>::vec_pack last_vH;
-  typename T<Tuint>::vec_pack last_vF;
 
 
 public:
@@ -80,24 +95,6 @@ public:
   }
 
 
-  template<typename Tseq>
-  void
-  set_query(Tseq const & seq)
-  {
-    {
-      std::string new_query(begin(seq), end(seq));
-
-      // If it is the same query we can reuse previously calculated numbers
-      if (new_query == query)
-        return;
-
-      query = std::move(new_query);
-    }
-
-    query_size = query.size();
-  }
-
-
   AlignmentOptions &
   set_traceback(bool val)
   {
@@ -105,11 +102,48 @@ public:
     return *this;
   }
 
-  uint get_match() const {return match;}
-  uint get_mismatch() const {return mismatch;}
-  uint get_gap_open() const {return gap_open;}
-  uint get_gap_extend() const {return gap_extend;}
+  Tuint get_match() const {return match;}
+  Tuint get_mismatch() const {return mismatch;}
+  Tuint get_gap_open() const {return gap_open;}
+  Tuint get_gap_extend() const {return gap_extend;}
 
 };
 
+
+namespace SIMDPP_ARCH_NAMESPACE
+{
+
+template<typename Tuint, typename Tseq>
+void
+set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
+{
+  using Tpack = typename T<Tuint>::pack;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+
+  std::string new_query(begin(seq), end(seq));
+
+  // If it is the same query we can reuse previously calculated numbers
+  if (new_query == opt.query)
+    return;
+
+  opt.query = std::move(new_query);
+  opt.query_size = opt.query.size();
+  opt.num_vectors = (opt.query_size + Tpack::length) / Tpack::length;
+  opt.x_gain = opt.get_gap_extend();
+  opt.y_gain = std::max(opt.get_gap_extend(),
+                                static_cast<Tuint>(opt.get_mismatch() - opt.x_gain));
+  opt.gap_open_val_x = opt.get_gap_open() - opt.x_gain;
+  opt.gap_open_val_y = opt.get_gap_open() - opt.y_gain;
+  opt.gap_open_val = std::max(opt.gap_open_val_x, opt.gap_open_val_y);
+  opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
+                        static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
+                        );
+  opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), opt.min_value_pack);
+  opt.gap_open_pack_x = simdpp::make_int(opt.gap_open_val_x);
+  opt.gap_open_pack_y = simdpp::make_int(opt.gap_open_val_y);
+  opt.match_val = opt.x_gain + opt.y_gain + opt.get_match();
+  opt.mismatch_val = opt.x_gain + opt.y_gain - opt.get_mismatch();
+}
+
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw

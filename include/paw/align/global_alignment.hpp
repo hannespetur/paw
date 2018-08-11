@@ -36,41 +36,25 @@ global_alignment(Tseq const & seq1,
   using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
 
-  auto d_begin = begin(seq1);
-  auto d_end = end(seq1);
-  auto q_begin = begin(seq2);
-  auto q_end = end(seq2);
+  paw::SIMDPP_ARCH_NAMESPACE::set_query<Tuint, Tseq>(opt, seq1);
 
-  long const m = std::distance(d_begin, d_end);
-  long const t = (m + Tpack::length) / Tpack::length;
-  long const n = std::distance(q_begin, q_end);
-  assert(t >= 0);
+  long const m = opt.query_size;
+  long const t = opt.num_vectors; // Keep t as a local variable is it widely used
+  long const n = std::distance(begin(seq2), end(seq2));
+
   AlignmentResults<Tuint> ar;
   ar.mB = Backtrack<Tuint>(n, t);
-  Tuint const x_gain = opt.get_gap_extend();
-  Tuint const y_gain = std::max(static_cast<Tuint>(opt.get_gap_extend()),
-                                static_cast<Tuint>(opt.get_mismatch() - x_gain));
-  Tuint const gap_open_val_x = opt.get_gap_open() - x_gain;
-  Tuint const gap_open_val_y = opt.get_gap_open() - y_gain;
-  Tuint const gap_open_val = std::max(gap_open_val_x, gap_open_val_y);
-  Tuint const min_value = std::numeric_limits<Tuint>::min();
-  Tpack const min_value_pack = simdpp::make_int(min_value);
-  Tvec_pack vH_up(static_cast<std::size_t>(t), static_cast<Tpack>(simdpp::make_int(2 * gap_open_val + min_value)));
-  init_vH_up<Tuint>(vH_up, gap_open_val, min_value);
-  Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * gap_open_val + min_value));
-  Tvec_pack vF_up(static_cast<std::size_t>(t), min_value_pack);
-  Tvec_pack vF(vF_up);
-  Tvec_pack vE(vF_up);
-  Tuint const match = x_gain + y_gain + opt.get_match();
-  Tuint const mismatch = x_gain + y_gain - opt.get_mismatch();
-  Tuint const max_score_val = std::numeric_limits<Tuint>::max() - match - gap_open_val;
+  init_vH_up<Tuint>(opt.vH_up, opt.gap_open_val, std::numeric_limits<Tuint>::min());
+  Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()));
+  Tvec_pack vF(opt.vF_up);
+  Tvec_pack vE(opt.vF_up);
+
+  Tuint const max_score_val = std::numeric_limits<Tuint>::max() - opt.match_val - opt.gap_open_val;
   Tpack const max_score_pack = simdpp::make_int(max_score_val);
   std::array<long, S / sizeof(Tuint)> reductions;
   reductions.fill(0);
-  Tpack const two_gap_open_pack = simdpp::make_int(2 * gap_open_val);
-  Tpack const gap_open_pack_x = simdpp::make_int(gap_open_val_x);
-  Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
-  Tuint const top_left_score = gap_open_val * 3 + min_value;
+  Tpack const two_gap_open_pack = simdpp::make_int(2 * opt.gap_open_val);
+  Tuint const top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
 
   Tarr_vec_pack W_profile;
 #ifndef NDEBUG
@@ -89,12 +73,12 @@ global_alignment(Tseq const & seq1,
 
       for (long v = 0; v < t; ++v)
       {
-        Tvec_uint seq(T<Tuint>::pack::length, mismatch);
+        Tvec_uint seq(T<Tuint>::pack::length, opt.mismatch_val);
 
         for (long e = 0, j = v; j < m; j += t, ++e)
         {
-          if (dna_base == *(d_begin + j))
-            seq[e] = match;
+          if (dna_base == *(begin(seq1) + j))
+            seq[e] = opt.match_val;
         }
 
         W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
@@ -111,58 +95,59 @@ global_alignment(Tseq const & seq1,
   for (long i = 0; i < n; ++i)
   {
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
-    if (i > 0 && y_gain > opt.get_gap_extend())
+    if (i > 0 && opt.y_gain > opt.get_gap_extend())
     {
       for (long v = 0; v < t; ++v)
-        vF_up[v] = vF_up[v] + static_cast<Tpack>(simdpp::make_uint(y_gain - opt.get_gap_extend()));
+        opt.vF_up[v] = opt.vF_up[v] + static_cast<Tpack>(simdpp::make_uint(opt.y_gain - opt.get_gap_extend()));
     }
 
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
-    Tvec_pack const & vW = W_profile[magic_function(*std::next(q_begin, i))];
+    Tvec_pack const & vW = W_profile[magic_function(*std::next(begin(seq2), i))];
 
     /// Calculate vector 0
     {
-      auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(vF_up[0])),
-                                 static_cast<Tuint>(simdpp::extract<0>(vH_up[0]) -
-                                                    gap_open_val_y));
+      auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(opt.vF_up[0])),
+                                 static_cast<Tuint>(simdpp::extract<0>(opt.vH_up[0]) -
+                                 opt.gap_open_val_y)
+                                 );
 
-      vH[0] = shift_one_right<Tuint>(vH_up[t - 1] + vW[t - 1],
+      vH[0] = shift_one_right<Tuint>(opt.vH_up[t - 1] + vW[t - 1],
                                      left,
                                      reductions);
     }
 
     // Check if any insertion have highest values
-    vF[0] = vH_up[0] - gap_open_pack_y;
-    ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], vF_up[0]));
+    vF[0] = opt.vH_up[0] - opt.gap_open_pack_y;
+    ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], opt.vF_up[0]));
     ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
 
-    vE[0] = min_value_pack;
+    vE[0] = opt.min_value_pack;
 
     /// Calculate vectors v=1,...,t-1
     for (long v = 1; v < t; ++v)
     {
       // Check for substitutions and if it has a higher score than the insertion
-      vH[v] = vH_up[v - 1] + vW[v - 1];
-      vF[v] = vH_up[v] - gap_open_pack_y;
-      ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], vF_up[v]));
+      vH[v] = opt.vH_up[v - 1] + vW[v - 1];
+      vF[v] = opt.vH_up[v] - opt.gap_open_pack_y;
+      ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], opt.vF_up[v]));
       ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
 
       /// Deletions pass 1
-      vE[v] = vH[v - 1] - gap_open_pack_x;
+      vE[v] = vH[v - 1] - opt.gap_open_pack_x;
       ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
     } /// Done calculating vectors v=1,...,t-1
 
     /// Deletions pass 2
     {
       // Calculate vE[0] after vH[t - 1] has been calculated
-      Tpack const new_vE0 = vH[t - 1] - gap_open_pack_x;
-      vE[0] = shift_one_right<Tuint>(new_vE0, min_value, reductions);
+      Tpack const new_vE0 = vH[t - 1] - opt.gap_open_pack_x;
+      vE[0] = shift_one_right<Tuint>(new_vE0, std::numeric_limits<Tuint>::min(), reductions);
       Tarr_uint vE0;
-      vE0.fill(min_value);
+      vE0.fill(std::numeric_limits<Tuint>::min());
 
       /// Check for deletions in vector 0
-      Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], min_value, reductions);
+      Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], std::numeric_limits<Tuint>::min(), reductions);
       simdpp::store_u(&vE0[0], vE0_pack);
 
       for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
@@ -202,8 +187,7 @@ global_alignment(Tseq const & seq1,
 
       for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
       {
-        //assert(vF0[e] + gap_open_val_x >= vF0[e - 1]);
-        long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * gap_open_val);
+        long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * opt.gap_open_val);
 
         if (new_reduction_val > 0)
         {
@@ -262,22 +246,18 @@ global_alignment(Tseq const & seq1,
     //print_score_vectors<Tuint>(m, vH, vH_up, vE, vF, vF_up, vW, top_left_score, x_gain, i * y_gain, reductions); // Useful when debugging
 #endif
 
-    std::swap(vF, vF_up);
-    std::swap(vH, vH_up);
+    std::swap(vF, opt.vF_up);
+    std::swap(vH, opt.vH_up);
   } /// End of outer loop
 
   Tvec_uint arr(S / sizeof(Tuint));
-  simdpp::store_u(&arr[0], vH_up[m % t]);
+  simdpp::store_u(&arr[0], opt.vH_up[m % t]);
 
   ar.score = static_cast<long>(arr[m / t])
              + static_cast<long>(reductions[m / t])
              - static_cast<long>(top_left_score)
-             - n * y_gain
-             - m * x_gain;
-
-  ar.last_vF = std::move(vF_up);
-  ar.last_vH = std::move(vH_up);
-
+             - n * opt.y_gain
+             - m * opt.x_gain;
 
   /*
   {
@@ -287,8 +267,8 @@ global_alignment(Tseq const & seq1,
     std::pair<std::string, std::string> s;
 
     // TODO: Fix this mess
-    std::string d(d_begin, d_end);
-    std::string q(q_begin, q_end);
+    std::string d(q_begin, d_end);
+    std::string q(d_begin, q_end);
 
     long del_count = 0;
     long ins_count = 0;
@@ -311,7 +291,7 @@ global_alignment(Tseq const & seq1,
     auto add_del = [&]()
     {
       //std::cerr << "DEL SELECTED" << j << "\n";
-      s.first.push_back(*std::next(d_begin, j - 1));
+      s.first.push_back(*std::next(q_begin, j - 1));
       s.second.push_back('-');
       --j;
       ++del_count;
@@ -320,7 +300,7 @@ global_alignment(Tseq const & seq1,
     auto add_del_ext = [&]()
     {
       //std::cerr << "DEL SELECTED" << j << "\n";
-      s.first.push_back(*std::next(d_begin, j - 1));
+      s.first.push_back(*std::next(q_begin, j - 1));
       s.second.push_back('-');
       --j;
       ++del_ext_count;
@@ -330,7 +310,7 @@ global_alignment(Tseq const & seq1,
     {
       //std::cerr << "INS SELECTED" << "\n";
       s.first.push_back('-');
-      s.second.push_back(*std::next(q_begin, i - 1));
+      s.second.push_back(*std::next(d_begin, i - 1));
       --i;
       ++ins_count;
     };
@@ -339,7 +319,7 @@ global_alignment(Tseq const & seq1,
     {
       //std::cerr << "INS SELECTED" << "\n";
       s.first.push_back('-');
-      s.second.push_back(*std::next(q_begin, i - 1));
+      s.second.push_back(*std::next(d_begin, i - 1));
       --i;
       ++ins_ext_count;
     };

@@ -53,10 +53,7 @@ struct Backtracker
 
   Tmatrix matrix;
 
-  Backtracker()
-    : matrix()
-  {}
-
+  Backtracker() = default();
 
   Backtracker(std::size_t const n_row, std::size_t const n_vectors)
     : matrix(n_row, {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, Tpack {0}})
