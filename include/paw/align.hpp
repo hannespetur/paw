@@ -16,20 +16,21 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
-// See: https://github.com/p12tic/libsimdpp/blob/3ab0be0e5aa0773f152d7d759400173d64253534/simdpp/detail/insn_id.h
+/// See namespaces at:
+/// https://github.com/p12tic/libsimdpp/blob/3ab0be0e5aa0773f152d7d759400173d64253534/simdpp/detail/insn_id.h
 
 namespace arch_null
 {
@@ -40,16 +41,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -64,16 +65,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -88,15 +89,15 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt = AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt = AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -111,16 +112,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -135,16 +136,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -159,16 +160,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 
@@ -184,16 +185,16 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> const & _opt =
-                   AlignmentOptions<Tuint>(true /*default options*/)
+                 AlignmentOptions<Tuint> & _opt =
+                   AlignmentOptions<Tuint>(true) // default options
                  );
 
 template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & _opt =
-                         AlignmentOptions<Tuint>(true /*default options*/)
+                       AlignmentOptions<Tuint> & _opt =
+                         AlignmentOptions<Tuint>(true) // default options
                        );
 
 }

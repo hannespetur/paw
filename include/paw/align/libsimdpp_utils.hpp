@@ -54,7 +54,6 @@ struct T<uint16_t>
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-
 template <typename Tuint>
 inline typename T<Tuint>::pack
 shift_one_right(typename T<Tuint>::pack pack,
@@ -138,8 +137,15 @@ print_pack(typename T<Tuint>::pack const & pack)
 
 template <typename Tuint>
 inline void
-print_score_vector_standard(long m, typename T<Tuint>::vec_pack const & vX)
+print_score_vector_standard(long m,
+                            typename T<Tuint>::vec_pack const & vX,
+                            long const top_left_score,
+                            long const x_gain,
+                            long const y_gain_total,
+                            std::array<long, S / sizeof(Tuint)> const & reductions
+                            )
 {
+  // TODO: Changes this function such that it prints the actual scores!
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
   long const t = vX.size();
@@ -157,15 +163,17 @@ print_score_vector_standard(long m, typename T<Tuint>::vec_pack const & vX)
 
   for (long j = 0; j <= m; ++j)
   {
-    std::size_t const v = j % t;
-    std::size_t const e = j / t;
-    assert(v < mat.size());
-    assert(e < mat[v].size());
+    long const v = j % t;
+    long const e = j / t;
+    assert(v < static_cast<long>(mat.size()));
+    assert(e < static_cast<long>(mat[v].size()));
 
     if (v == 0 && j > 0)
-      std::cout << " | ";
+      std::cout << "|" << std::setw(3);
+    else
+      std::cout << std::setw(4);
 
-    std::cout << std::setw(4) << static_cast<long>(mat[v][e]) << " ";
+    std::cout << static_cast<long>(mat[v][e] - top_left_score - y_gain_total - x_gain * j + reductions[e]) << " ";
   }
 
   std::cout << "(" << t << " vectors, " << m << " elements)\n";
@@ -180,15 +188,19 @@ print_score_vectors(long m,
                     typename T<Tuint>::vec_pack const & vE,
                     typename T<Tuint>::vec_pack const & vF,
                     typename T<Tuint>::vec_pack const & vF_up,
-                    typename T<Tuint>::vec_pack const & vW
+                    typename T<Tuint>::vec_pack const & vW,
+                    Tuint const top_left_score,
+                    Tuint const x_gain,
+                    Tuint const y_gain_total,
+                    std::array<long, S / sizeof(Tuint)> const & reductions
                     )
 {
-  std::cout << "Standard H_up  : "; print_score_vector_standard<Tuint>(m, vH_up);
-  std::cout << "Standard H     : "; print_score_vector_standard<Tuint>(m, vH);
-  std::cout << "Standard E     : "; print_score_vector_standard<Tuint>(m, vE);
-  std::cout << "Standard F_up  : "; print_score_vector_standard<Tuint>(m, vF_up);
-  std::cout << "Standard F     : "; print_score_vector_standard<Tuint>(m, vF);
-  std::cout << "Standard W     : "; print_score_vector_standard<Tuint>(m, vW);
+  std::cout << "Standard H_up  : "; print_score_vector_standard<Tuint>(m, vH_up, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard H     : "; print_score_vector_standard<Tuint>(m, vH, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard E     : "; print_score_vector_standard<Tuint>(m, vE, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard F_up  : "; print_score_vector_standard<Tuint>(m, vF_up, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard F     : "; print_score_vector_standard<Tuint>(m, vF, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard W     : "; print_score_vector_standard<Tuint>(m, vW, top_left_score, x_gain, y_gain_total, reductions);
   std::cout << "=====\n";
 }
 

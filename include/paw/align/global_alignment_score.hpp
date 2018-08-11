@@ -23,7 +23,7 @@ template <typename Tseq, typename Tuint>
 AlignmentResults<Tuint>
 global_alignment_score(Tseq const & seq1,
                        Tseq const & seq2,
-                       AlignmentOptions<Tuint> const & opt
+                       AlignmentOptions<Tuint> & opt
                        )
 {
   using Tpack = typename T<Tuint>::pack;
@@ -141,6 +141,7 @@ global_alignment_score(Tseq const & seq1,
 
       // Deletions pass 1
       vE[v] = simdpp::max(static_cast<Tpack>(vH[v - 1] - gap_open_pack_x), vE[v - 1]);
+      //vH[v] = simdpp::max(vH[v], vE[v]); // Likely not needed
     } /// Done calculating vectors v=1,...,t-1
 
     /// Deletions pass 2
@@ -152,7 +153,7 @@ global_alignment_score(Tseq const & seq1,
       vE0.fill(min_value);
 
       /// Check for deletions in vector 0
-      bool is_any_new_extend_better = false;
+      //bool is_any_new_extend_better = false;
       Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], min_value, reductions);
       simdpp::store_u(&vE0[0], vE0_pack);
 
@@ -162,12 +163,12 @@ global_alignment_score(Tseq const & seq1,
 
         if (val > static_cast<long>(vE0[e]))
         {
-          is_any_new_extend_better = true;
+          //is_any_new_extend_better = true;
           vE0[e] = val;
         }
       }
 
-      if (is_any_new_extend_better)
+      //if (is_any_new_extend_better)
       {
         Tpack const new_vE0_pack = simdpp::load_u(&vE0[0]);
         vE[0] = simdpp::max(vE[0], new_vE0_pack);
@@ -180,12 +181,12 @@ global_alignment_score(Tseq const & seq1,
           vH[v] = simdpp::max(vH[v], vE[v]);
         }
       }
-      else
-      {
-        // Check if any vE has higher scores than vH
-        for (long v = 0; v < t; ++v)
-          vH[v] = simdpp::max(vH[v], vE[v]);
-      }
+      //else
+      //{
+      //  // Check if any vE has higher scores than vH
+      //  for (long v = 0; v < t; ++v)
+      //    vH[v] = simdpp::max(vH[v], vE[v]);
+      //}
     }
 
 #ifndef NDEBUG

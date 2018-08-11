@@ -2,11 +2,10 @@
 #include <paw/parser.hpp>
 #include <paw/internal/config.hpp>
 
-#include <chrono> // std::chrono::high_resolution_clock
-#include <set>
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <fstream> // std::ifstream
+
 
 struct Test
 {
@@ -43,11 +42,13 @@ int
 main(int argc, char ** argv)
 {
   std::vector<int> tests_to_run;
+  bool swap_sequences = false;
 
   try
   {
     paw::Parser parser(argc, argv);
     parser.set_name("Alignment example 3 - Running tests.");
+    parser.parse_option(swap_sequences, 's', "swap", "Set to swap the test sequences");
     parser.parse_remaining_positional_arguments(tests_to_run,
                                                 "list of tests to run...",
                                                 "List of all tests to run (all if not specified)."
@@ -60,7 +61,7 @@ main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
-  std::vector<Test> const tests =
+  std::vector<Test> tests =
   {
     {"GGG", "GGG", 6, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/}, //test 0
     {"GGGG", "GGG", 1}, //test 1
@@ -75,7 +76,7 @@ main(int argc, char ** argv)
     {"AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
      "AAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAAAAAAAAAAAAA",
      160, 2, 2, 5, 1}, //test 10
-    {"AAGTGTGTTAATTAATTAATGCTTGTAGGA", "GTTTATGTAGCTTATTCTATCCAAAGCAAT", -12}, //test 11
+    {"AAGTGTGTTAATTAATTAATGCTTGTAGGA", "GTTTATGTAGCTTATTCTATCCAAAGCAAT", -12, 2, 2, 5, 1}, //test 11
     {"AAGTGTGTTAATTAATTAATGCTT", "TGTTAATTAATTAATGCTTGGCAAT", 19}, //test 12
     {"GT", "GAT", -1}, //test 13
     {"AAGACATCACGATG", "AAGACACCCCGCACG", 11}, //test 14
@@ -91,8 +92,15 @@ main(int argc, char ** argv)
     {"AAAAAAAAAAAAGAAAAAA",
      "AAAAAAAAAAAAGAAAA",
      27, 2, 4, 6, 1}, // test 24
-    {"A", "AAA", -5, 2, 4, 6, 1} // test 25
+    {"A", "AAA", -5, 2, 4, 6, 1}, // test 25
+    {"TGTGTTAATTAATTAATGCTTGTAGGA", "TATGTAGCTTATTCTATCCAAAGCAAT", -6, 2, 2, 5, 1}, //test 26
   };
+
+  if (swap_sequences)
+  {
+    for (auto & test : tests)
+      std::swap(test.seq1, test.seq2);
+  }
 
   // Run all tests if no specific tests are specified
   if (tests_to_run.size() == 0)
@@ -111,7 +119,7 @@ main(int argc, char ** argv)
     {
       std::cout << "\nINCORRECT. Score mismatch in test " << i
                 << ". Got score " << score
-                << " but I expected " << test.expected_score << "\n\n";
+                << " but I expected " << test.expected_score << "\n" << std::endl;
     }
     else
     {
@@ -122,13 +130,11 @@ main(int argc, char ** argv)
   for (auto i : tests_to_run)
   {
     assert(i < static_cast<long>(tests.size()));
+
     auto const & test = tests[i];
-    paw::AlignmentOptions<uint8_t> opts(false);
-    opts.set_match(test.match);
-    opts.set_mismatch(test.mismatch);
-    opts.set_gap_open(test.gap_open);
-    opts.set_gap_extend(test.gap_extend);
-    paw::AlignmentResults<uint8_t> const ar = paw::global_alignment(test.seq1, test.seq2, opts);
+    paw::AlignmentOptions<uint8_t> opts;
+    opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
+    paw::AlignmentResults<uint8_t> ar = paw::global_alignment(test.seq1, test.seq2, opts);
     test_if_expected(ar.score, test, i);
   }
 
@@ -137,14 +143,11 @@ main(int argc, char ** argv)
   for (auto i : tests_to_run)
   {
     auto const & test = tests[i];
-    paw::AlignmentOptions<uint8_t> opts(false);
-    opts.set_match(test.match);
-    opts.set_mismatch(test.mismatch);
-    opts.set_gap_open(test.gap_open);
-    opts.set_gap_extend(test.gap_extend);
-    paw::AlignmentResults<uint8_t> const ar = paw::global_alignment_score(test.seq1, test.seq2, opts);
+    paw::AlignmentOptions<uint8_t> opts;
+    opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
+    paw::AlignmentResults<uint8_t> ar = paw::global_alignment_score(test.seq1, test.seq2, opts);
     test_if_expected(ar.score, test, i);
   }
 
-  std::cout << "\n";
+  std::cout << std::endl;
 }
