@@ -1,13 +1,13 @@
-#add_executable(align_ex1 ex1_msa.cpp)
+#add_executable(align_ex1 align_ex1_msa.cpp)
 #target_link_libraries(align_ex1 shared)
 
-add_executable(align_ex2 ex2_libsimdpp.cpp)
+add_executable(align_ex2 align_ex2_libsimdpp.cpp)
 target_link_libraries(align_ex2 shared)
 
-add_executable(align_ex3 ex3_benchmarks.cpp)
+add_executable(align_ex3 align_ex3_tests.cpp)
 target_link_libraries(align_ex3 shared)
 
-add_executable(align_ex4 ex4_input_sequences.cpp)
+add_executable(align_ex4 align_ex4_input_sequences.cpp)
 target_link_libraries(align_ex4 shared)
 
 # Search for clang-tidy

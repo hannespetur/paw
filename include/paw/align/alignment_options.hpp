@@ -21,6 +21,7 @@ public:
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
 
+  bool continuous_alignment = false; // When to true, always continue with the same alignment as long as the query is the same
   std::string query{""};
   long query_size{0}; // Size of query sequence, sometimes also noted as 'm'
   long num_vectors{0}; // Number of SIMD vectors per row
@@ -130,12 +131,28 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
   std::string new_query(begin(seq), end(seq));
+  Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
 
   // If it is the same query we can reuse previously calculated numbers
   if (new_query == opt.query)
-    return;
+  {
+    if (!opt.continuous_alignment)
+    {
+      opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
+                            static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
+        );
 
-  Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
+      opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), min_value_pack);
+      opt.reductions.fill(0);
+
+#ifndef NDEBUG
+      opt.score_matrix.clear();
+#endif // NDEBUG
+    }
+
+    return;
+  }
+
   opt.query = std::move(new_query);
   opt.query_size = opt.query.size();
   opt.num_vectors = (opt.query_size + Tpack::length) / Tpack::length;
@@ -153,8 +170,7 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   opt.mismatch_val = opt.x_gain + opt.y_gain - opt.get_mismatch();
 
   opt.max_score_val = std::numeric_limits<Tuint>::max() - opt.match_val - opt.gap_open_val;
-  long const top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
-  opt.reductions.fill(-top_left_score);
+  opt.reductions.fill(0);
 
 #ifndef NDEBUG
   opt.score_matrix.clear();
@@ -168,6 +184,7 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
     {
       char const dna_base = DNA_BASES[i];
       auto & W = opt.W_profile[i];
+      W.clear(); // Clear previous elements
       W.reserve(opt.num_vectors);
 
       for (long v = 0; v < opt.num_vectors; ++v)
@@ -192,27 +209,108 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 }
 
 
+template<typename Tuint>
+void
+reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
+{
+  using Tpack = typename T<Tuint>::pack;
+  using Tmask = typename T<Tuint>::mask;
+  using Tarr_uint = typename T<Tuint>::arr_uint;
+
+  long const t = opt.num_vectors;
+  Tpack const max_score_pack = simdpp::make_int(opt.max_score_val);
+
+  if (simdpp::reduce_max(opt.vH_up[t - 1]) >= opt.max_score_val)
+  {
+    /// Reducing value losslessly
+    Tarr_uint vF0;
+    vF0.fill(0);
+    // Store the optimal scores in vector 0
+    simdpp::store_u(&vF0[0], opt.vF_up[0]);
+    assert(vF0.size() == opt.reductions.size());
+    Tarr_uint new_reductions;
+    new_reductions.fill(0);
+    assert(vF0.size() == new_reductions.size());
+    bool any_reductions = false;
+
+    for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
+    {
+      long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * opt.gap_open_val);
+
+      if (new_reduction_val > 0)
+      {
+        opt.reductions[e] += new_reduction_val;
+        new_reductions[e] = new_reduction_val;
+        any_reductions = true;
+      }
+    }
+
+    // Reduce values
+    if (any_reductions)
+    {
+      Tpack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
+
+      for (long v = 0; v < t; ++v)
+      {
+        opt.vF_up[v] = opt.vF_up[v] - new_reductions_pack;
+        opt.vH_up[v] = opt.vH_up[v] - new_reductions_pack;
+      }
+    }
+
+    Tpack const max_scores = opt.vH_up[t - 1];
+    Tuint const max_score = simdpp::reduce_max(max_scores);
+
+    if (max_score >= opt.max_score_val)
+    {
+      Tpack const two_gap_open_pack = simdpp::make_int(2 * opt.gap_open_val);
+
+      /// Reducing values lossily
+      Tmask is_about_to_overflow = max_scores >= max_score_pack;
+      Tpack overflow_reduction =
+        simdpp::blend(two_gap_open_pack,
+                      static_cast<Tpack>(simdpp::make_zero()),
+                      is_about_to_overflow
+        );
+
+      {
+        Tarr_uint overflow_reduction_arr;
+        overflow_reduction_arr.fill(0);
+        simdpp::store_u(&overflow_reduction_arr[0], overflow_reduction);
+
+        for (long e = 0; e < static_cast<long>(S / sizeof(Tuint)); ++e)
+          opt.reductions[e] += overflow_reduction_arr[e];
+      }
+
+      for (long v = 0; v < t; ++v)
+      {
+        opt.vH_up[v] = simdpp::max(opt.vH_up[v] - overflow_reduction, two_gap_open_pack);
+        opt.vF_up[v] = simdpp::max(opt.vF_up[v] - overflow_reduction, two_gap_open_pack);
+      }
+    }
+  }
+}
+
+
 #ifndef NDEBUG
 
 template<typename Tuint>
 inline void
-store_scores(AlignmentOptions<Tuint> & opt,
+store_vH_up_scores(AlignmentOptions<Tuint> & opt,
              long m,
-             typename T<Tuint>::vec_pack const & vX,
              long const i
   )
 {
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
-  long const t = vX.size();
+  long const t = opt.vH_up.size();
   assert(t > 0);
-  Tvec_uint vec(vX[0].length, 0);
+  Tvec_uint vec(opt.vH_up[0].length, 0);
   std::vector<Tvec_uint> mat(t, vec);
   std::vector<long> scores_row;
   scores_row.reserve(m + 1ul);
 
   for (long v = 0; v < t; ++v)
-    simdpp::store_u(&mat[v][0], vX[v]);
+    simdpp::store_u(&mat[v][0], opt.vH_up[v]);
 
   for (long j = 0; j <= m; ++j)
   {

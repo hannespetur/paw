@@ -30,7 +30,6 @@ global_alignment(Tseq const & seq1,
                  )
 {
   using Tpack = typename T<Tuint>::pack;
-  using Tmask = typename T<Tuint>::mask;
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tvec_uint = typename T<Tuint>::vec_uint;
   using Tarr_uint = typename T<Tuint>::arr_uint;
@@ -40,7 +39,7 @@ global_alignment(Tseq const & seq1,
   long const m = opt.query_size;
   long const t = opt.num_vectors; // Keep t as a local variable is it widely used
   long const n = std::distance(seq2.begin(), seq2.end());
-
+  Tuint const top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
   AlignmentResults<Tuint> ar;
   ar.mB = Backtrack<Tuint>(n, t);
   init_vH_up<Tuint>(opt.vH_up, opt.gap_open_val, std::numeric_limits<Tuint>::min());
@@ -48,12 +47,10 @@ global_alignment(Tseq const & seq1,
   Tvec_pack vF(opt.vF_up);
   Tvec_pack vE(opt.vF_up);
 
-  //Tarr_vec_pack W_profile;
 #ifndef NDEBUG
-  store_scores<Tuint>(opt, m, opt.vH_up, 0);
+  store_vH_up_scores(opt, m, 0);
 #endif // NDEBUG
 
-  Tpack const max_score_pack = simdpp::make_int(opt.max_score_val);
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
   Tpack const gap_open_pack_x = simdpp::make_int(opt.gap_open_val_x);
   Tpack const gap_open_pack_y = simdpp::make_int(opt.gap_open_val_y);
@@ -61,6 +58,8 @@ global_alignment(Tseq const & seq1,
   /// Start of outer loop
   for (long i = 0; i < n; ++i)
   {
+    reduce_too_high_scores(opt);
+
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
     if (i > 0 && opt.y_gain > opt.get_gap_extend())
     {
@@ -139,81 +138,12 @@ global_alignment(Tseq const & seq1,
       }
     }
 
-    if (simdpp::reduce_max(vH[t - 1]) >= opt.max_score_val)
-    {
-      /// Reducing value losslessly
-      Tarr_uint vF0;
-      vF0.fill(0);
-      // Store the optimal scores in vector 0
-      simdpp::store_u(&vF0[0], vF[0]);
-      assert(vF0.size() == opt.reductions.size());
-      Tarr_uint new_reductions;
-      new_reductions.fill(0);
-      assert(vF0.size() == new_reductions.size());
-      bool any_reductions = false;
-
-      for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
-      {
-        long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * opt.gap_open_val);
-
-        if (new_reduction_val > 0)
-        {
-          opt.reductions[e] += new_reduction_val;
-          new_reductions[e] = new_reduction_val;
-          any_reductions = true;
-        }
-      }
-
-      // Reduce values
-      if (any_reductions)
-      {
-        Tpack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
-
-        for (long v = 0; v < t; ++v)
-        {
-          vF[v] = vF[v] - new_reductions_pack;
-          vH[v] = vH[v] - new_reductions_pack;
-        }
-      }
-
-      Tpack const max_scores = vH[t - 1];
-      Tuint const max_score = simdpp::reduce_max(max_scores);
-
-      if (max_score >= opt.max_score_val)
-      {
-        Tpack const two_gap_open_pack = simdpp::make_int(2 * opt.gap_open_val);
-
-        /// Reducing values lossily
-        Tmask is_about_to_overflow = max_scores >= max_score_pack;
-        Tpack overflow_reduction =
-          simdpp::blend(two_gap_open_pack,
-                        static_cast<Tpack>(simdpp::make_zero()),
-                        is_about_to_overflow
-                        );
-
-        {
-          Tarr_uint overflow_reduction_arr;
-          overflow_reduction_arr.fill(0);
-          simdpp::store_u(&overflow_reduction_arr[0], overflow_reduction);
-
-          for (long e = 0; e < static_cast<long>(S / sizeof(Tuint)); ++e)
-            opt.reductions[e] += overflow_reduction_arr[e];
-        }
-
-        for (long v = 0; v < t; ++v)
-        {
-          vH[v] = simdpp::max(vH[v] - overflow_reduction, two_gap_open_pack);
-          vF[v] = simdpp::max(vF[v] - overflow_reduction, two_gap_open_pack);
-        }
-      }
-    }
-
-#ifndef NDEBUG
-    store_scores(opt, m, vH, i + 1l);
-#endif
-
     std::swap(vF, opt.vF_up);
     std::swap(vH, opt.vH_up);
+
+#ifndef NDEBUG
+    store_vH_up_scores(opt, m, i + 1l);
+#endif
   } /// End of outer loop
 
   Tvec_uint arr(S / sizeof(Tuint));
@@ -221,8 +151,12 @@ global_alignment(Tseq const & seq1,
 
   ar.score = static_cast<long>(arr[m / t])
              + static_cast<long>(opt.reductions[m / t])
+             - top_left_score
              - n * opt.y_gain
              - m * opt.x_gain;
+
+  //std::cout << "final score = " << static_cast<long>(arr[m / t]) << " + " << static_cast<long>(opt.reductions[m / t])
+  //  << " - " << n * opt.y_gain << " - " << m * opt.x_gain << "\n";
 
   /*
   {
