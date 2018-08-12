@@ -112,10 +112,10 @@ public:
   Tuint get_gap_extend() const {return gap_extend;}
 
 
-//#ifndef NDEBUG
+#ifndef NDEBUG
   // Store the score matrix in debug mode
   std::vector<std::vector<long> > score_matrix;
-//#endif // not NDEBUG
+#endif // not NDEBUG
 
 };
 

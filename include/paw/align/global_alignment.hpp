@@ -39,7 +39,6 @@ global_alignment(Tseq const & seq1,
   long const m = opt.query_size;
   long const t = opt.num_vectors; // Keep t as a local variable is it widely used
   long const n = std::distance(seq2.begin(), seq2.end());
-  //Tuint const top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
   AlignmentResults<Tuint> ar;
   ar.mB = Backtrack<Tuint>(n, t);
   init_vH_up<Tuint>(opt.vH_up, opt.gap_open_val, std::numeric_limits<Tuint>::min());
@@ -100,8 +99,8 @@ global_alignment(Tseq const & seq1,
       ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
     } /// Done calculating vectors v=1,...,t-1
 
-    /// Deletions pass 1
     {
+      /// Deletions pass 1
       vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x, std::numeric_limits<Tuint>::min(), opt.reductions);
 
       for (long v = 1; v < t; ++v)
@@ -109,51 +108,52 @@ global_alignment(Tseq const & seq1,
         vE[v] = vH[v - 1] - gap_open_pack_x;
         ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
       }
-    }/// Done with deletion pass 1
 
-
-    //std::cout << "vH 1 "; print_score_vector_standard<Tuint>(m, vH, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-    //std::cout << "vE 1 "; print_score_vector_standard<Tuint>(m, vE, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-    //std::cout << "vEu1 "; print_score_vector_standard<Tuint>(m, vE, 0, 0, 0, opt.reductions);
-
-    /// Deletions pass 2
-    {
-      // Calculate vE[0] after vH[t - 1] has been calculated
+      Tarr_uint vE0r;
+      vE0r.fill(std::numeric_limits<Tuint>::min());
       Tarr_uint vE0;
       vE0.fill(std::numeric_limits<Tuint>::min());
+      simdpp::store_u(&vE0[0], vE[0]);
 
-      /// Check for deletions in vector 0
-      Tpack vE0_pack = shift_one_right<Tuint>(vE[t - 1], std::numeric_limits<Tuint>::min(), opt.reductions);
-      simdpp::store_u(&vE0[0], vE0_pack);
+      // Check for deletions in vector 0
+      Tpack vE0r_pack = shift_one_right<Tuint>(vE[t - 1], std::numeric_limits<Tuint>::min(), opt.reductions);
+      simdpp::store_u(&vE0r[0], vE0r_pack);
+      bool is_improved = false;
 
-      for (long e = 2; e < static_cast<long>(vE0.size()); ++e)
+      for (long e = 1; e < static_cast<long>(vE0r.size()); ++e)
       {
-        long val = static_cast<long>(vE0[e - 1]) + opt.reductions[e - 1] - opt.reductions[e];
+        long val = static_cast<long>(vE0r[e - 1]) + opt.reductions[e - 1] - opt.reductions[e];
 
-        if (val > static_cast<long>(vE0[e]))
-          vE0[e] = val;
-      }
+        if (val > static_cast<long>(vE0r[e]))
+          vE0r[e] = val;
 
-      //std::cout << "vH 2 "; print_score_vector_standard<Tuint>(m, vH, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-      //std::cout << "vE 2 "; print_score_vector_standard<Tuint>(m, vE, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-      //std::cout << "vEu2 "; print_score_vector_standard<Tuint>(m, vE, 0, 0, 0, opt.reductions);
-
-      {
-        Tpack const new_vE0_pack = simdpp::load_u(&vE0[0]);
-        ar.mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], new_vE0_pack));
-        ar.mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
-
-        /// Check for deletions in vectors 1,...,t-1
-        for (long v = 1; v < t; ++v)
+        if (vE0r[e] > vE0[e])
         {
-          ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
-          ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+          vE0[e] = vE0r[e];
+          is_improved = true;
+        }
+        else
+        {
+          vE0r[e] = vE0[e];
         }
       }
 
-      //std::cout << "vH 3 "; print_score_vector_standard<Tuint>(m, vH, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-      //std::cout << "vE 3 "; print_score_vector_standard<Tuint>(m, vH, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
-      //std::cout << "vEu3 "; print_score_vector_standard<Tuint>(m, vE, 0, 0, 0, opt.reductions);
+      if (is_improved)
+        ar.mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], simdpp::load_u(&vE0r[0])));
+
+      ar.mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
+      /// Done with deletion pass 1
+
+      /// Deletions pass 2
+      if (is_improved)
+      {
+        for (long v = 1; v < t; ++v)
+          ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+      }
+
+      for (long v = 1; v < t; ++v)
+        ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+      /// Done with deletion pass 2
     }
 
     std::swap(vF, opt.vF_up);

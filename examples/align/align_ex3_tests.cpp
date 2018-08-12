@@ -136,7 +136,7 @@ print_matrix(std::vector<std::vector<long> > const & sm)
   {
     for (long j = 0 ; j < (long)sm[i].size(); ++j)
     {
-      std::cout << std::setw(5) << sm[i][j];
+      std::cout << std::setw(6) << sm[i][j];
     }
 
     std::cout << "\n";
@@ -308,10 +308,10 @@ main(int argc, char ** argv)
 #ifndef NDEBUG
       if (score_matrix != opts.score_matrix)
       {
-        std::cout << "First matrix (transposed):\n";
-        print_matrix(score_matrix);
-        std::cout << "\nSecond matrix:\n";
-        print_matrix(opts.score_matrix);
+        //std::cout << "First matrix (transposed):\n";
+        //print_matrix(score_matrix);
+        //std::cout << "\nSecond matrix:\n";
+        //print_matrix(opts.score_matrix);
         assert(score_matrix.size() == opts.score_matrix.size());
 
         for (long r = 0; r < (long)score_matrix.size(); ++r)
@@ -324,10 +324,13 @@ main(int argc, char ** argv)
             if (score_matrix[r][c] != opts.score_matrix[r][c])
             {
               std::cout << "row, col = " << r << "," << c << " mismatch " << score_matrix[r][c] << " != " << opts.score_matrix[r][c] << "\n";
+              r = score_matrix.size();
+              break;
             }
           }
         }
 
+        are_all_tests_ok = false;
         std::cout << "mismatch in score matrixes\n";
       }
 #endif // NDEBUG
