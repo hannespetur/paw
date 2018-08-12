@@ -29,6 +29,7 @@ public:
   Tvec_pack vF_up;
   Tuint x_gain{0};
   Tuint y_gain{0};
+  Tuint top_left_score{0};
 
   Tuint match_val{0};
   Tuint mismatch_val{0};
@@ -67,7 +68,7 @@ public:
 
 
   AlignmentOptions &
-  set_match(int val)
+  set_match(long val)
   {
     match = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
     return *this;
@@ -75,7 +76,7 @@ public:
 
 
   AlignmentOptions &
-  set_mismatch(int val)
+  set_mismatch(long val)
   {
     mismatch = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
     return *this;
@@ -83,7 +84,7 @@ public:
 
 
   AlignmentOptions &
-  set_gap_open(int val)
+  set_gap_open(long val)
   {
     gap_open = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
     return *this;
@@ -91,7 +92,7 @@ public:
 
 
   AlignmentOptions &
-  set_gap_extend(int val)
+  set_gap_extend(long val)
   {
     gap_extend = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
     return *this;
@@ -162,6 +163,7 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   opt.gap_open_val_x = opt.get_gap_open() - opt.x_gain;
   opt.gap_open_val_y = opt.get_gap_open() - opt.y_gain;
   opt.gap_open_val = std::max(opt.gap_open_val_x, opt.gap_open_val_y);
+  opt.top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
   opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
                         static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
                         );
@@ -319,7 +321,7 @@ store_vH_up_scores(AlignmentOptions<Tuint> & opt,
     assert(v < static_cast<long>(mat.size()));
     assert(e < static_cast<long>(mat[v].size()));
 
-    scores_row.push_back(static_cast<long>(mat[v][e] - opt.y_gain * i - opt.x_gain * j + opt.reductions[e]));
+    scores_row.push_back(static_cast<long>(mat[v][e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j + opt.reductions[e]));
   }
 
   //for (auto const val : scores_row)

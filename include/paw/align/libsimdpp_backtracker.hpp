@@ -56,7 +56,7 @@ struct Backtrack
   Tuint static const INS_E_BT = 1 << INS_E_SHIFT;
 
   std::vector<Tvec_pack> matrix;
-  Tarr_uint tmp_vec;
+  mutable Tarr_uint tmp_vec;
 
   Backtrack()
     : Backtrack(0, 0)
@@ -143,7 +143,7 @@ struct Backtrack
   is_del(long i,
          long const v,
          long const e
-         )
+         ) const
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_BT;
@@ -159,7 +159,7 @@ struct Backtrack
   is_ins(long const i,
          long const v,
          long const e
-         )
+         ) const
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_BT;
@@ -170,7 +170,7 @@ struct Backtrack
   is_del_extend(long const i /*row index*/,
                 long const v /*vector index*/,
                 long const e /*element index*/
-                )
+                ) const
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_E_BT;
@@ -181,7 +181,7 @@ struct Backtrack
   is_ins_extend(long const i /*row index*/,
                 long const v /*vector index*/,
                 long const e /*element index*/
-                )
+                ) const
   {
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_E_BT;

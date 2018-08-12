@@ -38,6 +38,112 @@ struct Test
 };
 
 
+template<typename Tuint>
+long
+calculate_score_from_aligned_strings(paw::AlignmentOptions<Tuint> const & opts,
+  std::pair<std::string, std::string> const & a_strings
+  )
+{
+  assert(a_strings.first.size() == a_strings.second.size());
+  bool is_ins = false;
+  bool is_del = false;
+  long score = 0;
+
+  for (long i = 0; i < (long)a_strings.first.size(); ++i)
+  {
+    auto const & c1 = a_strings.first[i];
+    auto const & c2 = a_strings.second[i];
+
+    assert(c1 != '-' || c2 != '-');
+
+    if (c1 == '-')
+    {
+      // DEL
+      if (is_del)
+      {
+        // DEL extension
+        score -= (long)opts.get_gap_extend();
+      }
+      else
+      {
+        // DEL open
+        score -= (long)opts.get_gap_open();
+        is_del = true;
+      }
+
+      is_ins = false;
+    }
+    else if (c2 == '-')
+    {
+      // INS
+      if (is_ins)
+      {
+        // INS extension
+        score -= (long)opts.get_gap_extend();
+      }
+      else
+      {
+        // INS open
+        score -= (long)opts.get_gap_open();
+        is_ins = true;
+      }
+
+      is_del = false;
+    }
+    else
+    {
+      // Match or mismatch
+      if (c1 == c2)
+        score += (long)opts.get_match();
+      else
+        score -= (long)opts.get_mismatch();
+
+      is_del = false;
+      is_ins = false;
+    }
+  }
+
+  return score;
+}
+
+
+std::vector<std::vector<long> >
+transpose(std::vector<std::vector<long> > const & sm)
+{
+  if (sm.size() == 0)
+    return sm;
+
+  std::vector<std::vector<long> > m(sm[0].size(), std::vector<long>(sm.size()));
+
+  for (long i = 0 ; i < (long)sm.size(); ++i)
+  {
+    for (long j = 0 ; j < (long)sm[i].size(); ++j)
+    {
+      assert(j < (long)m.size());
+      assert(i < (long)m[j].size());
+      m[j][i] = sm[i][j];
+    }
+  }
+
+  return m;
+}
+
+
+void
+print_matrix(std::vector<std::vector<long> > const & sm)
+{
+  for (long i = 0 ; i < (long)sm.size(); ++i)
+  {
+    for (long j = 0 ; j < (long)sm[i].size(); ++j)
+    {
+      std::cout << std::setw(5) << sm[i][j];
+    }
+
+    std::cout << "\n";
+  }
+}
+
+
 int
 main(int argc, char ** argv)
 {
@@ -72,7 +178,7 @@ main(int argc, char ** argv)
 
   std::vector<Test> tests =
   {
-    {"GGG", "GGG", 6, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/}, //test 0
+    {"GGG", "GGG", 6 /*exp. score*/, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/}, //test 0
     {"GGGG", "GGG", 1}, //test 1
     {"GGGGG", "GGG", 0}, //test 2
     {"GGG", "GGGG", 1}, //test 3
@@ -105,7 +211,9 @@ main(int argc, char ** argv)
     {"TGTGTTAATTAATTAATGCTTGTAGGA", "TATGTAGCTTATTCTATCCAAAGCAAT", -6, 2, 2, 5, 1}, //test 26
     {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATA",
      "TATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATA",
-     666, 1, -2, -4, -1} // test 27
+     666, 1, -2, -4, -1}, // test 27
+    {"ACGT", "GT", -2, 2, -2, -5, -1}, // test 28
+    {"T", "TTTTTCCCCCAAGGGGGTTTTT", -23} //test 29
   };
 
   // Run all tests if no specific tests are specified
@@ -121,24 +229,61 @@ main(int argc, char ** argv)
   long num_passed_tests = 0;
   long num_tests = tests_to_run.size();
 
-  if (!swap_only && !noswap_only)
-    num_tests *= 2l;
-
-  auto test_if_expected_score = [&](long const score, Test const & test, long i, bool is_swapped)
+  auto test_if_expected_score = [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i, bool is_swapped) -> bool
   {
+    bool are_all_tests_ok = true;
+    opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
+    paw::AlignmentResults<uint8_t> ar;
+
+    if (is_swapped)
+      ar = paw::global_alignment(test.seq2, test.seq1, opts);
+    else
+      ar = paw::global_alignment(test.seq1, test.seq2, opts);
+
     std::string test_suffix;
 
     if (is_swapped)
       test_suffix = " (swap)";
 
-    if (score != test.expected_score)
+    if (ar.score != test.expected_score)
     {
-      std::cout << "\nINCORRECT. Score mismatch in test " << i << test_suffix
-                << ". Got score " << score
+      std::cout << "\nINCORRECT. Final score mismatch in test " << i << test_suffix
+                << ". Got score " << ar.score
                 << " but I expected " << test.expected_score << "\n" << std::endl;
+      are_all_tests_ok = false;
     }
 
-    ++num_passed_tests;
+    std::pair<std::string, std::string> aligned_strings;
+
+    if (is_swapped)
+      aligned_strings = ar.get_aligned_strings(test.seq2, test.seq1);
+    else
+      aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
+
+    long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
+
+    if (score_aligned_strings != ar.score)
+    {
+      std::cout << "\nINCORRECT. Traceback error, score from aligned strings does not match in test " << i << test_suffix
+                << ". Got score " << score_aligned_strings
+                << " but I expected " << test.expected_score << "\n" << std::endl;
+      are_all_tests_ok = false;
+    }
+
+#ifndef NDEBUG
+    assert(opts.score_matrix.size() > 0);
+    assert(opts.score_matrix[0].size() > 0);
+
+    if (opts.score_matrix.back().back() != test.expected_score)
+    {
+      std::cout << "\nINCORRECT. Incorrect final score of the score matrix in test " << i << test_suffix
+        << ".  Got score " << opts.score_matrix.back().back()
+        << " but I expected " << test.expected_score << "\n" << std::endl;
+      are_all_tests_ok = false;
+    }
+#endif
+
+    return are_all_tests_ok;
   };
 
   for (auto i : tests_to_run)
@@ -148,36 +293,54 @@ main(int argc, char ** argv)
     auto const & test = tests[i];
     bool is_swapped = !noswap_only && swap_only;
     paw::AlignmentOptions<uint8_t> opts;
-    opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
-    paw::AlignmentResults<uint8_t> ar;
-
-    if (is_swapped)
-      ar = paw::global_alignment(test.seq2, test.seq1, opts);
-    else
-      ar = paw::global_alignment(test.seq1, test.seq2, opts);
-
-    test_if_expected_score(ar.score, test, i, is_swapped);
+    bool are_all_tests_ok = test_if_expected_score(opts, test, i, is_swapped);
 
     if (!swap_only && !noswap_only)
     {
       assert(!is_swapped);
       // Do also swapped
-      paw::AlignmentResults<uint8_t> ar_swap = paw::global_alignment(test.seq2, test.seq1, opts);
-      test_if_expected_score(ar_swap.score, test, i, !is_swapped);
+#ifndef NDEBUG
+      std::vector<std::vector<long> > score_matrix = transpose(opts.score_matrix);
+
+#endif // NDEBUG
+      are_all_tests_ok &= test_if_expected_score(opts, test, i, !is_swapped);
+
+#ifndef NDEBUG
+      if (score_matrix != opts.score_matrix)
+      {
+        std::cout << "First matrix (transposed):\n";
+        print_matrix(score_matrix);
+        std::cout << "\nSecond matrix:\n";
+        print_matrix(opts.score_matrix);
+        assert(score_matrix.size() == opts.score_matrix.size());
+
+        for (long r = 0; r < (long)score_matrix.size(); ++r)
+        {
+          are_all_tests_ok = false;
+          assert(score_matrix[r].size() == opts.score_matrix[r].size());
+
+          for (long c = 0; c < (long)score_matrix[r].size(); ++c)
+          {
+            if (score_matrix[r][c] != opts.score_matrix[r][c])
+            {
+              std::cout << "row, col = " << r << "," << c << " mismatch " << score_matrix[r][c] << " != " << opts.score_matrix[r][c] << "\n";
+            }
+          }
+        }
+
+        std::cout << "mismatch in score matrixes\n";
+      }
+#endif // NDEBUG
     }
+
+    if (are_all_tests_ok)
+      ++num_passed_tests;
   }
 
   std::cout << num_passed_tests << "/" << num_tests << " tests passed." << std::endl;
 
-  //std::cout << "\n== global_alignment_score ==\n";
-//
-  //for (auto i : tests_to_run)
-  //{
-  //  auto const & test = tests[i];
-  //  paw::AlignmentOptions<uint8_t> opts;
-  //  opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
-  //  paw::AlignmentResults<uint8_t> ar = paw::global_alignment_score(test.seq1, test.seq2, opts);
-  //  test_if_expected_score(ar.score, test, i, false);
-  //}
-//
+  if (num_passed_tests != num_tests)
+    return EXIT_FAILURE;
+
+  return EXIT_SUCCESS;
 }

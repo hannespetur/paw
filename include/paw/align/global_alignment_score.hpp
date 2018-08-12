@@ -276,8 +276,6 @@ global_alignment_score(Tseq const & seq1,
              - n * y_gain
              - m * x_gain;
 
-  ar.last_vF = std::move(vF_up);
-  ar.last_vH = std::move(vH_up);
   return ar;
 }
 
