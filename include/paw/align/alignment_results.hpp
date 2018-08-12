@@ -32,11 +32,6 @@ template<typename Tseq>
 std::pair<std::string, std::string>
 AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) const
 {
-  long m = query_end;
-  long n = database_end;
-
-  assert(m <= (long)q.size());
-  assert(n <= (long)d.size());
   long i = database_end;
   long j = query_end;
 
@@ -44,13 +39,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
   assert(i <= (long)d.size());
 
   std::pair<std::string, std::string> s;
-
-  long del_count = 0;
-  long ins_count = 0;
-  long del_ext_count = 0;
-  long ins_ext_count = 0;
-  long match_count = 0;
-  long mismatch_count = 0;
 
   /*
   if (m < static_cast<long>(q.size()))
@@ -73,7 +61,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     s.first.push_back(q[j - 1]);
     s.second.push_back('-');
     --j;
-    ++del_count;
   };
 
   auto add_del_ext = [&]()
@@ -84,7 +71,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     s.first.push_back(q[j - 1]);
     s.second.push_back('-');
     --j;
-    ++del_ext_count;
   };
 
   auto add_ins = [&]()
@@ -95,7 +81,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     s.first.push_back('-');
     s.second.push_back(d[i - 1]);
     --i;
-    ++ins_count;
   };
 
   auto add_ins_ext = [&]()
@@ -106,7 +91,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     s.first.push_back('-');
     s.second.push_back(d[i - 1]);
     --i;
-    ++ins_ext_count;
   };
 
   auto add_sub = [&]()
@@ -116,11 +100,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     assert(i > 0l);
     assert(i <= (long)d.size());
     //std::cout << "SUB SELECTED " << q[j - 1] << " " << d[i - 1] << "\n";
-
-    if (q[j - 1] == d[i - 1])
-      ++match_count;
-    else
-      ++mismatch_count;
 
     s.first.push_back(q[j - 1]);
     s.second.push_back(d[i - 1]);
@@ -183,8 +162,6 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
   };
 
   assert(out.first.size() == out.second.size());
-
-  //std::cout << out.first << "\n" << out.second << std::endl;
   return out;
 }
 

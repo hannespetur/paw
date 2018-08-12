@@ -100,14 +100,17 @@ global_alignment(Tseq const & seq1,
       ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
     } /// Done calculating vectors v=1,...,t-1
 
-    vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x, std::numeric_limits<Tuint>::min(), opt.reductions);
-
     /// Deletions pass 1
-    for (long v = 1; v < t; ++v)
     {
-      vE[v] = vH[v - 1] - gap_open_pack_x;
-      ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
-    } /// Done with deletion pass 1
+      vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x, std::numeric_limits<Tuint>::min(), opt.reductions);
+
+      for (long v = 1; v < t; ++v)
+      {
+        vE[v] = vH[v - 1] - gap_open_pack_x;
+        ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+      }
+    }/// Done with deletion pass 1
+
 
     //std::cout << "vH 1 "; print_score_vector_standard<Tuint>(m, vH, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
     //std::cout << "vE 1 "; print_score_vector_standard<Tuint>(m, vE, opt.top_left_score, opt.x_gain, opt.y_gain * (i + 1), opt.reductions);
