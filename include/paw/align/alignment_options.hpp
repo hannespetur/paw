@@ -21,6 +21,8 @@ public:
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
 
+  bool left_column_gap_open_free = false;
+  bool right_column_gap_open_free = false;
   bool continuous_alignment = false; // When to true, always continue with the same alignment as long as the query is the same
   std::string query{""};
   long query_size{0}; // Size of query sequence, sometimes also noted as 'm'
@@ -52,10 +54,9 @@ private:
   bool top_row_free = false;
   bool bottom_row_free = false;
   bool gap_open_free = false;
-  bool top_row_gap_open_free = gap_open_free;
-  bool bottom_row_gap_open_free = gap_open_free;
-  bool left_column_gap_open_free = gap_open_free;
-  bool right_column_gap_open_free = gap_open_free;
+  bool top_row_gap_open_free = false;
+  bool bottom_row_gap_open_free = false;
+
 
   /// Derived options
   long last_score{0};
@@ -115,6 +116,8 @@ public:
 #ifndef NDEBUG
   // Store the score matrix in debug mode
   std::vector<std::vector<long> > score_matrix;
+  std::vector<std::vector<long> > vE_scores;
+  std::vector<std::vector<long> > vF_scores;
 #endif // not NDEBUG
 
 };
@@ -148,6 +151,8 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 
 #ifndef NDEBUG
       opt.score_matrix.clear();
+      opt.vE_scores.clear();
+      opt.vF_scores.clear();
 #endif // NDEBUG
     }
 
@@ -176,6 +181,8 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 
 #ifndef NDEBUG
   opt.score_matrix.clear();
+  opt.vE_scores.clear();
+  opt.vF_scores.clear();
 #endif // NDEBUG
 
   /// Calculate DNA W_profile
@@ -297,37 +304,45 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
 
 template<typename Tuint>
 inline void
-store_vH_up_scores(AlignmentOptions<Tuint> & opt,
+store_scores(AlignmentOptions<Tuint> & opt,
              long m,
-             long const i
+             long const i,
+             typename T<Tuint>::vec_pack const & vE
   )
 {
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
-  long const t = opt.vH_up.size();
-  assert(t > 0);
-  Tvec_uint vec(opt.vH_up[0].length, 0);
-  std::vector<Tvec_uint> mat(t, vec);
-  std::vector<long> scores_row;
-  scores_row.reserve(m + 1ul);
-
-  for (long v = 0; v < t; ++v)
-    simdpp::store_u(&mat[v][0], opt.vH_up[v]);
-
-  for (long j = 0; j <= m; ++j)
+  auto get_score_row = [&](typename T<Tuint>::vec_pack const & vX) -> std::vector<long>
   {
-    long const v = j % t;
-    long const e = j / t;
-    assert(v < static_cast<long>(mat.size()));
-    assert(e < static_cast<long>(mat[v].size()));
+    long const t = vX.size();
+    assert(t > 0);
+    Tvec_uint vec(vX[0].length, 0);
+    std::vector<Tvec_uint> mat(t, vec);
+    std::vector<long> scores_row;
+    scores_row.reserve(m + 1ul);
 
-    scores_row.push_back(static_cast<long>(mat[v][e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j + opt.reductions[e]));
-  }
+    for (long v = 0; v < t; ++v)
+      simdpp::store_u(&mat[v][0], opt.vH_up[v]);
 
-  //for (auto const val : scores_row)
-  //  std::cout << std::setw(5) << val;
-  //std::cout << std::endl;
-  opt.score_matrix.push_back(std::move(scores_row));
+    for (long j = 0; j <= m; ++j)
+    {
+      long const v = j % t;
+      long const e = j / t;
+      assert(v < static_cast<long>(mat.size()));
+      assert(e < static_cast<long>(mat[v].size()));
+
+      long const adjustment = opt.reductions[e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j;
+      scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
+    }
+
+    return scores_row;
+  };
+
+  opt.score_matrix.push_back(get_score_row(opt.vH_up));
+  opt.vE_scores.push_back(get_score_row(vE));
+  opt.vF_scores.push_back(get_score_row(opt.vF_up));
+  assert(opt.score_matrix.size() == opt.score_matrix.size());
+  assert(opt.vE_scores.size() == opt.vF_scores.size());
 }
 
 #endif // NDEBUG

@@ -18,6 +18,7 @@ struct Test
   long gap_extend = 1;
 
   Test() = default;
+  ~Test() = default;
 
   Test(std::string _seq1,
        std::string _seq2,
@@ -129,6 +130,7 @@ transpose(std::vector<std::vector<long> > const & sm)
 }
 
 
+/*
 void
 print_matrix(std::vector<std::vector<long> > const & sm)
 {
@@ -142,6 +144,7 @@ print_matrix(std::vector<std::vector<long> > const & sm)
     std::cout << "\n";
   }
 }
+*/
 
 
 int
@@ -213,7 +216,11 @@ main(int argc, char ** argv)
      "TATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATA",
      666, 1, -2, -4, -1}, // test 27
     {"ACGT", "GT", -2, 2, -2, -5, -1}, // test 28
-    {"T", "TTTTTCCCCCAAGGGGGTTTTT", -23} //test 29
+    {"T", "TTTTTCCCCCAAGGGGGTTTTT", -23}, //test 29
+    {"GTAGAGGGGGTTGGGCCAAGGTT", "G", -24}, // test 30
+    {"GTAGAGGGGGTTGGGCCAAGGTT", "GG", 0, 0, 0, 0, 0}, // test 31
+    {"GTAGAGGGGGTTGGGCCAAGGTT", "GTAGGGGGTTGCAGT", 15, 1, 0, 0, 0}, // test 32
+    {"GTAGAGGGGGTTGGGCCAAGGTT", "GTAGGGGGTTGCAGT", -8, 0, 1, 1, 1}, // test 33
   };
 
   // Run all tests if no specific tests are specified
@@ -297,33 +304,42 @@ main(int argc, char ** argv)
 
     if (!swap_only && !noswap_only)
     {
-      assert(!is_swapped);
-      // Do also swapped
 #ifndef NDEBUG
       std::vector<std::vector<long> > score_matrix = transpose(opts.score_matrix);
+      std::vector<std::vector<long> > vE_matrix = transpose(opts.vE_scores);
+      std::vector<std::vector<long> > vF_matrix = transpose(opts.vF_scores);
 
+      // Tests for the transpose function
+      assert(score_matrix.size() == opts.score_matrix[0].size());
+      assert(score_matrix[0].size() == opts.score_matrix.size());
+      assert(score_matrix[0][0] == opts.score_matrix[0][0]);
+      assert(score_matrix[0][1] == opts.score_matrix[1][0]);
+      assert(score_matrix[1][0] == opts.score_matrix[0][1]);
+      assert(score_matrix[1][1] == opts.score_matrix[1][1]);
+      assert(vE_matrix.size() == opts.vE_scores[0].size());
+      assert(vE_matrix[0].size() == opts.vE_scores.size());
+      assert(vF_matrix.size() == opts.vF_scores[0].size());
+      assert(vF_matrix[0].size() == opts.vF_scores.size());
 #endif // NDEBUG
+
+      assert(!is_swapped); // Do align with swapped sequence
       are_all_tests_ok &= test_if_expected_score(opts, test, i, !is_swapped);
 
 #ifndef NDEBUG
       if (score_matrix != opts.score_matrix)
       {
-        //std::cout << "First matrix (transposed):\n";
-        //print_matrix(score_matrix);
-        //std::cout << "\nSecond matrix:\n";
-        //print_matrix(opts.score_matrix);
         assert(score_matrix.size() == opts.score_matrix.size());
 
-        for (long r = 0; r < (long)score_matrix.size(); ++r)
+        for (long r = 0; r < (long) score_matrix.size(); ++r)
         {
-          are_all_tests_ok = false;
           assert(score_matrix[r].size() == opts.score_matrix[r].size());
 
-          for (long c = 0; c < (long)score_matrix[r].size(); ++c)
+          for (long c = 0; c < (long) score_matrix[r].size(); ++c)
           {
             if (score_matrix[r][c] != opts.score_matrix[r][c])
             {
-              std::cout << "row, col = " << r << "," << c << " mismatch " << score_matrix[r][c] << " != " << opts.score_matrix[r][c] << "\n";
+              std::cout << "row, col = " << r << "," << c << " mismatch " << score_matrix[r][c] << " != "
+                        << opts.score_matrix[r][c] << "\n";
               r = score_matrix.size();
               break;
             }
@@ -332,6 +348,35 @@ main(int argc, char ** argv)
 
         are_all_tests_ok = false;
         std::cout << "mismatch in score matrixes\n";
+      }
+
+      // Also test if vF and vE are transposed (except for the first row and col)
+      assert(vE_matrix.size() == opts.vF_scores.size());
+
+      for (long r = 1; r < static_cast<long>(vE_matrix.size()); ++r)
+      {
+        assert(vE_matrix[r].size() == opts.vF_scores[r].size());
+
+        for (long c = 1; c < static_cast<long>(vE_matrix[r].size()); ++c)
+        {
+          if (vE_matrix[r][c] != opts.vF_scores[r][c])
+          {
+            std::cout << "vE' vs vF. row, col = " << r << "," << c << " mismatch " << vE_matrix[r][c] << " != "
+                      << opts.vF_scores[r][c] << "\n";
+            r = vE_matrix.size();
+            are_all_tests_ok = false;
+            break;
+          }
+
+          if (vF_matrix[r][c] != opts.vE_scores[r][c])
+          {
+            std::cout << "vE vs vF'. row, col = " << r << "," << c << " mismatch " << vF_matrix[r][c] << " != "
+                      << opts.vE_scores[r][c] << "\n";
+            r = vE_matrix.size();
+            are_all_tests_ok = false;
+            break;
+          }
+        }
       }
 #endif // NDEBUG
     }

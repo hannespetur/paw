@@ -47,10 +47,9 @@ global_alignment(Tseq const & seq1,
   Tvec_pack vE(opt.vF_up);
 
 #ifndef NDEBUG
-  store_vH_up_scores(opt, m, 0);
+  store_scores(opt, m, 0, vE);
 #endif // NDEBUG
 
-  //Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
   Tpack const gap_open_pack_x = simdpp::make_int(opt.gap_open_val_x);
   Tpack const gap_open_pack_y = simdpp::make_int(opt.gap_open_val_y);
 
@@ -83,11 +82,16 @@ global_alignment(Tseq const & seq1,
 
     // Check if any insertion have highest values
     vF[0] = opt.vH_up[0] - gap_open_pack_y;
+
+    //if (opt.left_column_gap_open_free)
+    //{
+    //  Tuint const val = simdpp::extract<0>(opt.vH_up[0]) + opt.y_gain;
+    //  simdpp::insertvF[0]
+    //}
+
     ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], opt.vF_up[0]));
     ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
-
-    //vE[0] = min_value_pack;
 
     /// Calculate vectors v=1,...,t-1
     for (long v = 1; v < t; ++v)
@@ -160,7 +164,7 @@ global_alignment(Tseq const & seq1,
     std::swap(vH, opt.vH_up);
 
 #ifndef NDEBUG
-    store_vH_up_scores(opt, m, i + 1l);
+    store_scores(opt, m, i + 1l, vE);
 #endif
   } /// End of outer loop
 
@@ -175,14 +179,6 @@ global_alignment(Tseq const & seq1,
              - n * opt.y_gain
              - m * opt.x_gain;
   ar.t = t;
-
-  //std::cout << "final score = " << static_cast<long>(arr[m / t]) << " + " << static_cast<long>(opt.reductions[m / t])
-  //  << " - " << n * opt.y_gain << " - " << m * opt.x_gain << "\n";
-
-  /*
-
-  */
-
   return ar;
 }
 
