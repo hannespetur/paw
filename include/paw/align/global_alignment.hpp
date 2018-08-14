@@ -39,6 +39,8 @@ global_alignment(Tseq const & seq1,
   long const m = opt.query_size;
   long const t = opt.num_vectors; // Keep t as a local variable is it widely used
   long const n = std::distance(seq2.begin(), seq2.end());
+  long const right_v = m % t; // Vector that contains the rightmost element
+  long const right_e = m / t; // The right-most element (in vector 'right_v')
   AlignmentResults<Tuint> ar;
   ar.mB = Backtrack<Tuint>(n, t);
   init_vH_up<Tuint>(opt.vH_up, opt.gap_open_val, std::numeric_limits<Tuint>::min());
@@ -83,11 +85,29 @@ global_alignment(Tseq const & seq1,
     // Check if any insertion have highest values
     vF[0] = opt.vH_up[0] - gap_open_pack_y;
 
-    //if (opt.left_column_gap_open_free)
-    //{
-    //  Tuint const val = simdpp::extract<0>(opt.vH_up[0]) + opt.y_gain;
-    //  simdpp::insertvF[0]
-    //}
+    if (opt.left_column_free)
+    {
+      Tarr_uint vF0;
+      vF0.fill(std::numeric_limits<Tuint>::min());
+      simdpp::store_u(&vF0[0], vF[0]);
+      vF0[0] = simdpp::extract<0>(opt.vH_up[0]) + opt.y_gain;
+      vF[0] = simdpp::load(&vF0[0]);
+    }
+
+    // In case right_v is 0
+    if (opt.right_column_free && right_v == 0)
+    {
+      Tarr_uint vH_up_0;
+      vH_up_0.fill(std::numeric_limits<Tuint>::min());
+      simdpp::store_u(&vH_up_0[0], opt.vH_up[0]);
+
+      Tarr_uint vF0;
+      vF0.fill(std::numeric_limits<Tuint>::min());
+      simdpp::store_u(&vF0[0], vF[0]);
+
+      vF0[right_e] = vH_up_0[right_e] + opt.y_gain;
+      vF[0] = simdpp::load(&vF0[0]);
+    }
 
     ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], opt.vF_up[0]));
     ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
@@ -99,6 +119,22 @@ global_alignment(Tseq const & seq1,
       // Check for substitutions and if it has a higher score than the insertion
       vH[v] = opt.vH_up[v - 1] + vW[v - 1];
       vF[v] = opt.vH_up[v] - gap_open_pack_y;
+
+      // In case right_v is 0
+      if (opt.right_column_free && right_v == v)
+      {
+        Tarr_uint vH_up_v;
+        vH_up_v.fill(std::numeric_limits<Tuint>::min());
+        simdpp::store_u(&vH_up_v[0], opt.vH_up[v]);
+
+        Tarr_uint vF0;
+        vF0.fill(std::numeric_limits<Tuint>::min());
+        simdpp::store_u(&vF0[0], vF[v]);
+
+        vF0[right_e] = vH_up_v[right_e] + opt.y_gain;
+        vF[v] = simdpp::load(&vF0[0]);
+      }
+
       ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], opt.vF_up[v]));
       ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
     } /// Done calculating vectors v=1,...,t-1

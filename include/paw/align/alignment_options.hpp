@@ -21,8 +21,8 @@ public:
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
 
-  bool left_column_gap_open_free = false;
-  bool right_column_gap_open_free = false;
+  bool left_column_free = false;
+  bool right_column_free = false;
   bool continuous_alignment = false; // When to true, always continue with the same alignment as long as the query is the same
   std::string query{""};
   long query_size{0}; // Size of query sequence, sometimes also noted as 'm'

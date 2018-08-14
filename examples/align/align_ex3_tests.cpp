@@ -16,6 +16,8 @@ struct Test
   long mismatch = 2;
   long gap_open = 5;
   long gap_extend = 1;
+  bool left_column_free = false;
+  bool right_column_free = false;
 
   Test() = default;
   ~Test() = default;
@@ -26,7 +28,9 @@ struct Test
        long score_match = 2,
        long score_mismatch = 2,
        long score_gap_open = 5,
-       long score_gap_extend = 1
+       long score_gap_extend = 1,
+       bool _left_column_free = false,
+       bool _right_column_free = false
        )
     : seq1(_seq1)
     , seq2(_seq2)
@@ -35,6 +39,8 @@ struct Test
     , mismatch(score_mismatch)
     , gap_open(score_gap_open)
     , gap_extend(score_gap_extend)
+    , left_column_free(_left_column_free)
+    , right_column_free(_right_column_free)
   {}
 };
 
@@ -101,6 +107,31 @@ calculate_score_from_aligned_strings(paw::AlignmentOptions<Tuint> const & opts,
 
       is_del = false;
       is_ins = false;
+    }
+  }
+
+
+  if (opts.left_column_free)
+  {
+    // Add score for every deletion in the beginning
+    for (auto it = a_strings.first.begin(); it != a_strings.first.end() && *it == '-'; ++it)
+    {
+      if (it == a_strings.first.begin())
+        score += (long)opts.get_gap_open();
+      else
+        score += (long)opts.get_gap_extend();
+    }
+  }
+
+  if (opts.right_column_free)
+  {
+    // Add score for every deletion in the end
+    for (auto it = a_strings.first.rbegin(); it != a_strings.first.rend() && *it == '-'; ++it)
+    {
+      if (it == a_strings.first.rbegin())
+        score += (long)opts.get_gap_open();
+      else
+        score += (long)opts.get_gap_extend();
     }
   }
 
@@ -181,7 +212,7 @@ main(int argc, char ** argv)
 
   std::vector<Test> tests =
   {
-    {"GGG", "GGG", 6 /*exp. score*/, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/}, //test 0
+    {"GGG", "GGG", 6 /*exp. score*/, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/, false /*left column free*/}, //test 0
     {"GGGG", "GGG", 1}, //test 1
     {"GGGGG", "GGG", 0}, //test 2
     {"GGG", "GGGG", 1}, //test 3
@@ -221,6 +252,10 @@ main(int argc, char ** argv)
     {"GTAGAGGGGGTTGGGCCAAGGTT", "GG", 0, 0, 0, 0, 0}, // test 31
     {"GTAGAGGGGGTTGGGCCAAGGTT", "GTAGGGGGTTGCAGT", 15, 1, 0, 0, 0}, // test 32
     {"GTAGAGGGGGTTGGGCCAAGGTT", "GTAGGGGGTTGCAGT", -8, 0, 1, 1, 1}, // test 33
+    {"GGG", "TTTTGGG", 6, 2, -2, -5, -1, true, false}, // test 34
+    {"GGTG", "GGTGTCTTGCGTG", 8, 2, -2, -5, -1, false, true}, // test 35
+    {"CCCCGTGGGTGGGTGG", "CCCCGGTGGATGGGTGGGGTGTCTTGCGTG", 24, 2, -2, -4, -1, false, true}, // test 36
+    {"GGGACGTACGTACGT", "GGCCTTTTGGGACGTACTACGTT", 18, 2, -2, -5, -1, true, false}, // test 37
   };
 
   // Run all tests if no specific tests are specified
@@ -240,6 +275,12 @@ main(int argc, char ** argv)
   {
     bool are_all_tests_ok = true;
     opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
+    opts.left_column_free = test.left_column_free;
+    opts.right_column_free = test.right_column_free;
+
+    if (is_swapped)
+      std::swap(opts.left_column_free, opts.right_column_free);
+
     paw::AlignmentResults<uint8_t> ar;
 
     if (is_swapped)
@@ -250,7 +291,9 @@ main(int argc, char ** argv)
     std::string test_suffix;
 
     if (is_swapped)
-      test_suffix = " (swap)";
+      test_suffix = " (swapped)";
+    else
+      test_suffix = " (not swapped)";
 
     if (ar.score != test.expected_score)
     {
@@ -290,6 +333,10 @@ main(int argc, char ** argv)
     }
 #endif
 
+    // Fix options in case we swapped left_column_free and right_column_free
+    if (is_swapped)
+      std::swap(opts.left_column_free, opts.right_column_free);
+
     return are_all_tests_ok;
   };
 
@@ -302,7 +349,7 @@ main(int argc, char ** argv)
     paw::AlignmentOptions<uint8_t> opts;
     bool are_all_tests_ok = test_if_expected_score(opts, test, i, is_swapped);
 
-    if (!swap_only && !noswap_only)
+    if (!swap_only && !noswap_only && opts.left_column_free == opts.right_column_free)
     {
 #ifndef NDEBUG
       std::vector<std::vector<long> > score_matrix = transpose(opts.score_matrix);
