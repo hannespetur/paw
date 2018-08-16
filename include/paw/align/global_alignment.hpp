@@ -49,7 +49,7 @@ global_alignment(Tseq const & seq1,
   Tvec_pack vE(opt.vF_up);
 
 #ifndef NDEBUG
-  store_scores(opt, m, 0, vE);
+  store_scores(opt, 0, vE);
 #endif // NDEBUG
 
   Tpack const gap_open_pack_x = simdpp::make_int(opt.gap_open_val_x);
@@ -200,7 +200,7 @@ global_alignment(Tseq const & seq1,
     std::swap(vH, opt.vH_up);
 
 #ifndef NDEBUG
-    store_scores(opt, m, i + 1l, vE);
+    store_scores(opt, i + 1l, vE);
 #endif
   } /// End of outer loop
 

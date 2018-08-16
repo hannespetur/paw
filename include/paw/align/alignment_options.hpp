@@ -58,11 +58,6 @@ private:
   bool bottom_row_gap_open_free = false;
 
 
-  /// Derived options
-  long last_score{0};
-  SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> last_backtrack;
-
-
 public:
 
   AlignmentOptions() = default;
@@ -266,16 +261,16 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
       }
     }
 
-    Tpack const max_scores = opt.vH_up[t - 1];
-    Tuint const max_score = simdpp::reduce_max(max_scores);
+    Tuint const max_score = simdpp::reduce_max(opt.vH_up[t - 1]);
 
     if (max_score >= opt.max_score_val)
     {
       Tpack const two_gap_open_pack = simdpp::make_int(2 * opt.gap_open_val);
 
       /// Reducing values lossily
-      Tmask is_about_to_overflow = max_scores >= max_score_pack;
-      Tpack overflow_reduction =
+      Tmask is_about_to_overflow = opt.vH_up[t - 1] >= max_score_pack;
+
+      Tpack const overflow_reduction =
         simdpp::blend(two_gap_open_pack,
                       static_cast<Tpack>(simdpp::make_zero()),
                       is_about_to_overflow
@@ -300,47 +295,65 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
 }
 
 
+template<typename Tuint>
+std::vector<long> inline
+get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuint>::vec_pack const & vX)
+{
+  using Tvec_uint = typename T<Tuint>::vec_uint;
+
+  long const t = vX.size();
+  long const m = opt.query_size;
+  assert(t > 0);
+  Tvec_uint vec(vX[0].length, 0);
+  std::vector<Tvec_uint> mat(t, vec);
+  std::vector<long> scores_row;
+  scores_row.reserve(m + 1ul);
+
+  for (long v = 0; v < t; ++v)
+    simdpp::store_u(&mat[v][0], opt.vH_up[v]);
+
+  for (long j = 0; j <= m; ++j)
+  {
+    long const v = j % t;
+    long const e = j / t;
+    assert(v < static_cast<long>(mat.size()));
+    assert(e < static_cast<long>(mat[v].size()));
+
+    long const adjustment = opt.reductions[e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j;
+    scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
+  }
+
+  return scores_row;
+}
+
+
+template<typename Tuint>
+AlignmentOptions<Tuint>
+merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr)
+{
+  AlignmentOptions<Tuint> final_opts;
+
+  for (long i = 0; i < static_cast<long>(opts_vec_ptr.size()); ++i)
+  {
+    AlignmentOptions<Tuint> const & opts = &(opts_vec_ptr[i]);
+    std::cout << opts.left_column_free << "\n";
+  }
+
+  return final_opts;
+}
+
 #ifndef NDEBUG
 
 template<typename Tuint>
 inline void
 store_scores(AlignmentOptions<Tuint> & opt,
-             long m,
              long const i,
              typename T<Tuint>::vec_pack const & vE
   )
 {
-  using Tvec_uint = typename T<Tuint>::vec_uint;
-
-  auto get_score_row = [&](typename T<Tuint>::vec_pack const & vX) -> std::vector<long>
-  {
-    long const t = vX.size();
-    assert(t > 0);
-    Tvec_uint vec(vX[0].length, 0);
-    std::vector<Tvec_uint> mat(t, vec);
-    std::vector<long> scores_row;
-    scores_row.reserve(m + 1ul);
-
-    for (long v = 0; v < t; ++v)
-      simdpp::store_u(&mat[v][0], opt.vH_up[v]);
-
-    for (long j = 0; j <= m; ++j)
-    {
-      long const v = j % t;
-      long const e = j / t;
-      assert(v < static_cast<long>(mat.size()));
-      assert(e < static_cast<long>(mat[v].size()));
-
-      long const adjustment = opt.reductions[e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j;
-      scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
-    }
-
-    return scores_row;
-  };
-
-  opt.score_matrix.push_back(get_score_row(opt.vH_up));
-  opt.vE_scores.push_back(get_score_row(vE));
-  opt.vF_scores.push_back(get_score_row(opt.vF_up));
+  opt.score_matrix.push_back(get_score_row(opt, i, opt.vH_up));
+  opt.vE_scores.push_back(get_score_row(opt, i, vE));
+  opt.vF_scores.push_back(get_score_row(opt, i, opt.vF_up));
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }
