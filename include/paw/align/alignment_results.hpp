@@ -16,20 +16,20 @@ struct AlignmentResults
   SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> mB;
   long query_end{0};
   long database_end{0};
-  long t{0};
 
   AlignmentResults() = default;
 
   template<typename Tseq>
-  std::pair<std::string, std::string> get_aligned_strings(Tseq const & q, Tseq const & d) const;
+  std::pair<std::string, std::string> inline
+  get_aligned_strings(Tseq const & q, Tseq const & d) const;
+
+  void inline clear();
 };
 
 
-//#if defined(IMPLEMENT_PAW)
-
 template<typename Tuint>
 template<typename Tseq>
-std::pair<std::string, std::string>
+std::pair<std::string, std::string> inline
 AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) const
 {
   long i = database_end;
@@ -122,8 +122,8 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
 
     assert(i >= 0);
     assert(j >= 0);
-    long const v = j % t;
-    long const e = j / t;
+    long const v = j % mB.t;
+    long const e = j / mB.t;
 
     if (i == 0)
     {
@@ -135,7 +135,7 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     }
     else if (mB.is_del(i - 1, v, e))
     {
-      while (j > 1 && mB.is_del_extend(i - 1, j % t, j / t))
+      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
         add_del_ext();
 
       assert(j > 0);
@@ -165,7 +165,21 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
   return out;
 }
 
-//#endif // defined(IMPLEMENT_PAW)
+
+#if defined(IMPLEMENT_PAW)
+
+template<typename Tuint>
+void inline
+AlignmentResults<Tuint>::clear()
+{
+  mB = SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint>();
+  score = 0;
+  query_end = 0;
+  database_end = 0;
+}
+
+
+#endif // defined(IMPLEMENT_PAW)
 
 
 } // namespace paw

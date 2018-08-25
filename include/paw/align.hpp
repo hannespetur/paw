@@ -13,7 +13,7 @@ namespace paw
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+AlignmentResults<Tuint> const &
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
                  AlignmentOptions<Tuint> & _opt =

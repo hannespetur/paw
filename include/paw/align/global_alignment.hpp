@@ -23,7 +23,7 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+AlignmentResults<Tuint> const &
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
                  AlignmentOptions<Tuint> & opt
@@ -41,9 +41,7 @@ global_alignment(Tseq const & seq1,
   long const n = std::distance(seq2.begin(), seq2.end());
   long const right_v = m % t; // Vector that contains the rightmost element
   long const right_e = m / t; // The right-most element (in vector 'right_v')
-  AlignmentResults<Tuint> ar;
-  ar.mB = Backtrack<Tuint>(n, t);
-  init_vH_up<Tuint>(opt.vH_up, opt.gap_open_val, std::numeric_limits<Tuint>::min());
+  opt.ar.mB = Backtrack<Tuint>(n, t);
   Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()));
   Tvec_pack vF(opt.vF_up);
   Tvec_pack vE(opt.vF_up);
@@ -109,8 +107,8 @@ global_alignment(Tseq const & seq1,
       vF[0] = simdpp::load(&vF0[0]);
     }
 
-    ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], opt.vF_up[0]));
-    ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
+    opt.ar.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], opt.vF_up[0]));
+    opt.ar.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
     /// Done calculating vector 0
 
     /// Calculate vectors v=1,...,t-1
@@ -135,8 +133,8 @@ global_alignment(Tseq const & seq1,
         vF[v] = simdpp::load(&vF0[0]);
       }
 
-      ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], opt.vF_up[v]));
-      ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
+      opt.ar.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], opt.vF_up[v]));
+      opt.ar.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
     } /// Done calculating vectors v=1,...,t-1
 
     {
@@ -146,7 +144,7 @@ global_alignment(Tseq const & seq1,
       for (long v = 1; v < t; ++v)
       {
         vE[v] = vH[v - 1] - gap_open_pack_x;
-        ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+        opt.ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
       }
 
       Tarr_uint vE0r;
@@ -179,20 +177,20 @@ global_alignment(Tseq const & seq1,
       }
 
       if (is_improved)
-        ar.mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], simdpp::load_u(&vE0r[0])));
+        opt.ar.mB.set_del_extend(i, 0, max_greater<Tuint>(vE[0], simdpp::load_u(&vE0r[0])));
 
-      ar.mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
+      opt.ar.mB.set_del(i, 0, max_greater<Tuint>(vH[0], vE[0]));
       /// Done with deletion pass 1
 
       /// Deletions pass 2
       if (is_improved)
       {
         for (long v = 1; v < t; ++v)
-          ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
+          opt.ar.mB.set_del_extend(i, v, max_greater<Tuint>(vE[v], vE[v - 1]));
       }
 
       for (long v = 1; v < t; ++v)
-        ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
+        opt.ar.mB.set_del(i, v, max_greater<Tuint>(vH[v], vE[v]));
       /// Done with deletion pass 2
     }
 
@@ -206,16 +204,15 @@ global_alignment(Tseq const & seq1,
 
   Tvec_uint arr(S / sizeof(Tuint));
   simdpp::store_u(&arr[0], opt.vH_up[m % t]);
-  ar.query_end = m;
-  ar.database_end = n;
-
-  ar.score = static_cast<long>(arr[m / t])
+  opt.ar.query_end = m;
+  opt.ar.database_end = n;
+  opt.reduction -= n * opt.y_gain;
+  opt.ar.score = static_cast<long>(arr[m / t])
              + static_cast<long>(opt.reductions[m / t])
+             + opt.reduction
              - opt.top_left_score
-             - n * opt.y_gain
              - m * opt.x_gain;
-  ar.t = t;
-  return ar;
+  return opt.get_results();
 }
 
 

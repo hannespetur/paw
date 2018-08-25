@@ -86,13 +86,12 @@ magic_function(char const c)
 template <typename Tuint>
 inline void
 init_vH_up(typename T<Tuint>::vec_pack & vH_up,
-           Tuint const gap_open_val,
-           Tuint const min_value
+           Tuint const gap_open_val
            )
 {
-  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, 2 * gap_open_val + min_value);
+  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, 2 * gap_open_val + std::numeric_limits<Tuint>::min());
   assert(vH_up.size() > 0);
-  new_vH0[0] = gap_open_val * 3 + min_value;
+  new_vH0[0] = gap_open_val * 3 + std::numeric_limits<Tuint>::min();
   vH_up[0] = simdpp::load_u(&new_vH0[0]);
 }
 

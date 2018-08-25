@@ -55,6 +55,7 @@ struct Backtrack
   Tuint static const DEL_E_BT = 1 << DEL_E_SHIFT;
   Tuint static const INS_E_BT = 1 << INS_E_SHIFT;
 
+  long t{0};
   std::vector<Tvec_pack> matrix;
   mutable Tarr_uint tmp_vec;
 
@@ -64,7 +65,8 @@ struct Backtrack
 
 
   Backtrack(long const n_row, long const n_vectors)
-    : matrix(static_cast<std::size_t>(n_row), {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, static_cast<Tpack>(simdpp::make_zero())})
+    : t(n_vectors)
+    , matrix(static_cast<std::size_t>(n_row), {(n_vectors + BT_PER_CELL - 1) / BT_PER_CELL, static_cast<Tpack>(simdpp::make_zero())})
   {
     assert(n_row >= 0);
     tmp_vec.fill(0);

@@ -52,7 +52,7 @@ global_alignment_score(Tseq const & seq1,
   Tuint const min_value = std::numeric_limits<Tuint>::min();
   Tpack const min_value_pack = simdpp::make_int(min_value);
   Tvec_pack vH_up(static_cast<std::size_t>(t), static_cast<Tpack>(simdpp::make_int(2 * gap_open_val + min_value)));
-  init_vH_up<Tuint>(vH_up, gap_open_val, min_value);
+  init_vH_up<Tuint>(vH_up, gap_open_val);
   Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * gap_open_val + min_value));
   Tvec_pack vF_up(static_cast<std::size_t>(t), min_value_pack);
   Tvec_pack vF(vF_up);

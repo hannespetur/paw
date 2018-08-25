@@ -23,7 +23,7 @@ public:
 
   bool left_column_free = false;
   bool right_column_free = false;
-  bool continuous_alignment = false; // When to true, always continue with the same alignment as long as the query is the same
+  bool continuous_alignment = false; // When set, always continue with the same alignment as long as the query is the same
   std::string query{""};
   long query_size{0}; // Size of query sequence, sometimes also noted as 'm'
   long num_vectors{0}; // Number of SIMD vectors per row
@@ -40,6 +40,8 @@ public:
   Tuint gap_open_val{0};
   Tuint max_score_val{0};
 
+  AlignmentResults<Tuint> ar;
+  long reduction{0};
   std::array<long, S / sizeof(Tuint)> reductions;
   Tarr_vec_pack W_profile;
 
@@ -102,10 +104,11 @@ public:
     return *this;
   }
 
-  Tuint get_match() const {return match;}
-  Tuint get_mismatch() const {return mismatch;}
-  Tuint get_gap_open() const {return gap_open;}
-  Tuint get_gap_extend() const {return gap_extend;}
+  inline Tuint get_match() const {return match;}
+  inline Tuint get_mismatch() const {return mismatch;}
+  inline Tuint get_gap_open() const {return gap_open;}
+  inline Tuint get_gap_extend() const {return gap_extend;}
+  inline AlignmentResults<Tuint> const & get_results() const {return ar;}
 
 
 #ifndef NDEBUG
@@ -115,11 +118,26 @@ public:
   std::vector<std::vector<long> > vF_scores;
 #endif // not NDEBUG
 
+  std::vector<std::vector<long> > merge_solver_vH;
+  std::vector<std::vector<long> > merge_solver_vF;
+
 };
 
 
 namespace SIMDPP_ARCH_NAMESPACE
 {
+
+
+template <typename Tuint>
+inline void
+init_vH_up(AlignmentOptions<Tuint> & opts)
+{
+  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, 2 * opts.gap_open_val + std::numeric_limits<Tuint>::min());
+  assert(opts.vH_up.size() > 0);
+  new_vH0[0] = opts.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
+  opts.vH_up[0] = simdpp::load_u(&new_vH0[0]);
+}
+
 
 template<typename Tuint, typename Tseq>
 void
@@ -141,8 +159,11 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
                             static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
         );
 
+      init_vH_up(opt);
+
       opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), min_value_pack);
       opt.reductions.fill(0);
+      opt.reduction = 0;
 
 #ifndef NDEBUG
       opt.score_matrix.clear();
@@ -167,12 +188,14 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
                         static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
                         );
+  init_vH_up(opt);
   opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), min_value_pack);
   opt.match_val = opt.x_gain + opt.y_gain + opt.get_match();
   opt.mismatch_val = opt.x_gain + opt.y_gain - opt.get_mismatch();
-
   opt.max_score_val = std::numeric_limits<Tuint>::max() - opt.match_val - opt.gap_open_val;
+  opt.reduction = 0;
   opt.reductions.fill(0);
+
 
 #ifndef NDEBUG
   opt.score_matrix.clear();
@@ -301,9 +324,12 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
 {
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
-  long const t = vX.size();
   long const m = opt.query_size;
-  assert(t > 0);
+  long const t = opt.num_vectors;
+
+  assert(t > 0l);
+  assert(t == static_cast<long>(vX.size()));
+
   Tvec_uint vec(vX[0].length, 0);
   std::vector<Tvec_uint> mat(t, vec);
   std::vector<long> scores_row;
@@ -331,16 +357,76 @@ template<typename Tuint>
 AlignmentOptions<Tuint>
 merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr)
 {
-  AlignmentOptions<Tuint> final_opts;
+  assert(opts_vec_ptr.size() > 2);
 
-  for (long i = 0; i < static_cast<long>(opts_vec_ptr.size()); ++i)
+  AlignmentOptions<Tuint> final_opts(&(opts_vec_ptr.front()));
+  std::vector<long> max_vH = get_score_row(final_opts, 0, final_opts.vH_up);
+  std::vector<long> max_vF = get_score_row(final_opts, 0, final_opts.vF_up);
+  final_opts.merge_solver_vH = std::vector<std::vector<long> >(std::vector<long>(1, 0), max_vH.size());
+  final_opts.merge_solver_vF = std::vector<std::vector<long> >(std::vector<long>(1, 0), max_vF.size());
+
+  auto set_max_scores = [&opts_vec_ptr](std::vector<long> & max_scores, std::vector<std::vector<long> > & merge_solver)
   {
-    AlignmentOptions<Tuint> const & opts = &(opts_vec_ptr[i]);
-    std::cout << opts.left_column_free << "\n";
+    long const in_degree = static_cast<long>(opts_vec_ptr.size()); // InDegree of node that is getting merged
+    long const num_scores = static_cast<long>(max_scores.size()); // Number of scores in a row
+    merge_solver = std::vector<std::vector<long> >(std::vector<long>(1ul, 0l), max_scores.size());
+
+    for (long i = 1; i < in_degree; ++i)
+    {
+      AlignmentOptions<Tuint> const & opt = &(opts_vec_ptr[i]);
+      std::vector<long> scores = get_score_row(opt, 0, opt.vH_up);
+      assert (scores.size() == num_scores);
+
+      for (long j = 0; j < num_scores; ++j)
+      {
+        if (scores[j] > max_scores[j])
+        {
+          // Score is higher than what was previously observed, mark is the best path
+          max_scores[j] = scores[j];
+          merge_solver[j].clear();
+          merge_solver[j].push_back(i);
+        }
+        else if (scores[j] == max_scores[j])
+        {
+          // If score is equal then just add it among the best paths
+          merge_solver[j].push_back(i);
+        }
+      }
+    }
+  };
+
+  set_max_scores(max_vH, final_opts.merge_solver_vH);
+  set_max_scores(max_vF, final_opts.merge_solver_vF);
+
+  /// Initialize vH_up and vF_up such that minimum score is at least 3*opt.gap_open + min_value and the maximum score
+  /// is at most opt.max_score_val
+  {
+    long const min_score_val = 3 * final_opts.gap_open + std::numeric_limits<Tuint>::min();
+    long const max_score_val = final_opts.max_score_val;
+    long const max_diff = max_score_val - min_score_val;
+
+    std::array<long, S / sizeof(Tuint)> min_values;
+    min_values.fill(std::numeric_limits<long>::max());
+
+    std::array<long, S / sizeof(Tuint)> max_values;
+    max_values.fill(std::numeric_limits<long>::min());
+
+    assert(max_vH.size() - 1l == final_opts.query_size);
+    assert(max_vF.size() - 1l == final_opts.query_size);
+
+    long t = final_opts.num_vectors;
+
+    for (long j = 0; j <= final_opts.query_size; ++j)
+    {
+      long const e = j / t;
+      min_values[e] = std::min(min_values[e], std::min(max_vH[j], max_vF[j]));
+      max_values[e] = std::max(max_values[e], std::max(max_vH[j], max_vF[j]));
+    }
   }
 
   return final_opts;
 }
+
 
 #ifndef NDEBUG
 
