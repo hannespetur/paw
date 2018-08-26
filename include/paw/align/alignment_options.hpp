@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 
 #include <simdpp/simd.h>
 
+#include <paw/align/alignment_cache.hpp>
 #include <paw/align/alignment_results.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 
@@ -15,101 +17,32 @@ namespace paw
 template<typename Tuint>
 struct AlignmentOptions
 {
-
 public:
   using Tpack = typename T<Tuint>::pack;
-  using Tvec_pack = typename T<Tuint>::vec_pack;
-  using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
 
   bool left_column_free = false;
   bool right_column_free = false;
-  bool continuous_alignment = false; // When set, always continue with the same alignment as long as the query is the same
-  std::string query{""};
-  long query_size{0}; // Size of query sequence, sometimes also noted as 'm'
-  long num_vectors{0}; // Number of SIMD vectors per row
-  Tvec_pack vH_up;
-  Tvec_pack vF_up;
-  Tuint x_gain{0};
-  Tuint y_gain{0};
-  Tuint top_left_score{0};
-
-  Tuint match_val{0};
-  Tuint mismatch_val{0};
-  Tuint gap_open_val_x{0};
-  Tuint gap_open_val_y{0};
-  Tuint gap_open_val{0};
-  Tuint max_score_val{0};
-
-  AlignmentResults<Tuint> ar;
-  long reduction{0};
-  std::array<long, S / sizeof(Tuint)> reductions;
-  Tarr_vec_pack W_profile;
+  bool continuous_alignment = false; /// When set, always continue with the same alignment as long as the query is the same
 
 private:
   /// User options
-  Tuint match = 2;
-  Tuint mismatch = 2;
-  Tuint gap_open = 5;
-  Tuint gap_extend = 1;
+  Tuint match = 2; /// Score of matches
+  Tuint mismatch = 2; /// Penalty of mismatches
+  Tuint gap_open = 5; /// Penalty of opening a gap
+  Tuint gap_extend = 1; /// Penalty of extending a gap
+  //bool is_traceback = true; /// Set if the alignment traceback is required
 
-  bool backtracking = true;
-  bool top_row_free = false;
-  bool bottom_row_free = false;
-  bool gap_open_free = false;
-  bool top_row_gap_open_free = false;
-  bool bottom_row_gap_open_free = false;
+  // TODO: Implement usage of "convex" gap cost
+  //Tuint gap_open_2 = 5; /// Penalty of opening a gap in when using a secondary value
+  //Tuint gap_extend_2 = 1; /// Penalty of extending a gap in when using a secondary value
+  ///
+
+  /// Calculated values
+  std::shared_ptr<AlignmentCache<Tuint> > ac{new AlignmentCache<Tuint>()}; /// Shared cache between alignments
+  std::unique_ptr<AlignmentResults<Tuint> > ar{new AlignmentResults<Tuint>()}; /// Results of the alignment
 
 
 public:
-
-  AlignmentOptions() = default;
-
-
-  AlignmentOptions &
-  set_match(long val)
-  {
-    match = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
-    return *this;
-  }
-
-
-  AlignmentOptions &
-  set_mismatch(long val)
-  {
-    mismatch = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
-    return *this;
-  }
-
-
-  AlignmentOptions &
-  set_gap_open(long val)
-  {
-    gap_open = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
-    return *this;
-  }
-
-
-  AlignmentOptions &
-  set_gap_extend(long val)
-  {
-    gap_extend = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
-    return *this;
-  }
-
-
-  AlignmentOptions &
-  set_traceback(bool val)
-  {
-    backtracking = val;
-    return *this;
-  }
-
-  inline Tuint get_match() const {return match;}
-  inline Tuint get_mismatch() const {return mismatch;}
-  inline Tuint get_gap_open() const {return gap_open;}
-  inline Tuint get_gap_extend() const {return gap_extend;}
-  inline AlignmentResults<Tuint> const & get_results() const {return ar;}
-
 
 #ifndef NDEBUG
   // Store the score matrix in debug mode
@@ -118,8 +51,91 @@ public:
   std::vector<std::vector<long> > vF_scores;
 #endif // not NDEBUG
 
-  std::vector<std::vector<long> > merge_solver_vH;
-  std::vector<std::vector<long> > merge_solver_vF;
+  AlignmentOptions() = default;
+
+
+  /// \brief Sets score of a match
+  /// It is assumed that the score is greater or equal to 0
+  AlignmentOptions &
+  set_match(long val)
+  {
+    match = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
+    return *this;
+  }
+
+
+  /// \brief Sets penalty of mismatches
+  /// It is assumed that the penalty is less or equal to 0
+  AlignmentOptions &
+  set_mismatch(long val)
+  {
+    mismatch = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
+    return *this;
+  }
+
+
+  /// \brief Sets penalty of opening gaps
+  /// It is assumed that the penalty is less or equal to 0
+  AlignmentOptions &
+  set_gap_open(long val)
+  {
+    gap_open = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
+    return *this;
+  }
+
+
+  /// \brief Sets penalty of opening gaps
+  /// It is assumed that the penalty is less or equal to 0
+  AlignmentOptions &
+  set_gap_extend(long val)
+  {
+    gap_extend = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
+    return *this;
+  }
+
+
+  /*
+  /// \brief Sets gap penalty for both opening and extending a gap
+  /// It is assumed that the penalty is less or equal to 0
+  AlignmentOptions &
+  set_gap(long val)
+  {
+    set_gap_open(val);
+    return set_gap_extend(val);
+  }
+
+
+  /// \brief Sets whether an alignment traceback is required
+  AlignmentOptions &
+  set_traceback(bool val)
+  {
+    is_traceback = val;
+    return *this;
+  }
+  */
+
+
+  inline Tuint
+  get_gap_open_val_x() const
+  {
+    return gap_open - ac->x_gain;
+  }
+
+
+  inline Tuint
+  get_gap_open_val_y() const
+  {
+    return gap_open - ac->y_gain;
+  }
+
+
+  inline Tuint get_match() const {return match;}
+  inline Tuint get_mismatch() const {return mismatch;}
+  inline Tuint get_gap_open() const {return gap_open;}
+  inline Tuint get_gap_extend() const {return gap_extend;}
+  inline AlignmentCache<Tuint> * get_alignment_cache() const {return ac.get();}
+  inline AlignmentResults<Tuint> * get_alignment_results() const {return ar.get();}
+  //inline bool get_is_traceback() const {return is_traceback;}
 
 };
 
@@ -132,10 +148,14 @@ template <typename Tuint>
 inline void
 init_vH_up(AlignmentOptions<Tuint> & opts)
 {
-  typename T<Tuint>::vec_uint new_vH0(T<Tuint>::pack::length, 2 * opts.gap_open_val + std::numeric_limits<Tuint>::min());
-  assert(opts.vH_up.size() > 0);
-  new_vH0[0] = opts.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
-  opts.vH_up[0] = simdpp::load_u(&new_vH0[0]);
+  using Tvec_uint = typename T<Tuint>::vec_uint;
+
+  long const gap_open_val = opts.get_alignment_cache()->gap_open_val;
+  AlignmentResults<Tuint> & aln_results = *opts.get_alignment_results();
+  Tvec_uint new_vH0(T<Tuint>::pack::length, 2 * gap_open_val + std::numeric_limits<Tuint>::min());
+  assert(aln_results.vH_up.size() > 0);
+  new_vH0[0] = gap_open_val * 3 + std::numeric_limits<Tuint>::min();
+  aln_results.vH_up[0] = simdpp::load_u(&new_vH0[0]);
 }
 
 
@@ -144,95 +164,41 @@ void
 set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 {
   using Tpack = typename T<Tuint>::pack;
-  using Tvec_uint = typename T<Tuint>::vec_uint;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
   std::string new_query(begin(seq), end(seq));
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
+  AlignmentCache<Tuint> & aln_cache = *opt.get_alignment_cache();
+  AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  bool const is_new_query = new_query != aln_cache.query;
 
-  // If it is the same query we can reuse previously calculated numbers
-  if (new_query == opt.query)
+  if (is_new_query)
   {
-    if (!opt.continuous_alignment)
-    {
-      opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
-                            static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
-        );
-
-      init_vH_up(opt);
-
-      opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), min_value_pack);
-      opt.reductions.fill(0);
-      opt.reduction = 0;
-
-#ifndef NDEBUG
-      opt.score_matrix.clear();
-      opt.vE_scores.clear();
-      opt.vF_scores.clear();
-#endif // NDEBUG
-    }
-
-    return;
+    aln_cache.set_query(std::move(new_query));
+    aln_cache.set_options(opt.get_match(),
+                          opt.get_mismatch(),
+                          opt.get_gap_open(),
+                          opt.get_gap_extend());
   }
 
-  opt.query = std::move(new_query);
-  opt.query_size = opt.query.size();
-  opt.num_vectors = (opt.query_size + Tpack::length) / Tpack::length;
-  opt.x_gain = opt.get_gap_extend();
-  opt.y_gain = std::max(opt.get_gap_extend(),
-                                static_cast<Tuint>(opt.get_mismatch() - opt.x_gain));
-  opt.gap_open_val_x = opt.get_gap_open() - opt.x_gain;
-  opt.gap_open_val_y = opt.get_gap_open() - opt.y_gain;
-  opt.gap_open_val = std::max(opt.gap_open_val_x, opt.gap_open_val_y);
-  opt.top_left_score = opt.gap_open_val * 3 + std::numeric_limits<Tuint>::min();
-  opt.vH_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors),
-                        static_cast<Tpack>(simdpp::make_int(2 * opt.gap_open_val + std::numeric_limits<Tuint>::min()))
-                        );
-  init_vH_up(opt);
-  opt.vF_up = Tvec_pack(static_cast<std::size_t>(opt.num_vectors), min_value_pack);
-  opt.match_val = opt.x_gain + opt.y_gain + opt.get_match();
-  opt.mismatch_val = opt.x_gain + opt.y_gain - opt.get_mismatch();
-  opt.max_score_val = std::numeric_limits<Tuint>::max() - opt.match_val - opt.gap_open_val;
-  opt.reduction = 0;
-  opt.reductions.fill(0);
+  if (!opt.continuous_alignment || is_new_query)
+  {
+    aln_results.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
+                                  static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()))
+      );
 
+    init_vH_up(opt);
+    aln_results.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
+
+    aln_results.reduction = - std::numeric_limits<Tuint>::min() - aln_cache.gap_open_val * 3;
+    aln_results.reductions.fill(0);
 
 #ifndef NDEBUG
-  opt.score_matrix.clear();
-  opt.vE_scores.clear();
-  opt.vF_scores.clear();
+    opt.score_matrix.clear();
+    opt.vE_scores.clear();
+    opt.vF_scores.clear();
 #endif // NDEBUG
-
-  /// Calculate DNA W_profile
-  {
-    std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
-
-    for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
-    {
-      char const dna_base = DNA_BASES[i];
-      auto & W = opt.W_profile[i];
-      W.clear(); // Clear previous elements
-      W.reserve(opt.num_vectors);
-
-      for (long v = 0; v < opt.num_vectors; ++v)
-      {
-        Tvec_uint seq(T<Tuint>::pack::length, opt.mismatch_val);
-
-        for (long e = 0, j = v; j < opt.query_size; j += opt.num_vectors, ++e)
-        {
-          if (dna_base == *(begin(opt.query) + j))
-            seq[e] = opt.match_val;
-        }
-
-        W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
-      }
-    }
-
-    assert(static_cast<std::size_t>(opt.num_vectors) == opt.W_profile[0].size());
-    assert(static_cast<std::size_t>(opt.num_vectors) == opt.W_profile[1].size());
-    assert(static_cast<std::size_t>(opt.num_vectors) == opt.W_profile[2].size());
-    assert(static_cast<std::size_t>(opt.num_vectors) == opt.W_profile[3].size());
-  } /// Done calculating DNA W_profile
+  }
 }
 
 
@@ -244,17 +210,18 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
   using Tmask = typename T<Tuint>::mask;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
-  long const t = opt.num_vectors;
-  Tpack const max_score_pack = simdpp::make_int(opt.max_score_val);
+  AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
+  AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  long const num_vectors = aln_cache.num_vectors;
 
-  if (simdpp::reduce_max(opt.vH_up[t - 1]) >= opt.max_score_val)
+  if (simdpp::reduce_max(aln_results.vH_up[num_vectors - 1]) >= aln_cache.max_score_val)
   {
     /// Reducing value losslessly
     Tarr_uint vF0;
     vF0.fill(0);
     // Store the optimal scores in vector 0
-    simdpp::store_u(&vF0[0], opt.vF_up[0]);
-    assert(vF0.size() == opt.reductions.size());
+    simdpp::store_u(&vF0[0], aln_results.vF_up[0]);
+    assert(vF0.size() == aln_results.reductions.size());
     Tarr_uint new_reductions;
     new_reductions.fill(0);
     assert(vF0.size() == new_reductions.size());
@@ -262,11 +229,11 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
 
     for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
     {
-      long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * opt.gap_open_val);
+      long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * aln_cache.gap_open_val);
 
       if (new_reduction_val > 0)
       {
-        opt.reductions[e] += new_reduction_val;
+        aln_results.reductions[e] += new_reduction_val;
         new_reductions[e] = new_reduction_val;
         any_reductions = true;
       }
@@ -277,21 +244,21 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
     {
       Tpack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
 
-      for (long v = 0; v < t; ++v)
+      for (long v = 0; v < num_vectors; ++v)
       {
-        opt.vF_up[v] = opt.vF_up[v] - new_reductions_pack;
-        opt.vH_up[v] = opt.vH_up[v] - new_reductions_pack;
+        aln_results.vF_up[v] = aln_results.vF_up[v] - new_reductions_pack;
+        aln_results.vH_up[v] = aln_results.vH_up[v] - new_reductions_pack;
       }
     }
 
-    Tuint const max_score = simdpp::reduce_max(opt.vH_up[t - 1]);
+    Tuint const max_score = simdpp::reduce_max(aln_results.vH_up[num_vectors - 1]);
 
-    if (max_score >= opt.max_score_val)
+    if (max_score >= aln_cache.max_score_val)
     {
-      Tpack const two_gap_open_pack = simdpp::make_int(2 * opt.gap_open_val);
+      Tpack const two_gap_open_pack = simdpp::make_int(2 * aln_cache.gap_open_val);
 
       /// Reducing values lossily
-      Tmask is_about_to_overflow = opt.vH_up[t - 1] >= max_score_pack;
+      Tmask is_about_to_overflow = aln_results.vH_up[num_vectors - 1] >= static_cast<Tpack>(simdpp::make_int(aln_cache.max_score_val));
 
       Tpack const overflow_reduction =
         simdpp::blend(two_gap_open_pack,
@@ -305,13 +272,13 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
         simdpp::store_u(&overflow_reduction_arr[0], overflow_reduction);
 
         for (long e = 0; e < static_cast<long>(S / sizeof(Tuint)); ++e)
-          opt.reductions[e] += overflow_reduction_arr[e];
+          aln_results.reductions[e] += overflow_reduction_arr[e];
       }
 
-      for (long v = 0; v < t; ++v)
+      for (long v = 0; v < num_vectors; ++v)
       {
-        opt.vH_up[v] = simdpp::max(opt.vH_up[v] - overflow_reduction, two_gap_open_pack);
-        opt.vF_up[v] = simdpp::max(opt.vF_up[v] - overflow_reduction, two_gap_open_pack);
+        aln_results.vH_up[v] = simdpp::max(aln_results.vH_up[v] - overflow_reduction, two_gap_open_pack);
+        aln_results.vF_up[v] = simdpp::max(aln_results.vF_up[v] - overflow_reduction, two_gap_open_pack);
       }
     }
   }
@@ -324,8 +291,10 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
 {
   using Tvec_uint = typename T<Tuint>::vec_uint;
 
-  long const m = opt.query_size;
-  long const t = opt.num_vectors;
+  AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
+  AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
+  long const m = aln_cache.query_size;
+  long const t = aln_cache.num_vectors;
 
   assert(t > 0l);
   assert(t == static_cast<long>(vX.size()));
@@ -336,7 +305,7 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
   scores_row.reserve(m + 1ul);
 
   for (long v = 0; v < t; ++v)
-    simdpp::store_u(&mat[v][0], opt.vH_up[v]);
+    simdpp::store_u(&mat[v][0], aln_results.vH_up[v]);
 
   for (long j = 0; j <= m; ++j)
   {
@@ -345,7 +314,7 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
     assert(v < static_cast<long>(mat.size()));
     assert(e < static_cast<long>(mat[v].size()));
 
-    long const adjustment = opt.reductions[e] - opt.top_left_score - opt.y_gain * i - opt.x_gain * j;
+    long const adjustment = aln_results.reduction + aln_results.reductions[e] - aln_cache.y_gain * i - aln_cache.x_gain * j;
     scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
   }
 
@@ -360,21 +329,21 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr
   assert(opts_vec_ptr.size() > 2);
 
   AlignmentOptions<Tuint> final_opts(&(opts_vec_ptr.front()));
-  std::vector<long> max_vH = get_score_row(final_opts, 0, final_opts.vH_up);
-  std::vector<long> max_vF = get_score_row(final_opts, 0, final_opts.vF_up);
-  final_opts.merge_solver_vH = std::vector<std::vector<long> >(std::vector<long>(1, 0), max_vH.size());
-  final_opts.merge_solver_vF = std::vector<std::vector<long> >(std::vector<long>(1, 0), max_vF.size());
+  AlignmentResults<Tuint> final_aln_results = *final_opts.get_alignment_results();
+  std::vector<long> max_vH = get_score_row(final_opts, 0, final_aln_results.vH_up);
+  std::vector<long> max_vF = get_score_row(final_opts, 0, final_aln_results.vF_up);
 
   auto set_max_scores = [&opts_vec_ptr](std::vector<long> & max_scores, std::vector<std::vector<long> > & merge_solver)
   {
     long const in_degree = static_cast<long>(opts_vec_ptr.size()); // InDegree of node that is getting merged
     long const num_scores = static_cast<long>(max_scores.size()); // Number of scores in a row
-    merge_solver = std::vector<std::vector<long> >(std::vector<long>(1ul, 0l), max_scores.size());
+    merge_solver.clear();
+    merge_solver.resize(max_scores.size(), std::vector<long>(1, 0));
 
     for (long i = 1; i < in_degree; ++i)
     {
       AlignmentOptions<Tuint> const & opt = &(opts_vec_ptr[i]);
-      std::vector<long> scores = get_score_row(opt, 0, opt.vH_up);
+      std::vector<long> scores = get_score_row(opt, 0, opt.get_alignment_results()->vH_up);
       assert (scores.size() == num_scores);
 
       for (long j = 0; j < num_scores; ++j)
@@ -402,7 +371,7 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr
   /// is at most opt.max_score_val
   {
     long const min_score_val = 3 * final_opts.gap_open + std::numeric_limits<Tuint>::min();
-    long const max_score_val = final_opts.max_score_val;
+    long const max_score_val = final_opts.get_cache()->max_score_val;
     long const max_diff = max_score_val - min_score_val;
 
     std::array<long, S / sizeof(Tuint)> min_values;
@@ -411,12 +380,12 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr
     std::array<long, S / sizeof(Tuint)> max_values;
     max_values.fill(std::numeric_limits<long>::min());
 
-    assert(max_vH.size() - 1l == final_opts.query_size);
-    assert(max_vF.size() - 1l == final_opts.query_size);
+    assert(max_vH.size() - 1l == final_opts.get_cache()->query_size);
+    assert(max_vF.size() - 1l == final_opts.get_cache()->query_size);
 
-    long t = final_opts.num_vectors;
+    long t = final_opts.get_cache()->num_vectors;
 
-    for (long j = 0; j <= final_opts.query_size; ++j)
+    for (long j = 0; j <= final_opts.get_cache()->query_size; ++j)
     {
       long const e = j / t;
       min_values[e] = std::min(min_values[e], std::min(max_vH[j], max_vF[j]));
@@ -437,9 +406,10 @@ store_scores(AlignmentOptions<Tuint> & opt,
              typename T<Tuint>::vec_pack const & vE
   )
 {
-  opt.score_matrix.push_back(get_score_row(opt, i, opt.vH_up));
+  AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
+  opt.score_matrix.push_back(get_score_row(opt, i, aln_results.vH_up));
   opt.vE_scores.push_back(get_score_row(opt, i, vE));
-  opt.vF_scores.push_back(get_score_row(opt, i, opt.vF_up));
+  opt.vF_scores.push_back(get_score_row(opt, i, aln_results.vF_up));
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }

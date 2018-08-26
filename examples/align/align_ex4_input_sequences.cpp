@@ -26,7 +26,7 @@ main(int argc, char ** argv)
   }
 
   paw::AlignmentOptions<uint8_t> opts;
-  paw::AlignmentResults<uint8_t> ar = paw::global_alignment(seq1, seq2, opts);
-  std::cerr << "Score = " << ar.score << std::endl;
+  paw::global_alignment(seq1, seq2, opts);
+  std::cerr << "Score = " << opts.get_alignment_results()->score << std::endl;
   return EXIT_SUCCESS;
 }

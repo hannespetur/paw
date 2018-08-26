@@ -1,7 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
+#include <paw/align/alignment_cache.hpp>
 
 #include <simdpp/simd.h>
 
@@ -12,10 +15,22 @@ namespace paw
 template <typename Tuint>
 struct AlignmentResults
 {
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+
   long score{0};
   SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> mB;
   long query_end{0};
   long database_end{0};
+
+  long reduction{0};
+  std::array<long, S / sizeof(Tuint)> reductions;
+  Tvec_pack vH_up;
+  Tvec_pack vF_up;
+
+  std::vector<std::vector<long> > merge_solver_vH;
+  std::vector<std::vector<long> > merge_solver_vF;
+
+public:
 
   AlignmentResults() = default;
 

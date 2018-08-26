@@ -13,20 +13,11 @@ namespace paw
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint> const &
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>() // default options
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>() // default options
-                       );
 
 
 /// See namespaces at:
@@ -38,21 +29,11 @@ namespace arch_null
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>() // default options
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>() // default options
-                       );
-
 
 }
 
@@ -62,21 +43,11 @@ namespace arch_sse2
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>() // default options
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>() // default options
-                       );
-
 
 }
 
@@ -86,20 +57,11 @@ namespace arch_sse3
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt = AlignmentOptions<Tuint>()
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>()
-                       );
-
 
 }
 
@@ -109,21 +71,11 @@ namespace arch_sse4p1
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>()
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>()
-                       );
-
 
 }
 
@@ -133,21 +85,11 @@ namespace arch_sse4p1_popcnt
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>()
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>()
-                       );
-
 
 }
 
@@ -157,21 +99,11 @@ namespace arch_popcnt_avx
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>()
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>()
-                       );
-
 
 }
 
@@ -182,20 +114,11 @@ namespace arch_popcnt_avx2
 std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
+void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & _opt =
-                   AlignmentOptions<Tuint>()
+                 AlignmentOptions<Tuint> & opts
                  );
-
-template <typename Tseq, typename Tuint>
-AlignmentResults<Tuint>
-global_alignment_score(Tseq const & seq1,
-                       Tseq const & seq2,
-                       AlignmentOptions<Tuint> & _opt =
-                         AlignmentOptions<Tuint>()
-                       );
 
 }
 

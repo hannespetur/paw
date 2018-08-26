@@ -16,6 +16,8 @@ public:
   inline void
   add_vertex(std::string && seq)
   {
+    from_to_edges[vertices.size()] = std::vector<long>(0);
+    to_from_edges[vertices.size()] = std::vector<long>(0);
     vertices.push_back(std::move(seq));
   }
 
@@ -35,22 +37,18 @@ public:
   }
 
 
-  inline std::vector<long>
+  inline std::vector<long> const &
   get_indexes_inbound(long index) const
   {
-    if (to_from_edges.count(index) == 0)
-      return std::vector<long>();
-
+    assert(to_from_edges.count(0) == 1);
     return to_from_edges.at(index);
   }
 
 
-  inline std::vector<long>
+  inline std::vector<long> const &
   get_indexes_outbound(long index) const
   {
-    if (from_to_edges.count(index) == 0)
-      return std::vector<long>();
-
+    assert(from_to_edges.count(0) == 1);
     return from_to_edges.at(index);
   }
 };
@@ -124,12 +122,15 @@ main(int argc, char ** argv)
   opts.continuous_alignment = true;
   //opts.left_column_free = true;
   opts.right_column_free = true;
-  opts.set_match(1).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
-  //std::string query = ;
-  auto ar = paw::global_alignment(std::string("AA"), g.get_sequence(0), opts);
-  auto ar2 = paw::global_alignment(std::string("AA"), g.get_sequence(0), opts);
-  std::cout << "Score = " << ar.score << "\n";
-  std::cout << "Score 2 = " << ar2.score << "\n";
+  opts.set_match(2).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
+  paw::global_alignment(std::string("AA"), g.get_sequence(0), opts);
+
+  for (long i : g.get_indexes_outbound(0))
+  {
+    //paw::AlignmentOptions<uint8_t> opts2(opts);
+    paw::global_alignment(std::string("AA"), g.get_sequence(i), opts);
+    std::cout << "Score " << i << " " << opts.get_alignment_results()->score << "\n";
+  }
 
   std::cout << "Num test graphs = " << graphs.size() << "\n";
   return EXIT_SUCCESS;

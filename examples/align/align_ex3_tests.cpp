@@ -281,13 +281,12 @@ main(int argc, char ** argv)
     if (is_swapped)
       std::swap(opts.left_column_free, opts.right_column_free);
 
-    paw::AlignmentResults<uint8_t> ar;
-
     if (is_swapped)
-      ar = paw::global_alignment(test.seq2, test.seq1, opts);
+      paw::global_alignment(test.seq2, test.seq1, opts);
     else
-      ar = paw::global_alignment(test.seq1, test.seq2, opts);
+      paw::global_alignment(test.seq1, test.seq2, opts);
 
+    paw::AlignmentResults<uint8_t> const & ar = *opts.get_alignment_results();
     std::string test_suffix;
 
     if (is_swapped)
@@ -312,7 +311,7 @@ main(int argc, char ** argv)
 
     long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
 
-    if (score_aligned_strings != ar.score)
+    if (score_aligned_strings != test.expected_score)
     {
       std::cout << "\nINCORRECT. Traceback error, score from aligned strings does not match in test " << i << test_suffix
                 << ". Got score " << score_aligned_strings

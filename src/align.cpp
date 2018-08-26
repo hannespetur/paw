@@ -10,7 +10,6 @@
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/alignment_results.hpp>
 #include <paw/align/global_alignment.hpp>
-#include <paw/align/global_alignment_score.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/internal/config.hpp>
@@ -115,33 +114,18 @@ SIMDPP_MAKE_DISPATCHER((template<typename Tuint, typename Tseq>)
 
 SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          (<Tseq, Tuint>)
-                         (AlignmentResults<Tuint> const &)
+                         (void)
                          (global_alignment)
                          ((Tseq const &) x, (Tseq const &) y, (
                            AlignmentOptions<Tuint> &) z
                          )
                        )
 
-SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
-                         (<Tseq, Tuint>)
-                         (AlignmentResults<Tuint>)
-                         (global_alignment_score)
-                         ((Tseq const &) x, (Tseq const &) y, (
-                           AlignmentOptions<Tuint> &) z
-                         )
-                       )
-
 SIMDPP_INSTANTIATE_DISPATCHER(
-  (template AlignmentResults<uint8_t> const & global_alignment<std::string, uint8_t>(
+  (template void global_alignment<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint8_t> & o)),
-  (template AlignmentResults<uint16_t> const & global_alignment<std::string, uint16_t>(
-     std::string const & s1, std::string const & s2,
-     AlignmentOptions<uint16_t> & o)),
-  (template AlignmentResults<uint8_t> global_alignment_score<std::string, uint8_t>(
-     std::string const & s1, std::string const & s2,
-     AlignmentOptions<uint8_t> & o)),
-  (template AlignmentResults<uint16_t> global_alignment_score<std::string, uint16_t>(
+  (template void global_alignment<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint16_t> & o))
   )
