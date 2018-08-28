@@ -1,3 +1,0 @@
-//! [reduce.phase]
-SIMD reduce    :362880
-//! [reduce.phase]

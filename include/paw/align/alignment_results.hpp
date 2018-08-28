@@ -34,6 +34,29 @@ public:
 
   AlignmentResults() = default;
 
+
+  AlignmentResults &
+  operator=(AlignmentResults const & ar)
+  {
+    reduction = ar.reduction;
+    reductions = ar.reductions;
+    vH_up = ar.vH_up;
+    vF_up = ar.vF_up;
+    return *this;
+  }
+
+
+  AlignmentResults &
+  operator=(AlignmentResults && ar)
+  {
+    reduction = ar.reduction;
+    reductions = std::move(ar.reductions);
+    vH_up = std::move(ar.vH_up);
+    vF_up = std::move(ar.vF_up);
+    return *this;
+  }
+
+
   template<typename Tseq>
   std::pair<std::string, std::string> inline
   get_aligned_strings(Tseq const & q, Tseq const & d) const;

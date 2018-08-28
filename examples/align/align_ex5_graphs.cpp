@@ -30,6 +30,9 @@ public:
   }
 
 
+  inline std::vector<std::string> const & get_vertices() const {return vertices;}
+
+
   inline std::string
   get_sequence(long index) const
   {
@@ -118,16 +121,22 @@ main(int argc, char ** argv)
 
   // Graph 1
   auto const & g = graphs[0];
-  paw::AlignmentOptions<uint8_t> opts;
-  opts.continuous_alignment = true;
-  //opts.left_column_free = true;
-  opts.right_column_free = true;
-  opts.set_match(2).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
-  paw::global_alignment(std::string("AA"), g.get_sequence(0), opts);
+  std::vector<paw::AlignmentOptions<uint8_t> > all_opts;
+
+  {
+    paw::AlignmentOptions<uint8_t> opts;
+    opts.continuous_alignment = true;
+    //opts.left_column_free = true;
+    opts.right_column_free = true;
+    opts.set_match(2).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
+    all_opts.resize(g.get_vertices().size(), opts);
+    paw::global_alignment(std::string("AA"), g.get_sequence(0), all_opts[0]);
+  }
 
   for (long i : g.get_indexes_outbound(0))
   {
-    //paw::AlignmentOptions<uint8_t> opts2(opts);
+    auto & opts = all_opts[i];
+    *opts.get_alignment_results() = *all_opts[0].get_alignment_results();
     paw::global_alignment(std::string("AA"), g.get_sequence(i), opts);
     std::cout << "Score " << i << " " << opts.get_alignment_results()->score << "\n";
   }

@@ -24,6 +24,7 @@ struct AlignmentCache
   Tuint max_score_val{0};
   Tarr_vec_pack W_profile;
 
+
   inline void
   set_query(std::string && new_query)
   {
@@ -73,6 +74,7 @@ struct AlignmentCache
       assert(static_cast<std::size_t>(num_vectors) == W_profile[3].size());
     } /// Done calculating DNA W_profile
   }
+
 };
 
 } // namespace paw

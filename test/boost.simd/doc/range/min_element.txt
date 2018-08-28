@@ -1,4 +1,0 @@
-//! [min_element]
-*r1 -1
-*r2 2
-//! [min_element]

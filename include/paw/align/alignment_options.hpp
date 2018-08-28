@@ -53,6 +53,53 @@ public:
 
   AlignmentOptions() = default;
 
+  AlignmentOptions(AlignmentOptions const & ao)
+  {
+    left_column_free = ao.left_column_free;
+    right_column_free = ao.right_column_free;
+    continuous_alignment = ao.continuous_alignment;
+
+    match = ao.match;
+    mismatch = ao.mismatch;
+    gap_open = ao.gap_open;
+    gap_extend = ao.gap_extend;
+
+    ac = ao.ac;
+    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>);
+  }
+
+  AlignmentOptions(AlignmentOptions && ao) noexcept
+  {
+    left_column_free = ao.left_column_free;
+    right_column_free = ao.right_column_free;
+    continuous_alignment = ao.continuous_alignment;
+
+    match = ao.match;
+    mismatch = ao.mismatch;
+    gap_open = ao.gap_open;
+    gap_extend = ao.gap_extend;
+
+    ac = std::move(ao.ac);
+    ar = std::move(ao.ar);
+  }
+
+  AlignmentOptions<Tuint> &
+  operator=(AlignmentOptions const & ao)
+  {
+    left_column_free = ao.left_column_free;
+    right_column_free = ao.right_column_free;
+    continuous_alignment = ao.continuous_alignment;
+
+    match = ao.match;
+    mismatch = ao.mismatch;
+    gap_open = ao.gap_open;
+    gap_extend = ao.gap_extend;
+
+    ac = ao.ac;
+    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>);
+    return *this;
+  }
+
 
   /// \brief Sets score of a match
   /// It is assumed that the score is greater or equal to 0
@@ -297,6 +344,7 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
   long const t = aln_cache.num_vectors;
 
   assert(t > 0l);
+  assert(vX.size() > 0);
   assert(t == static_cast<long>(vX.size()));
 
   Tvec_uint vec(vX[0].length, 0);
@@ -324,7 +372,7 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
 
 template<typename Tuint>
 AlignmentOptions<Tuint>
-merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr)
+merge_score_matrices(std::vector<AlignmentOptions<Tuint> > const & opts_vec_ptr)
 {
   assert(opts_vec_ptr.size() > 2);
 
@@ -342,7 +390,7 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint>* > const & opts_vec_ptr
 
     for (long i = 1; i < in_degree; ++i)
     {
-      AlignmentOptions<Tuint> const & opt = &(opts_vec_ptr[i]);
+      AlignmentOptions<Tuint> const & opt = opts_vec_ptr[i];
       std::vector<long> scores = get_score_row(opt, 0, opt.get_alignment_results()->vH_up);
       assert (scores.size() == num_scores);
 

@@ -1,4 +1,0 @@
-//! [all_of]
-rt 1
-rf 0
-//! [all_of]
