@@ -5,6 +5,27 @@
 #include <unordered_map>
 
 
+namespace
+{
+
+/// Takes in a vector of AlignmentOptions and creates a new vector with pointers to Alignments options at certain
+/// indices in the original vector
+template<typename Tuint>
+std::vector<paw::AlignmentOptions<Tuint> * >
+get_opts_vec_ptr(std::vector<paw::AlignmentOptions<Tuint> > & opts, std::vector<long> const & indices)
+{
+  std::vector<paw::AlignmentOptions<Tuint> * > ret;
+  ret.reserve(indices.size());
+
+  for (auto i : indices)
+    ret.push_back(&(opts[i]));
+
+  return ret;
+}
+
+}
+
+
 /// A very simple graph structure (only support for adding vertices/edges but not removing them)
 class Graph
 {
@@ -71,7 +92,7 @@ create_test_graphs()
     g.add_vertex("A");
     g.add_vertex("A");
     g.add_vertex("T");
-    g.add_vertex("AAAAAAAAA");
+    g.add_vertex("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     g.add_edge(0, 1);
     g.add_edge(0, 2);
     g.add_edge(1, 3);
@@ -88,7 +109,7 @@ create_test_graphs()
     assert(g.get_sequence(0) == "A");
     assert(g.get_sequence(1) == "A");
     assert(g.get_sequence(2) == "T");
-    assert(g.get_sequence(3) == "AAAAAAAAA");
+    assert(g.get_sequence(3) == "AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     graphs.push_back(std::move(g));
   }
 
@@ -122,25 +143,45 @@ main(int argc, char ** argv)
   // Graph 1
   auto const & g = graphs[0];
   std::vector<paw::AlignmentOptions<uint8_t> > all_opts;
+  std::string query = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
   {
     paw::AlignmentOptions<uint8_t> opts;
+    assert(opts.get_alignment_results());
     opts.continuous_alignment = true;
     //opts.left_column_free = true;
     opts.right_column_free = true;
     opts.set_match(2).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
     all_opts.resize(g.get_vertices().size(), opts);
-    paw::global_alignment(std::string("AA"), g.get_sequence(0), all_opts[0]);
+    paw::global_alignment(query, g.get_sequence(0), all_opts[0]);
+  }
+
+  // Set query
+  for (auto & opts : all_opts)
+  {
+    paw::SIMDPP_ARCH_NAMESPACE::set_query(opts, query);
+    assert(opts.get_alignment_results());
   }
 
   for (long i : g.get_indexes_outbound(0))
   {
     auto & opts = all_opts[i];
     *opts.get_alignment_results() = *all_opts[0].get_alignment_results();
-    paw::global_alignment(std::string("AA"), g.get_sequence(i), opts);
+    paw::global_alignment(query, g.get_sequence(i), opts);
     std::cout << "Score " << i << " " << opts.get_alignment_results()->score << "\n";
   }
 
+  // Merge the results into vertex 3
+  std::vector<paw::AlignmentOptions<uint8_t> * > opts_vec_ptr = get_opts_vec_ptr(all_opts, g.get_indexes_inbound(3));
+
+  for (auto const & ptr : opts_vec_ptr)
+  {
+    assert(ptr);
+    assert(ptr->get_match());
+    assert(ptr->get_alignment_results());
+  }
+
+  auto final_opts = paw::SIMDPP_ARCH_NAMESPACE::merge_score_matrices<uint8_t>(all_opts[3], opts_vec_ptr);
   std::cout << "Num test graphs = " << graphs.size() << "\n";
   return EXIT_SUCCESS;
 }

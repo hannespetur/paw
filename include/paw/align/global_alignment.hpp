@@ -36,16 +36,17 @@ global_alignment(Tseq const & seq1,
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
   paw::SIMDPP_ARCH_NAMESPACE::set_query<Tuint, Tseq>(opt, seq1);
+  paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(opt, seq2);
 
   AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
   AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
 
   long const m = aln_cache.query_size;
   long const t = aln_cache.num_vectors; // Keep t as a local variable is it widely used
-  long const n = std::distance(seq2.begin(), seq2.end());
   long const right_v = m % t; // Vector that contains the rightmost element
   long const right_e = m / t; // The right-most element (in vector 'right_v')
-  aln_results.mB = Backtrack<Tuint>(n, t);
+  long const n = std::distance(seq2.begin(), seq2.end());
+
   Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()));
   Tvec_pack vF(aln_results.vF_up);
   Tvec_pack vE(aln_results.vF_up);

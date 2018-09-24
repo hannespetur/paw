@@ -51,7 +51,19 @@ public:
   std::vector<std::vector<long> > vF_scores;
 #endif // not NDEBUG
 
-  AlignmentOptions() = default;
+
+  AlignmentOptions()
+    : left_column_free(false)
+    , right_column_free(false)
+    , continuous_alignment(false)
+    , match(2)
+    , mismatch(2)
+    , gap_open(5)
+    , gap_extend(1)
+    , ac(new AlignmentCache<Tuint>())
+    , ar(new AlignmentResults<Tuint>())
+  {}
+
 
   AlignmentOptions(AlignmentOptions const & ao)
   {
@@ -65,7 +77,7 @@ public:
     gap_extend = ao.gap_extend;
 
     ac = ao.ac;
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>);
+    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
   }
 
   AlignmentOptions(AlignmentOptions && ao) noexcept
@@ -83,6 +95,7 @@ public:
     ar = std::move(ao.ar);
   }
 
+
   AlignmentOptions<Tuint> &
   operator=(AlignmentOptions const & ao)
   {
@@ -96,7 +109,25 @@ public:
     gap_extend = ao.gap_extend;
 
     ac = ao.ac;
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>);
+    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
+    return *this;
+  }
+
+
+  AlignmentOptions<Tuint> &
+  operator=(AlignmentOptions && ao)
+  {
+    left_column_free = ao.left_column_free;
+    right_column_free = ao.right_column_free;
+    continuous_alignment = ao.continuous_alignment;
+
+    match = ao.match;
+    mismatch = ao.mismatch;
+    gap_open = ao.gap_open;
+    gap_extend = ao.gap_extend;
+
+    ac = std::move(ao.ac);
+    ar = std::move(ao.ar);
     return *this;
   }
 
@@ -237,8 +268,9 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
     init_vH_up(opt);
     aln_results.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
 
-    aln_results.reduction = - std::numeric_limits<Tuint>::min() - aln_cache.gap_open_val * 3;
+    aln_results.reduction = static_cast<long>(- std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
     aln_results.reductions.fill(0);
+
 
 #ifndef NDEBUG
     opt.score_matrix.clear();
@@ -246,6 +278,15 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
     opt.vF_scores.clear();
 #endif // NDEBUG
   }
+}
+
+
+template<typename Tuint, typename Tseq>
+void
+set_database(AlignmentOptions<Tuint> & opt, Tseq const & seq)
+{
+  opt.get_alignment_results()->mB =
+    Backtrack<Tuint>(std::distance(begin(seq), end(seq)), opt.get_alignment_cache()->num_vectors);
 }
 
 
@@ -353,7 +394,7 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
   scores_row.reserve(m + 1ul);
 
   for (long v = 0; v < t; ++v)
-    simdpp::store_u(&mat[v][0], aln_results.vH_up[v]);
+    simdpp::store_u(&mat[v][0], vX[v]);
 
   for (long j = 0; j <= m; ++j)
   {
@@ -372,16 +413,24 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
 
 template<typename Tuint>
 AlignmentOptions<Tuint>
-merge_score_matrices(std::vector<AlignmentOptions<Tuint> > const & opts_vec_ptr)
+merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<AlignmentOptions<Tuint> * > const & opts_vec_ptr)
 {
-  assert(opts_vec_ptr.size() > 2);
+  assert(opts_vec_ptr.size() >= 2ul);
+  auto const & first = *opts_vec_ptr.front();
+  std::vector<long> max_vH = get_score_row(first, 0, first.get_alignment_results()->vH_up);
+  std::vector<long> max_vF = get_score_row(first, 0, first.get_alignment_results()->vF_up);
 
-  AlignmentOptions<Tuint> final_opts(&(opts_vec_ptr.front()));
-  AlignmentResults<Tuint> final_aln_results = *final_opts.get_alignment_results();
-  std::vector<long> max_vH = get_score_row(final_opts, 0, final_aln_results.vH_up);
-  std::vector<long> max_vF = get_score_row(final_opts, 0, final_aln_results.vF_up);
+  std::cout << "vH_up: ";
+  for (long i = 0; i < static_cast<long>(max_vH.size()); ++i)
+    std::cout << max_vH[i] << " ";
 
-  auto set_max_scores = [&opts_vec_ptr](std::vector<long> & max_scores, std::vector<std::vector<long> > & merge_solver)
+  std::cout << "\nvF_up: ";
+  for (long i = 0; i < static_cast<long>(max_vF.size()); ++i)
+    std::cout << max_vF[i] << " ";
+
+  std::cout << "\n";
+
+  auto set_max_scores = [&opts_vec_ptr](bool const is_vH, std::vector<long> & max_scores, std::vector<std::vector<long> > & merge_solver)
   {
     long const in_degree = static_cast<long>(opts_vec_ptr.size()); // InDegree of node that is getting merged
     long const num_scores = static_cast<long>(max_scores.size()); // Number of scores in a row
@@ -390,9 +439,15 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint> > const & opts_vec_ptr)
 
     for (long i = 1; i < in_degree; ++i)
     {
-      AlignmentOptions<Tuint> const & opt = opts_vec_ptr[i];
-      std::vector<long> scores = get_score_row(opt, 0, opt.get_alignment_results()->vH_up);
-      assert (scores.size() == num_scores);
+      AlignmentOptions<Tuint> const & opt = *(opts_vec_ptr[i]);
+      std::vector<long> scores;
+
+      if (is_vH)
+        scores = get_score_row(opt, 0, opt.get_alignment_results()->vH_up);
+      else
+        scores = get_score_row(opt, 0, opt.get_alignment_results()->vF_up);
+
+      assert (static_cast<long>(scores.size()) == num_scores);
 
       for (long j = 0; j < num_scores; ++j)
       {
@@ -412,32 +467,51 @@ merge_score_matrices(std::vector<AlignmentOptions<Tuint> > const & opts_vec_ptr)
     }
   };
 
-  set_max_scores(max_vH, final_opts.merge_solver_vH);
-  set_max_scores(max_vF, final_opts.merge_solver_vF);
+  AlignmentResults<Tuint> & results = *(final_opts.get_alignment_results());
+  set_max_scores(true, max_vH, results.merge_solver_vH);
+  set_max_scores(false, max_vF, results.merge_solver_vF);
+  results.reductions.fill(0);
+  results.reduction = 0;
 
   /// Initialize vH_up and vF_up such that minimum score is at least 3*opt.gap_open + min_value and the maximum score
   /// is at most opt.max_score_val
   {
-    long const min_score_val = 3 * final_opts.gap_open + std::numeric_limits<Tuint>::min();
-    long const max_score_val = final_opts.get_cache()->max_score_val;
+    long const min_score_val = 3 * final_opts.get_gap_open() + std::numeric_limits<Tuint>::min();
+    AlignmentCache<Tuint> const & cache = *final_opts.get_alignment_cache();
+    long const max_score_val = cache.max_score_val;
     long const max_diff = max_score_val - min_score_val;
 
     std::array<long, S / sizeof(Tuint)> min_values;
     min_values.fill(std::numeric_limits<long>::max());
-
     std::array<long, S / sizeof(Tuint)> max_values;
     max_values.fill(std::numeric_limits<long>::min());
 
-    assert(max_vH.size() - 1l == final_opts.get_cache()->query_size);
-    assert(max_vF.size() - 1l == final_opts.get_cache()->query_size);
+    assert(static_cast<long>(max_vH.size()) - 1l == cache.query_size);
+    assert(static_cast<long>(max_vF.size()) - 1l == cache.query_size);
+    long const t = cache.num_vectors;
 
-    long t = final_opts.get_cache()->num_vectors;
-
-    for (long j = 0; j <= final_opts.get_cache()->query_size; ++j)
+    for (long j = 0; j <= cache.query_size; ++j)
     {
       long const e = j / t;
       min_values[e] = std::min(min_values[e], std::min(max_vH[j], max_vF[j]));
       max_values[e] = std::max(max_values[e], std::max(max_vH[j], max_vF[j]));
+    }
+
+    for (long e = 0; e < static_cast<long>(S / sizeof(Tuint)); ++e)
+    {
+      std::cout << "min,max = " << min_values[e] << "," << max_values[e] << "\n";
+
+      if (max_values[e] - min_values[e] >= max_diff)
+      {
+        // max value in max_vH and max_vF should be set to max_score_val
+        results.reductions[e] = max_values[e] - max_score_val;
+      }
+      else
+      {
+        // min value in max_vH and max_vF should be set to min_score_val
+        results.reductions[e] = min_values[e] - min_score_val;
+        std::cout << results.reductions[e] << " " << min_score_val << " " << min_values[e] << "\n";
+      }
     }
   }
 

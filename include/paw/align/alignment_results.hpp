@@ -34,6 +34,13 @@ public:
 
   AlignmentResults() = default;
 
+  AlignmentResults(AlignmentResults const & ar)
+  {
+    reduction = ar.reduction;
+    reductions = ar.reductions;
+    vH_up = ar.vH_up;
+    vF_up = ar.vF_up;
+  }
 
   AlignmentResults &
   operator=(AlignmentResults const & ar)
@@ -61,7 +68,8 @@ public:
   std::pair<std::string, std::string> inline
   get_aligned_strings(Tseq const & q, Tseq const & d) const;
 
-  void inline clear();
+  inline void clear();
+  inline void reset(paw::AlignmentCache<Tuint> * cache);
 };
 
 
@@ -215,6 +223,20 @@ AlignmentResults<Tuint>::clear()
   query_end = 0;
   database_end = 0;
 }
+
+
+template<typename Tuint>
+void inline
+AlignmentResults<Tuint>::reset(paw::AlignmentCache<Tuint> * cache)
+{
+  /*
+  mB = SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint>();
+  score = 0;
+  query_end = 0;
+  database_end = 0;
+  */
+}
+
 
 
 #endif // defined(IMPLEMENT_PAW)

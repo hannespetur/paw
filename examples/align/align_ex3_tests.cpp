@@ -233,7 +233,7 @@ main(int argc, char ** argv)
     {"AAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAACAAAAAAAAA", 34, 2, 4, 5, 1}, //test 16
     {"GGG", "GGG", 12, 4 /*match*/, 2 /*mismatch*/, 1 /*gap_open*/, 1 /*gap extend*/}, //test 17
     {"GGGGG", "GGGGG", 150, 30, 4, 5, 1}, // test 18
-    {"GGGGG", "GGGGG", 250, 50, 2, 5, 1}, // test 19
+    {"GGGGG", "GGGGG", 200, 40, 2, 5, 1}, // test 19
     {"AAAAA", "AAAA", 2, 2, 4, 6, 1}, // test 20
     {"AAAA", "AAAAA", 2, 2, 4, 6, 1}, // test 21
     {"TTTTT", "TTTT", -1, 0, 1, 1, 1}, // test 22
@@ -398,16 +398,22 @@ main(int argc, char ** argv)
 
       // Also test if vF and vE are transposed (except for the first row and col)
       assert(vE_matrix.size() == opts.vF_scores.size());
+      assert(vF_matrix.size() == opts.vE_scores.size());
+
+      //std::cout << vE_matrix.size() << "," << vF_matrix.size() << " " << vE_matrix[0].size()
+      //  << "," << vF_matrix[0].size() << "\n";
 
       for (long r = 1; r < static_cast<long>(vE_matrix.size()); ++r)
       {
         assert(vE_matrix[r].size() == opts.vF_scores[r].size());
+        assert(vF_matrix[r].size() == opts.vE_scores[r].size());
+        assert(vF_matrix[r].size() == vE_matrix[r].size());
 
         for (long c = 1; c < static_cast<long>(vE_matrix[r].size()); ++c)
         {
           if (vE_matrix[r][c] != opts.vF_scores[r][c])
           {
-            std::cout << "vE' vs vF. row, col = " << r << "," << c << " mismatch " << vE_matrix[r][c] << " != "
+            std::cout << "INCORRECT: Test " << i << ": vE' vs vF. row, col = " << r << "," << c << " mismatch " << vE_matrix[r][c] << " != "
                       << opts.vF_scores[r][c] << "\n";
             r = vE_matrix.size();
             are_all_tests_ok = false;
@@ -416,7 +422,7 @@ main(int argc, char ** argv)
 
           if (vF_matrix[r][c] != opts.vE_scores[r][c])
           {
-            std::cout << "vE vs vF'. row, col = " << r << "," << c << " mismatch " << vF_matrix[r][c] << " != "
+            std::cout << "INCORRECT: Test " << i << " vE vs vF'. row, col = " << r << "," << c << " mismatch " << vF_matrix[r][c] << " != "
                       << opts.vE_scores[r][c] << "\n";
             r = vE_matrix.size();
             are_all_tests_ok = false;
