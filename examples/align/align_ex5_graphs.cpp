@@ -87,11 +87,11 @@ create_test_graphs()
   {
     // AAAAAAAAAA
     // A|T
-    // AAAAAAAAA
+    // AAAAAAAAAAAAAAAAAAAAAAAAAAAA
     Graph g;
     g.add_vertex("A");
-    g.add_vertex("A");
     g.add_vertex("T");
+    g.add_vertex("A");
     g.add_vertex("AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     g.add_edge(0, 1);
     g.add_edge(0, 2);
@@ -107,8 +107,8 @@ create_test_graphs()
     assert(g.get_indexes_inbound(3).size() == 2);
     assert(g.get_indexes_outbound(3).size() == 0);
     assert(g.get_sequence(0) == "A");
-    assert(g.get_sequence(1) == "A");
-    assert(g.get_sequence(2) == "T");
+    assert(g.get_sequence(1) == "T");
+    assert(g.get_sequence(2) == "A");
     assert(g.get_sequence(3) == "AAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     graphs.push_back(std::move(g));
   }
@@ -143,7 +143,7 @@ main(int argc, char ** argv)
   // Graph 1
   auto const & g = graphs[0];
   std::vector<paw::AlignmentOptions<uint8_t> > all_opts;
-  std::string query = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  std::string query = "ATAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
   {
     paw::AlignmentOptions<uint8_t> opts;
@@ -153,6 +153,8 @@ main(int argc, char ** argv)
     opts.right_column_free = true;
     opts.set_match(2).set_mismatch(-2).set_gap_open(-5).set_gap_extend(-1);
     all_opts.resize(g.get_vertices().size(), opts);
+
+    // Do a pairwise alignment on the first node
     paw::global_alignment(query, g.get_sequence(0), all_opts[0]);
   }
 
@@ -166,6 +168,8 @@ main(int argc, char ** argv)
   for (long i : g.get_indexes_outbound(0))
   {
     auto & opts = all_opts[i];
+
+    // Set the previous alignment results
     *opts.get_alignment_results() = *all_opts[0].get_alignment_results();
     paw::global_alignment(query, g.get_sequence(i), opts);
     std::cout << "Score " << i << " " << opts.get_alignment_results()->score << "\n";
@@ -181,7 +185,15 @@ main(int argc, char ** argv)
     assert(ptr->get_alignment_results());
   }
 
-  auto final_opts = paw::SIMDPP_ARCH_NAMESPACE::merge_score_matrices<uint8_t>(all_opts[3], opts_vec_ptr);
-  std::cout << "Num test graphs = " << graphs.size() << "\n";
+  paw::SIMDPP_ARCH_NAMESPACE::merge_score_matrices<uint8_t>(all_opts[3], opts_vec_ptr);
+  paw::global_alignment(query, g.get_sequence(3), all_opts[3]);
+
+
+  //std::cout << "Num test graphs = " << graphs.size() << "\n";
+
+  //assert(3 < all_opts.size());
+  //paw::global_alignment(query, g.get_sequence(3), all_opts[3]);
+  std::cout << "Final score: " << all_opts[3].get_alignment_results()->score << "\n";
+
   return EXIT_SUCCESS;
 }

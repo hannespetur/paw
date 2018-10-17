@@ -22,21 +22,21 @@ struct AlignmentResults
   long query_end{0};
   long database_end{0};
 
-  long reduction{0};
+  //long reduction{0};
   std::array<long, S / sizeof(Tuint)> reductions;
   Tvec_pack vH_up;
   Tvec_pack vF_up;
-
-  std::vector<std::vector<long> > merge_solver_vH;
-  std::vector<std::vector<long> > merge_solver_vF;
 
 public:
 
   AlignmentResults() = default;
 
   AlignmentResults(AlignmentResults const & ar)
+  : mB()
+  , reductions()
+  , vH_up()
+  , vF_up()
   {
-    reduction = ar.reduction;
     reductions = ar.reductions;
     vH_up = ar.vH_up;
     vF_up = ar.vF_up;
@@ -45,7 +45,6 @@ public:
   AlignmentResults &
   operator=(AlignmentResults const & ar)
   {
-    reduction = ar.reduction;
     reductions = ar.reductions;
     vH_up = ar.vH_up;
     vF_up = ar.vF_up;
@@ -54,9 +53,8 @@ public:
 
 
   AlignmentResults &
-  operator=(AlignmentResults && ar)
+  operator=(AlignmentResults && ar) noexcept
   {
-    reduction = ar.reduction;
     reductions = std::move(ar.reductions);
     vH_up = std::move(ar.vH_up);
     vF_up = std::move(ar.vF_up);
@@ -67,6 +65,11 @@ public:
   template<typename Tseq>
   std::pair<std::string, std::string> inline
   get_aligned_strings(Tseq const & q, Tseq const & d) const;
+
+  inline void reduce_every_element(long val)
+  {
+    std::for_each(reductions.begin(), reductions.end(), [val](long & element){element += val;});
+  }
 
   inline void clear();
   inline void reset(paw::AlignmentCache<Tuint> * cache);

@@ -45,11 +45,11 @@ private:
 public:
 
 #ifndef NDEBUG
-  // Store the score matrix in debug mode
+  /// DEBUG MODE ONLY: Store the score matrix
   std::vector<std::vector<long> > score_matrix;
   std::vector<std::vector<long> > vE_scores;
   std::vector<std::vector<long> > vF_scores;
-#endif // not NDEBUG
+#endif // NDEBUG
 
 
   AlignmentOptions()
@@ -115,7 +115,7 @@ public:
 
 
   AlignmentOptions<Tuint> &
-  operator=(AlignmentOptions && ao)
+  operator=(AlignmentOptions && ao) noexcept
   {
     left_column_free = ao.left_column_free;
     right_column_free = ao.right_column_free;
@@ -268,8 +268,8 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
     init_vH_up(opt);
     aln_results.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
 
-    aln_results.reduction = static_cast<long>(- std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
-    aln_results.reductions.fill(0);
+    //aln_results.reduction = ;
+    aln_results.reductions.fill(static_cast<long>(- std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3);
 
 
 #ifndef NDEBUG
@@ -288,6 +288,50 @@ set_database(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   opt.get_alignment_results()->mB =
     Backtrack<Tuint>(std::distance(begin(seq), end(seq)), opt.get_alignment_cache()->num_vectors);
 }
+
+/*
+template<typename Tuint>
+void
+center_scores(AlignmentOptions<Tuint> & opt)
+{
+  using Tpack = typename T<Tuint>::pack;
+  using Tmask = typename T<Tuint>::mask;
+  using Tarr_uint = typename T<Tuint>::arr_uint;
+
+  AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
+  AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  long const num_vectors = aln_cache.num_vectors;
+  Tuint const center_score = aln_cache.max_score_val / 2;
+
+  Tarr_uint vF0;
+  vF0.fill(0);
+
+  // Store the optimal scores in vector 0
+  simdpp::store_u(&vF0[0], aln_results.vF_up[0]);
+  assert(vF0.size() == aln_results.reductions.size());
+  Tarr_uint new_reductions;
+  new_reductions.fill(0);
+  assert(vF0.size() == new_reductions.size());
+
+  for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
+  {
+    long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(center_score);
+    aln_results.reductions[e] += new_reduction_val;
+    new_reductions[e] = new_reduction_val;
+  }
+
+  // Modify values
+  {
+    Tpack new_reductions_pack = simdpp::load_u(&new_reductions[0]);
+
+    for (long v = 0; v < num_vectors; ++v)
+    {
+      aln_results.vF_up[v] = aln_results.vF_up[v] - new_reductions_pack;
+      aln_results.vH_up[v] = aln_results.vH_up[v] - new_reductions_pack;
+    }
+  }
+}
+*/
 
 
 template<typename Tuint>
@@ -403,119 +447,101 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
     assert(v < static_cast<long>(mat.size()));
     assert(e < static_cast<long>(mat[v].size()));
 
-    long const adjustment = aln_results.reduction + aln_results.reductions[e] - aln_cache.y_gain * i - aln_cache.x_gain * j;
+    long const adjustment = aln_results.reductions[e] - aln_cache.y_gain * i - aln_cache.x_gain * j;
     scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
   }
 
   return scores_row;
 }
 
-
 template<typename Tuint>
-AlignmentOptions<Tuint>
+void
 merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<AlignmentOptions<Tuint> * > const & opts_vec_ptr)
 {
-  assert(opts_vec_ptr.size() >= 2ul);
-  auto const & first = *opts_vec_ptr.front();
-  std::vector<long> max_vH = get_score_row(first, 0, first.get_alignment_results()->vH_up);
-  std::vector<long> max_vF = get_score_row(first, 0, first.get_alignment_results()->vF_up);
+  using Tarr = std::array<long, S / sizeof(Tuint)>;
+  using Tpack = typename T<Tuint>::pack;
 
-  std::cout << "vH_up: ";
-  for (long i = 0; i < static_cast<long>(max_vH.size()); ++i)
-    std::cout << max_vH[i] << " ";
+  assert(opts_vec_ptr.size() >= 1ul);
 
-  std::cout << "\nvF_up: ";
-  for (long i = 0; i < static_cast<long>(max_vF.size()); ++i)
-    std::cout << max_vF[i] << " ";
+  final_opts = *opts_vec_ptr[0];
+  auto & results = *final_opts.get_alignment_results();
+  auto const & cache = *final_opts.get_alignment_cache();
 
-  std::cout << "\n";
+  // Find an array that has the global max of reductions over all input reductions
+  Tarr max_reductions;
+  max_reductions = opts_vec_ptr[0]->get_alignment_results()->reductions;
 
-  auto set_max_scores = [&opts_vec_ptr](bool const is_vH, std::vector<long> & max_scores, std::vector<std::vector<long> > & merge_solver)
+  for (long i = 1; i < static_cast<long>(opts_vec_ptr.size()); ++i)
   {
-    long const in_degree = static_cast<long>(opts_vec_ptr.size()); // InDegree of node that is getting merged
-    long const num_scores = static_cast<long>(max_scores.size()); // Number of scores in a row
-    merge_solver.clear();
-    merge_solver.resize(max_scores.size(), std::vector<long>(1, 0));
+    Tarr const & reductions = opts_vec_ptr[i]->get_alignment_results()->reductions;
 
-    for (long i = 1; i < in_degree; ++i)
+    for (long j = 0; j < static_cast<long>(S / sizeof(Tuint)); ++j)
     {
-      AlignmentOptions<Tuint> const & opt = *(opts_vec_ptr[i]);
-      std::vector<long> scores;
-
-      if (is_vH)
-        scores = get_score_row(opt, 0, opt.get_alignment_results()->vH_up);
-      else
-        scores = get_score_row(opt, 0, opt.get_alignment_results()->vF_up);
-
-      assert (static_cast<long>(scores.size()) == num_scores);
-
-      for (long j = 0; j < num_scores; ++j)
-      {
-        if (scores[j] > max_scores[j])
-        {
-          // Score is higher than what was previously observed, mark is the best path
-          max_scores[j] = scores[j];
-          merge_solver[j].clear();
-          merge_solver[j].push_back(i);
-        }
-        else if (scores[j] == max_scores[j])
-        {
-          // If score is equal then just add it among the best paths
-          merge_solver[j].push_back(i);
-        }
-      }
-    }
-  };
-
-  AlignmentResults<Tuint> & results = *(final_opts.get_alignment_results());
-  set_max_scores(true, max_vH, results.merge_solver_vH);
-  set_max_scores(false, max_vF, results.merge_solver_vF);
-  results.reductions.fill(0);
-  results.reduction = 0;
-
-  /// Initialize vH_up and vF_up such that minimum score is at least 3*opt.gap_open + min_value and the maximum score
-  /// is at most opt.max_score_val
-  {
-    long const min_score_val = 3 * final_opts.get_gap_open() + std::numeric_limits<Tuint>::min();
-    AlignmentCache<Tuint> const & cache = *final_opts.get_alignment_cache();
-    long const max_score_val = cache.max_score_val;
-    long const max_diff = max_score_val - min_score_val;
-
-    std::array<long, S / sizeof(Tuint)> min_values;
-    min_values.fill(std::numeric_limits<long>::max());
-    std::array<long, S / sizeof(Tuint)> max_values;
-    max_values.fill(std::numeric_limits<long>::min());
-
-    assert(static_cast<long>(max_vH.size()) - 1l == cache.query_size);
-    assert(static_cast<long>(max_vF.size()) - 1l == cache.query_size);
-    long const t = cache.num_vectors;
-
-    for (long j = 0; j <= cache.query_size; ++j)
-    {
-      long const e = j / t;
-      min_values[e] = std::min(min_values[e], std::min(max_vH[j], max_vF[j]));
-      max_values[e] = std::max(max_values[e], std::max(max_vH[j], max_vF[j]));
-    }
-
-    for (long e = 0; e < static_cast<long>(S / sizeof(Tuint)); ++e)
-    {
-      std::cout << "min,max = " << min_values[e] << "," << max_values[e] << "\n";
-
-      if (max_values[e] - min_values[e] >= max_diff)
-      {
-        // max value in max_vH and max_vF should be set to max_score_val
-        results.reductions[e] = max_values[e] - max_score_val;
-      }
-      else
-      {
-        // min value in max_vH and max_vF should be set to min_score_val
-        results.reductions[e] = min_values[e] - min_score_val;
-        std::cout << results.reductions[e] << " " << min_score_val << " " << min_values[e] << "\n";
-      }
+      max_reductions[j] = std::max(reductions[j], max_reductions[j]);
     }
   }
 
-  return final_opts;
+
+  for (long j = 0; j < static_cast<long>(S / sizeof(Tuint)); ++j)
+  {
+    std::cerr << j << " " << max_reductions[j] << "\n";
+  }
+
+
+  // Gather how much we need to reduce each vector such they have all reduced the same
+  for (long i = 0; i < static_cast<long>(opts_vec_ptr.size()); ++i)
+  {
+    Tarr const & reductions = opts_vec_ptr[i]->get_alignment_results()->reductions;
+    Tarr extra_reductions;
+    bool any_extra_reductions = false;
+
+    for (long j = 0; j < static_cast<long>(S / sizeof(Tuint)); ++j)
+    {
+      extra_reductions[j] = max_reductions[j] - reductions[j];
+
+      if (extra_reductions[j] != 0)
+        any_extra_reductions = true;
+    }
+
+    if (!any_extra_reductions)
+      continue;
+
+    Tpack extra_reductions_vec = simdpp::load(&extra_reductions[0]);
+    auto & vF_up = opts_vec_ptr[i]->get_alignment_results()->vF_up;
+    auto & vH_up = opts_vec_ptr[i]->get_alignment_results()->vH_up;
+
+    for (long v = 0; v < static_cast<long>(vF_up.size()); ++v)
+    {
+      vF_up[v] = simdpp::sub_sat(vF_up[v], extra_reductions_vec);
+      vH_up[v] = simdpp::sub_sat(vH_up[v], extra_reductions_vec);
+    }
+
+    // Set all reductions as "max_reductions"
+    opts_vec_ptr[i]->get_alignment_results()->reductions = max_reductions;
+  }
+
+  results.reductions = max_reductions;
+  results.vF_up.reserve(cache.num_vectors);
+  results.vH_up.reserve(cache.num_vectors);
+
+  // Find the best scores at each position
+  for (long v = 0; v < cache.num_vectors; ++v)
+  {
+    assert(opts_vec_ptr[0]);
+    assert(opts_vec_ptr[0]->get_alignment_results());
+    assert(static_cast<long>(opts_vec_ptr[0]->get_alignment_results()->vF_up.size()) == cache.num_vectors);
+    assert(v == static_cast<long>(results.vF_up.size()));
+    assert(v == static_cast<long>(results.vH_up.size()));
+
+    results.vF_up.push_back(opts_vec_ptr[0]->get_alignment_results()->vF_up[v]);
+    results.vH_up.push_back(opts_vec_ptr[0]->get_alignment_results()->vH_up[v]);
+
+    for (long i = 1; i < static_cast<long>(opts_vec_ptr.size()); ++i)
+    {
+      results.vF_up[v] = simdpp::max(results.vF_up[v], opts_vec_ptr[i]->get_alignment_results()->vF_up[v]);
+      results.vH_up[v] = simdpp::max(results.vH_up[v], opts_vec_ptr[i]->get_alignment_results()->vH_up[v]);
+    }
+  }
 }
 
 

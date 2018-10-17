@@ -213,10 +213,9 @@ global_alignment(Tseq const & seq1,
   simdpp::store_u(&arr[0], aln_results.vH_up[m % t]);
   aln_results.query_end = m;
   aln_results.database_end = n;
-  aln_results.reduction -= n * aln_cache.y_gain;
+  aln_results.reduce_every_element(-n * aln_cache.y_gain);
   aln_results.score = static_cast<long>(arr[m / t])
                   + static_cast<long>(aln_results.reductions[m / t])
-                  + aln_results.reduction
                   - m * aln_cache.x_gain;
 }
 
