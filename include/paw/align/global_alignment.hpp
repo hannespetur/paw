@@ -41,7 +41,7 @@ global_alignment(Tseq const & seq1,
   AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
   AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
 
-  long const m = aln_cache.query_size;
+  long const m = aln_cache.query_size; // Local variable for the query size
   long const t = aln_cache.num_vectors; // Keep t as a local variable is it widely used
   long const right_v = m % t; // Vector that contains the rightmost element
   long const right_e = m / t; // The right-most element (in vector 'right_v')
