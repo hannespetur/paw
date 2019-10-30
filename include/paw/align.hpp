@@ -5,6 +5,11 @@
 #include <paw/align/alignment_results.hpp>
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/libsimdpp_align.hpp>
+#include <paw/align/fasta.hpp>
+#include <paw/align/event.hpp>
+#include <paw/align/skyr.hpp>
+#include <paw/align/variant.hpp>
+#include <paw/align/vcf.hpp>
 
 
 namespace paw

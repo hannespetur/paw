@@ -6,6 +6,6 @@
  * \copyright GNU GPLv3
  */
 
-//#include <paw/align.hpp>
+#include <paw/align.hpp>
 #include <paw/parser.hpp>
 #include <paw/station.hpp>

@@ -6,17 +6,19 @@
 #include <sstream> // std::stringstream
 #include <vector> // std::vector<T>
 
-#include "event.hpp"
+#include <paw/align/event.hpp>
 
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 
 class Variant
 {
 public:
-  std::map<Event, uint32_t /*allele index*/> event_to_allele;
+  std::map<Event2, uint32_t /*allele index*/> event_to_allele;
   std::vector<uint16_t> calls;
 
 public:
@@ -34,14 +36,15 @@ public:
   bool is_snp() const;
 
   void print_events_to_alleles(std::ostream & ss) const;
+  void print_seqs(std::ostream & ss) const;
   ///
 
   /// Class modifiers
   void add_base_to_front(std::string const & reference);
   void add_call(uint16_t const call);
   void clear();
-  void add_event(Event const & e);
-  ///
+  void add_event(Event2 const & e);
+///
 
 };
 
@@ -49,6 +52,7 @@ public:
 bool operator<(Variant const & a, Variant const & b);
 bool operator==(Variant const & a, Variant const & b);
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -56,6 +60,8 @@ bool operator==(Variant const & a, Variant const & b);
 
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 
@@ -102,6 +108,14 @@ Variant::print_events_to_alleles(std::ostream & ss) const
 
 
 void
+Variant::print_seqs(std::ostream & ss) const
+{
+  for (auto const & seq : seqs)
+    ss << seq << ", ";
+}
+
+
+void
 Variant::add_call(uint16_t const call)
 {
   calls.push_back(call);
@@ -130,7 +144,7 @@ Variant::clear()
 
 
 void
-Variant::add_event(Event const & e)
+Variant::add_event(Event2 const & e)
 {
   event_to_allele[e] = this->seqs.size();
   this->seqs.push_back(e.alt);
@@ -151,6 +165,7 @@ operator==(Variant const & a, Variant const & b)
 }
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 #endif // IMPLEMENT_PAW

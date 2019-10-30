@@ -4,11 +4,14 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
+#include <paw/align/global_alignment.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/variant.hpp>
 
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 class Skyr
@@ -17,9 +20,9 @@ public:
   using Tscores = std::vector<int64_t>;   // Container for alignment scores
 
   std::vector<std::string> seqs;
-  std::set<Event> free_edits;   // Alignment edits that have been made free
-  std::vector<std::set<Event> > edits;   // Edits found for each alignment
-  std::multiset<Event> all_edits;
+  std::set<Event2> free_edits;   // Alignment edits that have been made free
+  std::vector<std::set<Event2> > edits;   // Edits found for each alignment
+  std::multiset<Event2> all_edits;
   std::vector<Variant> vars;
 
   Skyr(std::vector<std::string> const & _seqs);
@@ -33,6 +36,7 @@ private:
 };
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -44,7 +48,7 @@ private:
 #include <set>
 #include <sstream>
 
-#include "boost_simd_align.hpp"
+//#include "boost_simd_align.hpp"
 
 
 namespace
@@ -74,6 +78,8 @@ prefix_matches(std::string const & s1, std::string const & s2)
 
 namespace paw
 {
+namespace SIMDPP_ARCH_NAMESPACE
+{
 
 Skyr::Skyr(std::vector<std::string> const & _seqs)
   : seqs(_seqs)
@@ -102,7 +108,7 @@ Skyr::find_most_similar_haplotype(Tscores const & scores) const
   {
     std::size_t event_seen_count = 0;
 
-    auto is_novel = [&](Event const & e)
+    auto is_novel = [&](Event2 const & e)
                     {
                       return e.is_snp() && free_edits.count(e) == 0;
                     };
@@ -141,22 +147,27 @@ Skyr::find_all_edits()
     ++iteration;
     std::cout << "Iteration #" << iteration << "\n";
     using Tuint = uint8_t;
-    AlignerOptions<Tuint> opts;
-    opts.backtracking = true; // Force backtracking
+    AlignmentOptions<Tuint> opts;
+    //opts.backtracking = true; // Force backtracking
 
     // Construct an aligner with the reference sequence
-    Aligner<Tuint, std::string::const_iterator> aligner(seqs[0].cbegin(),
-                                                        seqs[0].cend(),
-                                                        opts,
-                                                        free_edits);
+    //paw::global_alignment(seqs[0].cbegin(), seqs[0].cend(), opts); //, free_edits);
     all_edits.clear();
 
     for (std::size_t i = 1; i < seqs.size(); ++i)
     {
-      scores[i] = aligner.align(seqs[i].cbegin(), seqs[i].cend());
-      auto aligned_strings = aligner.get_aligned_strings();
-      edits[i] = aligner.get_edit_script(aligned_strings);
-      all_edits.insert(edits[i].begin(), edits[i].end());
+      global_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
+      auto ar = opts.get_alignment_results();
+      //auto ac = opts.get_alignment_cache();
+      scores[i] = ar->score;
+      std::cerr << "Score = " << ar->score << "\n";
+
+      //scores[i] = aligner.align(seqs[i].cbegin(), seqs[i].cend());
+      auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
+      std::cout << aligned_strings.first << "\n"
+                << aligned_strings.second << "\n";
+      //edits[i] = aligner.get_edit_script(aligned_strings);
+      //all_edits.insert(edits[i].begin(), edits[i].end());
     }
 
     std::size_t const max_i = find_most_similar_haplotype(scores);
@@ -258,6 +269,7 @@ Skyr::find_variants_from_edits()
 }
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 #endif // IMPLEMENT_PAW

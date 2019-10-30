@@ -3,10 +3,9 @@
 #include <paw/align/alignment_cache.hpp>
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/alignment_results.hpp>
-#include <paw/align/event.hpp>
+//#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
-
 
 #include <simdpp/simd.h>
 
@@ -47,7 +46,8 @@ global_alignment(Tseq const & seq1,
   long const right_e = m / t; // The right-most element (in vector 'right_v')
   long const n = std::distance(seq2.begin(), seq2.end());
 
-  Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()));
+  Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(
+                 2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()));
   Tvec_pack vF(aln_results.vF_up);
   Tvec_pack vE(aln_results.vF_up);
 
@@ -69,7 +69,9 @@ global_alignment(Tseq const & seq1,
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
       for (long v = 0; v < t; ++v)
-        aln_results.vF_up[v] = aln_results.vF_up[v] + static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain - opt.get_gap_extend()));
+        aln_results.vF_up[v] = aln_results.vF_up[v] +
+                               static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
+                                                                    opt.get_gap_extend()));
     }
 
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
@@ -79,7 +81,7 @@ global_alignment(Tseq const & seq1,
     {
       auto const left = std::max(static_cast<Tuint>(simdpp::extract<0>(aln_results.vF_up[0])),
                                  static_cast<Tuint>(simdpp::extract<0>(aln_results.vH_up[0]) -
-                                 gap_open_val_y)
+                                                    gap_open_val_y)
                                  );
 
       vH[0] = shift_one_right<Tuint>(aln_results.vH_up[t - 1] + vW[t - 1],
@@ -146,7 +148,8 @@ global_alignment(Tseq const & seq1,
 
     {
       /// Deletions pass 1
-      vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x, std::numeric_limits<Tuint>::min(), aln_results.reductions);
+      vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x,
+                                     std::numeric_limits<Tuint>::min(), aln_results.reductions);
 
       for (long v = 1; v < t; ++v)
       {
@@ -161,13 +164,16 @@ global_alignment(Tseq const & seq1,
       simdpp::store_u(&vE0[0], vE[0]);
 
       // Check for deletions in vector 0
-      Tpack vE0r_pack = shift_one_right<Tuint>(vE[t - 1], std::numeric_limits<Tuint>::min(), aln_results.reductions);
+      Tpack vE0r_pack = shift_one_right<Tuint>(vE[t - 1],
+                                               std::numeric_limits<Tuint>::min(),
+                                               aln_results.reductions);
       simdpp::store_u(&vE0r[0], vE0r_pack);
       bool is_improved = false;
 
       for (long e = 1; e < static_cast<long>(vE0r.size()); ++e)
       {
-        long val = static_cast<long>(vE0r[e - 1]) + aln_results.reductions[e - 1] - aln_results.reductions[e];
+        long val = static_cast<long>(vE0r[e - 1]) + aln_results.reductions[e - 1] -
+                   aln_results.reductions[e];
 
         if (val > static_cast<long>(vE0r[e]))
           vE0r[e] = val;
@@ -215,8 +221,8 @@ global_alignment(Tseq const & seq1,
   aln_results.database_end = n;
   aln_results.reduce_every_element(-n * aln_cache.y_gain);
   aln_results.score = static_cast<long>(arr[m / t])
-                  + static_cast<long>(aln_results.reductions[m / t])
-                  - m * aln_cache.x_gain;
+                      + static_cast<long>(aln_results.reductions[m / t])
+                      - m * aln_cache.x_gain;
 }
 
 

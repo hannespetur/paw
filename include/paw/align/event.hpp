@@ -11,7 +11,7 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 // An event is an single point mutation with two alleles, reference and alternative.
-class Event
+class Event2
 {
 public:
   std::size_t pos;   // Position of the event.
@@ -25,8 +25,8 @@ public:
 };
 
 
-bool operator<(Event const & a, Event const & b);
-bool operator==(Event const & a, Event const & b);
+bool operator<(Event2 const & a, Event2 const & b);
+bool operator==(Event2 const & a, Event2 const & b);
 
 
 } // namespace SIMDPP_ARCH_NAMESPACE
@@ -42,28 +42,28 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 bool
-Event::is_snp() const
+Event2::is_snp() const
 {
   return ref.size() == 1 && alt.size() == 1;
 }
 
 
 bool
-Event::is_deletion() const
+Event2::is_deletion() const
 {
   return alt.size() == 0;
 }
 
 
 bool
-Event::is_insertion() const
+Event2::is_insertion() const
 {
   return ref.size() == 0;
 }
 
 
 bool
-operator<(Event const & a, Event const & b)
+operator<(Event2 const & a, Event2 const & b)
 {
   return a.pos < b.pos ||
          (a.pos == b.pos && a.ref < b.ref) ||
@@ -72,7 +72,7 @@ operator<(Event const & a, Event const & b)
 
 
 bool
-operator==(Event const & a, Event const & b)
+operator==(Event2 const & a, Event2 const & b)
 {
   return a.pos == b.pos && a.ref == b.ref && a.alt == b.alt;
 }

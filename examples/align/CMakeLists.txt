@@ -13,6 +13,10 @@ target_link_libraries(align_ex4 shared)
 add_executable(align_ex5 align_ex5_graphs.cpp)
 target_link_libraries(align_ex5 shared)
 
+add_executable(align_ex6_variant_break_down align_ex6_variant_break_down.cpp)
+target_link_libraries(align_ex6_variant_break_down shared)
+
+
 # Search for clang-tidy
 find_program(
     CLANG_TIDY_EXE
