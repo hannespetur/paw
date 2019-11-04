@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic> // std::atomic
 #include <iterator> // std::iterator_traits
 
