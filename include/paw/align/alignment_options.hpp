@@ -14,7 +14,7 @@
 namespace paw
 {
 
-template<typename Tuint>
+template <typename Tuint>
 struct AlignmentOptions
 {
 public:
@@ -79,6 +79,7 @@ public:
     ac = ao.ac;
     ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
   }
+
 
   AlignmentOptions(AlignmentOptions && ao) noexcept
   {
@@ -207,12 +208,18 @@ public:
   }
 
 
-  inline Tuint get_match() const {return match;}
-  inline Tuint get_mismatch() const {return mismatch;}
-  inline Tuint get_gap_open() const {return gap_open;}
-  inline Tuint get_gap_extend() const {return gap_extend;}
-  inline AlignmentCache<Tuint> * get_alignment_cache() const {return ac.get();}
-  inline AlignmentResults<Tuint> * get_alignment_results() const {return ar.get();}
+  inline Tuint
+  get_match() const {return match;}
+  inline Tuint
+  get_mismatch() const {return mismatch;}
+  inline Tuint
+  get_gap_open() const {return gap_open;}
+  inline Tuint
+  get_gap_extend() const {return gap_extend;}
+  inline AlignmentCache<Tuint> *
+  get_alignment_cache() const {return ac.get();}
+  inline AlignmentResults<Tuint> *
+  get_alignment_results() const {return ar.get();}
   //inline bool get_is_traceback() const {return is_traceback;}
 
 };
@@ -237,7 +244,7 @@ init_vH_up(AlignmentOptions<Tuint> & opts)
 }
 
 
-template<typename Tuint, typename Tseq>
+template <typename Tuint, typename Tseq>
 void
 set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 {
@@ -262,14 +269,13 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
   if (!opt.continuous_alignment || is_new_query)
   {
     aln_results.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
-                                  static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()))
-      );
+                                  static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +
+                                                                      std::numeric_limits<Tuint>::min()))
+                                  );
 
     init_vH_up(opt);
     aln_results.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
-
-    //aln_results.reduction = ;
-    aln_results.reductions.fill(static_cast<long>(- std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3);
+    aln_results.reductions.fill(static_cast<long>(-std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3);
 
 
 #ifndef NDEBUG
@@ -281,13 +287,14 @@ set_query(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 }
 
 
-template<typename Tuint, typename Tseq>
+template <typename Tuint, typename Tseq>
 void
 set_database(AlignmentOptions<Tuint> & opt, Tseq const & seq)
 {
   opt.get_alignment_results()->mB =
     Backtrack<Tuint>(std::distance(begin(seq), end(seq)), opt.get_alignment_cache()->num_vectors);
 }
+
 
 /*
 template<typename Tuint>
@@ -334,7 +341,7 @@ center_scores(AlignmentOptions<Tuint> & opt)
 */
 
 
-template<typename Tuint>
+template <typename Tuint>
 void
 reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
 {
@@ -390,13 +397,14 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
       Tpack const two_gap_open_pack = simdpp::make_int(2 * aln_cache.gap_open_val);
 
       /// Reducing values lossily
-      Tmask is_about_to_overflow = aln_results.vH_up[num_vectors - 1] >= static_cast<Tpack>(simdpp::make_int(aln_cache.max_score_val));
+      Tmask is_about_to_overflow = aln_results.vH_up[num_vectors - 1] >=
+                                   static_cast<Tpack>(simdpp::make_int(aln_cache.max_score_val));
 
       Tpack const overflow_reduction =
         simdpp::blend(two_gap_open_pack,
                       static_cast<Tpack>(simdpp::make_zero()),
                       is_about_to_overflow
-        );
+                      );
 
       {
         Tarr_uint overflow_reduction_arr;
@@ -417,7 +425,7 @@ reduce_too_high_scores(AlignmentOptions<Tuint> & opt)
 }
 
 
-template<typename Tuint>
+template <typename Tuint>
 std::vector<long> inline
 get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuint>::vec_pack const & vX)
 {
@@ -454,9 +462,10 @@ get_score_row(AlignmentOptions<Tuint> const & opt, long const i, typename T<Tuin
   return scores_row;
 }
 
-template<typename Tuint>
+
+template <typename Tuint>
 void
-merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<AlignmentOptions<Tuint> * > const & opts_vec_ptr)
+merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<AlignmentOptions<Tuint> *> const & opts_vec_ptr)
 {
   using Tarr = std::array<long, S / sizeof(Tuint)>;
   using Tpack = typename T<Tuint>::pack;
@@ -547,12 +556,12 @@ merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<Alignment
 
 #ifndef NDEBUG
 
-template<typename Tuint>
+template <typename Tuint>
 inline void
 store_scores(AlignmentOptions<Tuint> & opt,
              long const i,
              typename T<Tuint>::vec_pack const & vE
-  )
+             )
 {
   AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
   opt.score_matrix.push_back(get_score_row(opt, i, aln_results.vH_up));
@@ -561,6 +570,7 @@ store_scores(AlignmentOptions<Tuint> & opt,
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }
+
 
 #endif // NDEBUG
 

@@ -81,30 +81,20 @@ struct AlignmentCache
   inline void
   set_free_snp(long pos, char alt)
   {
-    assert(pos < query.size());
+    assert(pos < static_cast<long>(query.size()));
+    //std::cerr << "Adding free SNP pos,alt = " << pos << ',' << alt << '\n';
+    auto & W = W_profile[SIMDPP_ARCH_NAMESPACE::magic_function(alt)];
+    assert(pos < static_cast<long>(query.size()));
 
-    std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
+    long const v = pos % num_vectors;
+    long const e = pos / num_vectors;
 
-    for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
-    {
-      char const dna_base = DNA_BASES[i];
-      auto & W = W_profile[i];
-
-      for (long v = 0; v < num_vectors; ++v)
-      {
-        Tarr_uint vW;
-        vW.fill(std::numeric_limits<Tuint>::min());
-        simdpp::store_u(vW, W[v]);
-
-        //for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
-        //{
-        //  if (dna_base == *(begin(query) + j))
-        //    seq[e] = match_val;
-        //}
-        //
-        //W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
-      }
-    }
+    Tarr_uint vW;
+    vW.fill(std::numeric_limits<Tuint>::min());
+    simdpp::store_u(&vW[0], W[v]);
+    //std::cout << "vW[e] changed from " << static_cast<int>(vW[e]) << " to " << static_cast<int>(match_val) << "\n";
+    vW[e] = match_val;
+    W[v] = simdpp::load_u(&vW[0]);
   }
 
 

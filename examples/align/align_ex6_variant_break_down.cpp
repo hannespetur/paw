@@ -25,7 +25,6 @@ int
 main(int argc, char ** argv)
 {
   std::string fasta_filename;
-  std::string fasta_output = "-";
   std::string vcf_output = "-";
 
   try
@@ -37,11 +36,6 @@ main(int argc, char ** argv)
                                      "FASTA",
                                      "A filename of a FASTA file to read sequences from. GZip "
                                      "fasta files supported.");
-    parser.parse_option(fasta_output,
-                        'f',
-                        "fasta_output",
-                        "Output filename for aligned sequences."
-                        );
     parser.parse_option(vcf_output, 'o', "vcf_output", "Output filename with variant records.");
     parser.finalize();
   }
@@ -55,7 +49,6 @@ main(int argc, char ** argv)
   // Load records from the FASTA file
   paw::Fasta fasta;
   fasta.load(fasta_filename);
-  paw::Fasta fasta_out;
 
   // If less then two records, there is nothing to do
   if (fasta.seqs.size() < 2)
@@ -65,32 +58,61 @@ main(int argc, char ** argv)
     return EXIT_SUCCESS;
   }
 
-
-  /// print sequences
-  {
-    std::cout << "Sequences:\n";
-
-    for (auto const & seq : fasta.seqs)
-    {
-      std::cout << seq << "\n";
-    }
-  }
-  ///
-
   paw::SIMDPP_ARCH_NAMESPACE::Skyr skyr(fasta.seqs);
   skyr.find_all_edits();
-  std::cout << "Total number of edits: " << skyr.all_edits.size() << "\n";
   skyr.find_variants_from_edits();
+  skyr.populate_variants_with_calls();
 
-  /// print variants founds from the edits
+  for (auto & var : skyr.vars)
   {
-    std::cout << "Num edits: " << skyr.edits.size() << "\n";
-    std::cout << "Num variants: " << skyr.vars.size() << "\n";
+    std::cout << var.pos << '\t';
 
-    for (auto const & variant : skyr.vars)
+    // Loop over alleles
+    for (long s = 0; s < static_cast<long>(var.seqs.size()); ++s)
     {
-      variant.print_seqs(std::cout);
+      if (s > 0)
+        std::cout << ",";
+
+      if (var.seqs[s].size() == 0)
+        std::cout << '-';
+      else
+        std::cout << var.seqs[s];
     }
+
+    std::cout << '\t';
+
+    // Loop over alignments
+    for (long i = 0; i < static_cast<long>(skyr.seqs.size()); ++i)
+    {
+      if (i > 0)
+        std::cout << '\t';
+
+      std::cout << std::to_string(var.get_call(i));
+    }
+
+    std::cout << '\n';
+  }
+
+  if (fasta.ids.size() > 0)
+  {
+    paw::SIMDPP_ARCH_NAMESPACE::Vcf vcf_out(vcf_output);
+    vcf_out.reference = "N" + fasta.seqs[0];
+
+    for (auto const & sn : fasta.ids)
+      vcf_out.add_sample_name(sn.substr(1));
+
+    // Shift all positions by 1 for the extra 'N'
+    for (auto & var : skyr.vars)
+    {
+      ++var.pos;
+
+      if (!var.is_snp())
+        var.add_base_to_front(vcf_out.reference);
+
+      vcf_out.add_variant(var);
+    }
+
+    vcf_out.write();
   }
 
   return EXIT_SUCCESS;

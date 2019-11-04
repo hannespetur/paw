@@ -34,6 +34,7 @@ public:
   bool is_deletion() const;
   bool is_insertion() const;
   bool is_snp() const;
+  uint16_t get_call(long index) const;
 
   void print_events_to_alleles(std::ostream & ss) const;
   void print_seqs(std::ostream & ss) const;
@@ -99,6 +100,14 @@ Variant::is_snp() const
 }
 
 
+uint16_t
+Variant::get_call(long index) const
+{
+  assert(index < static_cast<long>(calls.size()));
+  return calls[index];
+}
+
+
 void
 Variant::print_events_to_alleles(std::ostream & ss) const
 {
@@ -110,8 +119,22 @@ Variant::print_events_to_alleles(std::ostream & ss) const
 void
 Variant::print_seqs(std::ostream & ss) const
 {
-  for (auto const & seq : seqs)
-    ss << seq << ", ";
+  ss << "Seqs @ " << pos << ": ";
+
+  for (long s = 0; s < static_cast<long>(seqs.size()); ++s)
+  {
+    if (s > 0)
+      ss << ",";
+
+    auto const & seq = seqs[s];
+
+    if (seq.size() == 0)
+      ss << "-";
+    else
+      ss << seq;
+  }
+
+  ss << "\n";
 }
 
 

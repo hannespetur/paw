@@ -24,8 +24,8 @@ namespace SIMDPP_ARCH_NAMESPACE
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
+global_alignment(Tseq const & seq1, // seq1 is query
+                 Tseq const & seq2, // seq2 is database
                  AlignmentOptions<Tuint> & opt
                  )
 {
@@ -37,6 +37,8 @@ global_alignment(Tseq const & seq1,
   paw::SIMDPP_ARCH_NAMESPACE::set_query<Tuint, Tseq>(opt, seq1);
   paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(opt, seq2);
 
+  assert(opt.get_alignment_results());
+  assert(opt.get_alignment_cache());
   AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
   AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
 

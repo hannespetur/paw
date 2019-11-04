@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint> // uint8_t
 #include <set> // std::set<T>
 #include <string> // std::string
 #include <vector> // std::vector<T>
@@ -24,15 +25,17 @@ public:
   std::vector<std::set<Event2> > edits;   // Edits found for each alignment
   std::multiset<Event2> all_edits;
   std::vector<Variant> vars;
+  std::vector<uint8_t> is_done;
 
   Skyr(std::vector<std::string> const & _seqs);
   Skyr(std::vector<std::vector<char> > const & _seqs);
 
   void find_all_edits();
   void find_variants_from_edits();
+  void populate_variants_with_calls();
 
 private:
-  std::size_t find_most_similar_haplotype(Tscores const & scores) const;
+  long find_most_similar_haplotype(Tscores const & scores) const;
 };
 
 
@@ -84,10 +87,13 @@ namespace SIMDPP_ARCH_NAMESPACE
 Skyr::Skyr(std::vector<std::string> const & _seqs)
   : seqs(_seqs)
   , edits(_seqs.size())
+  , is_done(_seqs.size(), 0)
 {}
+
 
 Skyr::Skyr(std::vector<std::vector<char> > const & _seqs)
   : edits(_seqs.size())
+  , is_done(_seqs.size(), 0)
 {
   seqs.reserve(_seqs.size());
 
@@ -96,32 +102,29 @@ Skyr::Skyr(std::vector<std::vector<char> > const & _seqs)
 }
 
 
-std::size_t
+long
 Skyr::find_most_similar_haplotype(Tscores const & scores) const
 {
-  int64_t max_score = std::numeric_limits<int64_t>::min();
-  std::size_t max_events = static_cast<std::size_t>(-1);
-  std::size_t max_events_seen = 0;
-  std::size_t max_i = static_cast<std::size_t>(-1);
+  long max_score = std::numeric_limits<long>::min();
+  long max_events = -1;
+  long max_events_seen = 0;
+  long max_i = -1;
 
-  for (std::size_t i = 1; i < edits.size(); ++i)
+  for (long i = 1; i < static_cast<long>(edits.size()); ++i)
   {
-    std::size_t event_seen_count = 0;
+    assert(i < static_cast<long>(is_done.size()));
 
-    auto is_novel = [&](Event2 const & e)
-                    {
-                      return e.is_snp() && free_edits.count(e) == 0;
-                    };
-
-    if (std::none_of(edits[i].begin(), edits[i].end(), is_novel))
+    if (is_done[i] != 0)
       continue;
+
+    long event_seen_count = 0;
 
     for (auto const & e : edits[i])
       event_seen_count += all_edits.count(e);
 
     if (scores[i] > max_score ||
-        (scores[i] == max_score && edits[i].size() < max_events) ||
-        (scores[i] == max_score && edits[i].size() == max_events &&
+        (scores[i] == max_score && static_cast<long>(edits[i].size()) < max_events) ||
+        (scores[i] == max_score && static_cast<long>(edits[i].size()) == max_events &&
          event_seen_count > max_events_seen)
         )
     {
@@ -140,50 +143,57 @@ void
 Skyr::find_all_edits()
 {
   std::size_t iteration = 0;
-  Tscores scores(seqs.size());
+  Tscores scores(seqs.size(), std::numeric_limits<long>::min());
+  using Tuint = uint8_t;
+  AlignmentOptions<Tuint> opts;
 
-  while (true)
+  while (std::find(is_done.begin() + 1, is_done.end(), 0) != is_done.end())
   {
     ++iteration;
-    std::cout << "Iteration #" << iteration << "\n";
-    using Tuint = uint8_t;
-    AlignmentOptions<Tuint> opts;
-    //opts.backtracking = true; // Force backtracking
-
-    // Construct an aligner with the reference sequence
-    //paw::global_alignment(seqs[0].cbegin(), seqs[0].cend(), opts); //, free_edits);
     all_edits.clear();
 
-    for (std::size_t i = 1; i < seqs.size(); ++i)
+    for (long i = 1; i < static_cast<long>(seqs.size()); ++i)
     {
+      assert(i < static_cast<long>(is_done.size()));
+      assert(i < static_cast<long>(edits.size()));
+
+      if (is_done[i] == 1)
+      {
+        all_edits.insert(edits[i].begin(), edits[i].end());
+        continue;
+      }
+
       global_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
       auto ar = opts.get_alignment_results();
-      //auto ac = opts.get_alignment_cache();
       scores[i] = ar->score;
-      std::cerr << "Score = " << ar->score << "\n";
 
-      //scores[i] = aligner.align(seqs[i].cbegin(), seqs[i].cend());
       auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
-      std::cout << aligned_strings.first << "\n"
-                << aligned_strings.second << "\n";
-      //edits[i] = aligner.get_edit_script(aligned_strings);
-      //all_edits.insert(edits[i].begin(), edits[i].end());
+      edits[i] = get_edit_script(aligned_strings);
+      all_edits.insert(edits[i].begin(), edits[i].end());
     }
 
-    std::size_t const max_i = find_most_similar_haplotype(scores);
+    long max_i = find_most_similar_haplotype(scores);
 
-    if (max_i != static_cast<std::size_t>(-1))
+    while (max_i != -1)
     {
+      assert(max_i < static_cast<long>(seqs.size()));
+      is_done[max_i] = 1;
+      bool is_novel_snp = false;
+
       for (auto const & e : edits[max_i])
       {
-        if (e.is_snp())
+        if (e.is_snp() && free_edits.count(e) == 0)
+        {
+          is_novel_snp = true;
           free_edits.insert(e);
+          opts.get_alignment_cache()->set_free_snp(e.pos, e.alt[0]);
+        }
       }
-    }
-    else
-    {
-      // We are finished, no new edits
-      break;
+
+      if (is_novel_snp)
+        break; // We added a novel SNP, time to remap.
+      else
+        max_i = find_most_similar_haplotype(scores);
     }
   }
 }
@@ -212,19 +222,18 @@ Skyr::find_variants_from_edits()
       continue;
     }
 
-    if (e.pos == new_var.pos && e.is_insertion() && new_var.is_insertion() &&
-        prefix_matches(new_var.seqs.back(), e.alt)
-        )
+    if (e.pos == new_var.pos && e.is_insertion() && new_var.is_insertion())
+// && prefix_matches(new_var.seqs.back(), e.alt)
     {
-      // Case 1: insertions at the same position
+      // Case 1: insertions at the same position.
       new_var.add_event(e);
     }
     else if (e.pos == new_var.pos && e.is_deletion() && new_var.is_deletion())
     {
-      // Case 2: Deletions at the same position
+      // Case 2: Deletions at the same position.
       assert(e.ref.size() > new_var.seqs[0].size());
 
-      /// Extend all sequences
+      /// Extend all sequences.
       auto begin_extend = e.ref.cbegin() + new_var.seqs[0].size();
 
       for (auto & s : new_var.seqs)
@@ -233,16 +242,14 @@ Skyr::find_variants_from_edits()
 
       new_var.add_event(e);
     }
-    else if (e.pos == new_var.pos && e.ref.size() == 1 && e.alt.size() == 1 &&
-             new_var.seqs[0].size() == 1 && new_var.seqs[1].size() == 1
-             )
+    else if (e.pos == new_var.pos && e.is_snp() && new_var.is_snp())
     {
-      // Case 3: both are SNPs at the same position
+      // Case 3: both are SNPs at the same position.
       new_var.add_event(e);
     }
     else
     {
-      // Otherwise, they are two different events
+      // Otherwise, they are two different events.
       vars.push_back(std::move(new_var));
       new_var = {static_cast<uint32_t>(e.pos), {e.ref} };
       new_var.add_event(e);
@@ -264,6 +271,67 @@ Skyr::find_variants_from_edits()
 
       del_start = v.pos;
       del_reach = std::max(del_reach, static_cast<uint32_t>(v.pos + v.seqs[0].size()));
+    }
+  }
+}
+
+
+void
+Skyr::populate_variants_with_calls()
+{
+  for (long i = 0; i < static_cast<long>(edits.size()); ++i)
+  {
+    assert(edits.size() == seqs.size());
+    auto const & seq_edits = edits[i];
+    uint32_t del_reach = 0;
+
+    for (auto & var : vars)
+    {
+      assert(var.seqs.size() >= 2);
+
+      auto get_call =
+        [del_reach](Variant & variant,
+                    std::set<Event2> const & seq_edits)
+        {
+          std::size_t call = 0;               // Call reference by default
+          auto find_it = std::find_if(variant.event_to_allele.begin(),
+                                      variant.event_to_allele.end(),
+                                      [&](std::pair<Event2, uint32_t> const & e) -> bool
+            {
+              return seq_edits.count(e.first);
+            });
+
+          // Check if the sequence had any event at this variant location
+          if (find_it != variant.event_to_allele.end())
+          {
+            call = find_it->second;
+          }
+          else if (variant.pos < del_reach)
+          {
+            assert(variant.seqs.back() == "*");
+            // Call asterisk if the variant is deleted by a previous deletion
+            //if (variant.seqs[variant.seqs.size() - 1] != "*")
+            //  variant.seqs.push_back("*"); // Add asterisk allele if we need to
+
+            call = variant.seqs.size() - 1;
+          }
+
+          return call;
+        };
+
+      uint16_t const call = get_call(var, seq_edits);
+      var.add_call(call);
+
+      if (var.is_deletion())
+      {
+        assert(var.seqs[0].size() >= var.seqs[call].size());
+        del_reach = std::max(del_reach,
+                             static_cast<uint32_t>(var.pos +
+                                                   var.seqs[0].size() -
+                                                   var.seqs[call].size()
+                                                   )
+                             );
+      }
     }
   }
 }
