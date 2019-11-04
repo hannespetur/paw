@@ -10,11 +10,12 @@ namespace
 
 /// Takes in a vector of AlignmentOptions and creates a new vector with pointers to Alignments options at certain
 /// indices in the original vector
-template<typename Tuint>
-std::vector<paw::AlignmentOptions<Tuint> * >
-get_opts_vec_ptr(std::vector<paw::AlignmentOptions<Tuint> > & opts, std::vector<long> const & indices)
+template <typename Tuint>
+std::vector<paw::AlignmentOptions<Tuint> *>
+get_opts_vec_ptr(std::vector<paw::AlignmentOptions<Tuint> > & opts,
+                 std::vector<long> const & indices)
 {
-  std::vector<paw::AlignmentOptions<Tuint> * > ret;
+  std::vector<paw::AlignmentOptions<Tuint> *> ret;
   ret.reserve(indices.size());
 
   for (auto i : indices)
@@ -22,6 +23,7 @@ get_opts_vec_ptr(std::vector<paw::AlignmentOptions<Tuint> > & opts, std::vector<
 
   return ret;
 }
+
 
 }
 
@@ -51,7 +53,8 @@ public:
   }
 
 
-  inline std::vector<std::string> const & get_vertices() const {return vertices;}
+  inline std::vector<std::string> const &
+  get_vertices() const {return vertices;}
 
 
   inline std::string
@@ -75,6 +78,8 @@ public:
     assert(from_to_edges.count(0) == 1);
     return from_to_edges.at(index);
   }
+
+
 };
 
 
@@ -129,7 +134,7 @@ main(int argc, char ** argv)
     parser.parse_remaining_positional_arguments(tests_to_run,
                                                 "list of tests to run...",
                                                 "List of all tests to run (all if not specified)."
-      );
+                                                );
     parser.finalize();
   }
   catch (std::exception const & e)
@@ -176,14 +181,18 @@ main(int argc, char ** argv)
   }
 
   // Merge the results into vertex 3
-  std::vector<paw::AlignmentOptions<uint8_t> * > opts_vec_ptr = get_opts_vec_ptr(all_opts, g.get_indexes_inbound(3));
+  std::vector<paw::AlignmentOptions<uint8_t> *> opts_vec_ptr = get_opts_vec_ptr(all_opts,
+                                                                                g.get_indexes_inbound(
+                                                                                  3));
 
+#ifndef NDEBUG
   for (auto const & ptr : opts_vec_ptr)
   {
     assert(ptr);
     assert(ptr->get_match());
     assert(ptr->get_alignment_results());
   }
+#endif // NDEBUG
 
   paw::SIMDPP_ARCH_NAMESPACE::merge_score_matrices<uint8_t>(all_opts[3], opts_vec_ptr);
   paw::global_alignment(query, g.get_sequence(3), all_opts[3]);
