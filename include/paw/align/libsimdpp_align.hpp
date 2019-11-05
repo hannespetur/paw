@@ -25,7 +25,7 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
-std::vector<Cigar>
+inline std::vector<Cigar>
 get_cigar(std::pair<std::string, std::string> const & s)
 {
   std::vector<Cigar> cigar;
