@@ -77,7 +77,7 @@ public:
 
   Queues::const_iterator find_smallest_queue(std::size_t & smallest_size);
 
-  void join();
+  std::string join();
 
   /***************************
   * PRIVATE MEMBER FUNCTIONS *
@@ -206,31 +206,21 @@ Station::find_smallest_queue(std::size_t & smallest_size)
 }
 
 
-void
+std::string
 Station::join()
 {
-  if (options.verbosity >= 2)
-  {
-    std::cout << "[stations] Main thread processed "
-              << main_thread_work_count
-              << " chunks.\n";
-  }
+  std::ostringstream ss;
+  ss << main_thread_work_count;
 
   for (int i = 0; i < static_cast<int>(options.num_threads) - 1; ++i)
   {
     queues[i]->finish();
     workers[i].join();
-
-    if (options.verbosity >= 2)
-    {
-      std::cout << "[stations] Thread " << (i + 1)
-                << " processed "
-                << queues[i]->get_number_of_completed_items()
-                << " chunks.\n";
-    }
+    ss << "/" << queues[i]->get_number_of_completed_items();
   }
 
   joined = true;
+  return ss.str();
 }
 
 

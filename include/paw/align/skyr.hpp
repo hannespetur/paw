@@ -51,8 +51,6 @@ private:
 #include <set>
 #include <sstream>
 
-//#include "boost_simd_align.hpp"
-
 
 namespace
 {
