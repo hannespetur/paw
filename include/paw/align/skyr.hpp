@@ -258,19 +258,28 @@ Skyr::find_variants_from_edits()
     vars.push_back(std::move(new_var));
 
   // Add asterisk where needed
+  /*
   {
-    uint32_t del_start = 0;
     uint32_t del_reach = 0;
 
     for (auto & v : vars)
     {
-      if (v.pos > del_start && v.pos + v.seqs[0].size() <= del_reach)
+      if (v.pos + v.seqs[0].size() <= del_reach)
         v.seqs.push_back("*");
 
-      del_start = v.pos;
-      del_reach = std::max(del_reach, static_cast<uint32_t>(v.pos + v.seqs[0].size()));
+      // Extend del_reach if it is an deletion
+      if (v.seqs[0].size() > 1 &&
+          std::any_of(v.seqs.begin() + 1,
+                      v.seqs.end(),
+                      [](std::string const & s){
+            return s.size() == 0u;
+          }))
+      {
+        del_reach = std::max(del_reach, static_cast<uint32_t>(v.pos + v.seqs[0].size()));
+      }
     }
   }
+  */
 }
 
 
@@ -306,10 +315,10 @@ Skyr::populate_variants_with_calls()
           }
           else if (variant.pos < del_reach)
           {
-            assert(variant.seqs.back() == "*");
+            //assert(variant.seqs.back() == "*");
             // Call asterisk if the variant is deleted by a previous deletion
-            //if (variant.seqs[variant.seqs.size() - 1] != "*")
-            //  variant.seqs.push_back("*"); // Add asterisk allele if we need to
+            if (variant.seqs[variant.seqs.size() - 1] != "*")
+              variant.seqs.push_back("*"); // Add asterisk allele if we need to
 
             call = variant.seqs.size() - 1;
           }
