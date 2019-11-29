@@ -32,7 +32,7 @@ public:
 
   void find_all_edits();
   void find_variants_from_edits();
-  void populate_variants_with_calls();
+  void populate_variants_with_calls(bool use_asterisks = true);
 
 private:
   long find_most_similar_haplotype(Tscores const & scores) const;
@@ -256,35 +256,11 @@ Skyr::find_variants_from_edits()
 
   if (new_var.seqs.size() > 1)
     vars.push_back(std::move(new_var));
-
-  // Add asterisk where needed
-  /*
-  {
-    uint32_t del_reach = 0;
-
-    for (auto & v : vars)
-    {
-      if (v.pos + v.seqs[0].size() <= del_reach)
-        v.seqs.push_back("*");
-
-      // Extend del_reach if it is an deletion
-      if (v.seqs[0].size() > 1 &&
-          std::any_of(v.seqs.begin() + 1,
-                      v.seqs.end(),
-                      [](std::string const & s){
-            return s.size() == 0u;
-          }))
-      {
-        del_reach = std::max(del_reach, static_cast<uint32_t>(v.pos + v.seqs[0].size()));
-      }
-    }
-  }
-  */
 }
 
 
 void
-Skyr::populate_variants_with_calls()
+Skyr::populate_variants_with_calls(bool const use_asterisks)
 {
   for (long i = 0; i < static_cast<long>(edits.size()); ++i)
   {
@@ -297,8 +273,8 @@ Skyr::populate_variants_with_calls()
       assert(var.seqs.size() >= 2);
 
       auto get_call =
-        [del_reach](Variant & variant,
-                    std::set<Event2> const & seq_edits)
+        [del_reach, use_asterisks](Variant & variant,
+                                   std::set<Event2> const & seq_edits)
         {
           std::size_t call = 0;               // Call reference by default
           auto find_it = std::find_if(variant.event_to_allele.begin(),
@@ -313,9 +289,8 @@ Skyr::populate_variants_with_calls()
           {
             call = find_it->second;
           }
-          else if (variant.pos < del_reach)
+          else if (use_asterisks && variant.pos < del_reach)
           {
-            //assert(variant.seqs.back() == "*");
             // Call asterisk if the variant is deleted by a previous deletion
             if (variant.seqs[variant.seqs.size() - 1] != "*")
               variant.seqs.push_back("*"); // Add asterisk allele if we need to
