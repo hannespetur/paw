@@ -11,9 +11,6 @@
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
-
 
 class Variant
 {
@@ -34,6 +31,8 @@ public:
   bool is_deletion() const;
   bool is_insertion() const;
   bool is_snp() const;
+  long get_max_del_reach() const;
+  long get_max_reach() const;
   uint16_t get_call(long index) const;
 
   void print_events_to_alleles(std::ostream & ss) const;
@@ -53,7 +52,7 @@ public:
 bool operator<(Variant const & a, Variant const & b);
 bool operator==(Variant const & a, Variant const & b);
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -61,8 +60,6 @@ bool operator==(Variant const & a, Variant const & b);
 
 
 namespace paw
-{
-namespace SIMDPP_ARCH_NAMESPACE
 {
 
 
@@ -105,6 +102,32 @@ Variant::get_call(long index) const
 {
   assert(index < static_cast<long>(calls.size()));
   return calls[index];
+}
+
+
+long
+Variant::get_max_del_reach() const
+{
+  if (seqs.size() < 2 || !is_deletion())
+    return 0;
+
+  return pos + seqs[0].size() - seqs[seqs.size() - 1].size();
+}
+
+
+long
+Variant::get_max_reach() const
+{
+  if (seqs.size() < 2)
+    return 0;
+
+  if (is_deletion())
+    return pos + seqs[0].size() - seqs[seqs.size() - 1].size();
+
+  if (is_insertion())
+    return pos;
+
+  return pos + 1; //otherwise its a snp
 }
 
 
@@ -188,7 +211,6 @@ operator==(Variant const & a, Variant const & b)
 }
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 #endif // IMPLEMENT_PAW

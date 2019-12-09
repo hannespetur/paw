@@ -11,8 +11,9 @@
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
+
 
 class Vcf
 {
@@ -34,7 +35,7 @@ public:
 };
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -43,8 +44,8 @@ public:
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
 
 
 Vcf::Vcf(std::string const & fn)
@@ -133,7 +134,7 @@ Vcf::write()
 }
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 

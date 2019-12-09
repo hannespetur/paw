@@ -15,12 +15,7 @@
 #include <paw/parser.hpp>
 #include <paw/internal/config.hpp>
 
-#include <paw/align/boost_simd_align.hpp>
-#include <paw/align/fasta.hpp>
-#include <paw/align/event.hpp>
-#include <paw/align/skyr.hpp>
-#include <paw/align/variant.hpp>
-#include <paw/align/vcf.hpp>
+#include <paw/align.hpp>
 
 
 namespace io = boost::iostreams;
@@ -107,6 +102,12 @@ main(int argc, char ** argv)
   skyr.find_all_edits();
   skyr.find_variants_from_edits();
 
+  //for (auto const & var : skyr.vars)
+  //  var.print_seqs(std::cerr);
+
+  skyr.merge_variants(1);
+
+  /*
   for (std::size_t i = 0; i < skyr.edits.size(); ++i)
   {
     auto const & edit = skyr.edits[i];
@@ -205,6 +206,7 @@ main(int argc, char ** argv)
 
     fasta_out.add_record(fasta.ids[i], gapped_seq);
   }
+  */
 
   auto t1 = Ttime::now();
   std::cout << Tduration(t1 - t0).count() << " ms\n";

@@ -19,6 +19,124 @@
 
 namespace paw
 {
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+
+/// See namespaces at:
+/// https://github.com/p12tic/libsimdpp/blob/3ab0be0e5aa0773f152d7d759400173d64253534/simdpp/detail/insn_id.h
+
+namespace arch_null
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+namespace arch_sse2
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+namespace arch_sse3
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+namespace arch_sse4p1
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+namespace arch_sse4p1_popcnt
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+namespace arch_popcnt_avx
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+
+namespace arch_popcnt_avx2
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+global_alignment(Tseq const & seq1,
+                 Tseq const & seq2,
+                 AlignmentOptions<Tuint> & opts
+                 );
+
+}
+
+} // namespace paw
+
+
+namespace paw
+{
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
@@ -26,8 +144,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1, // seq1 is query
                  Tseq const & seq2, // seq2 is database
-                 AlignmentOptions<Tuint> & opt
-                 )
+                 AlignmentOptions<Tuint> & opt)
 {
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
@@ -71,9 +188,11 @@ global_alignment(Tseq const & seq1, // seq1 is query
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
       for (long v = 0; v < t; ++v)
+      {
         aln_results.vF_up[v] = aln_results.vF_up[v] +
                                static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
                                                                     opt.get_gap_extend()));
+      }
     }
 
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
