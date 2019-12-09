@@ -74,6 +74,40 @@ prefix_matches(std::string const & s1, std::string const & s2)
 }
 
 
+long
+_get_variant_call(paw::SIMDPP_ARCH_NAMESPACE::Variant & variant,
+                  std::set<paw::SIMDPP_ARCH_NAMESPACE::Event2> const & seq_edits,
+                  long const del_reach,
+                  bool use_asterisks = true)
+{
+  using namespace paw::SIMDPP_ARCH_NAMESPACE;
+
+  long call = 0;         // Call reference by default
+  auto find_it = std::find_if(variant.event_to_allele.begin(),
+                              variant.event_to_allele.end(),
+                              [&](std::pair<Event2, uint32_t> const & e) -> bool
+    {
+      return seq_edits.count(e.first);
+    });
+
+  // Check if the sequence had any event at this variant location
+  if (find_it != variant.event_to_allele.end())
+  {
+    call = find_it->second;
+  }
+  else if (use_asterisks && variant.pos < del_reach)
+  {
+    // Call asterisk if the variant is deleted by a previous deletion
+    if (variant.seqs[variant.seqs.size() - 1] != "*")
+      variant.seqs.push_back("*");         // Add asterisk allele if we need to
+
+    call = variant.seqs.size() - 1;
+  }
+
+  return call;
+}
+
+
 } // anon namespace
 
 
@@ -271,37 +305,7 @@ Skyr::populate_variants_with_calls(bool const use_asterisks)
     for (auto & var : vars)
     {
       assert(var.seqs.size() >= 2);
-
-      auto get_call =
-        [del_reach, use_asterisks](Variant & variant,
-                                   std::set<Event2> const & seq_edits)
-        {
-          std::size_t call = 0;               // Call reference by default
-          auto find_it = std::find_if(variant.event_to_allele.begin(),
-                                      variant.event_to_allele.end(),
-                                      [&](std::pair<Event2, uint32_t> const & e) -> bool
-            {
-              return seq_edits.count(e.first);
-            });
-
-          // Check if the sequence had any event at this variant location
-          if (find_it != variant.event_to_allele.end())
-          {
-            call = find_it->second;
-          }
-          else if (use_asterisks && variant.pos < del_reach)
-          {
-            // Call asterisk if the variant is deleted by a previous deletion
-            if (variant.seqs[variant.seqs.size() - 1] != "*")
-              variant.seqs.push_back("*"); // Add asterisk allele if we need to
-
-            call = variant.seqs.size() - 1;
-          }
-
-          return call;
-        };
-
-      uint16_t const call = get_call(var, seq_edits);
+      uint16_t const call = _get_variant_call(var, seq_edits, del_reach, use_asterisks);
       var.add_call(call);
 
       if (var.is_deletion())
