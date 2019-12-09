@@ -122,7 +122,7 @@ Variant::get_max_reach() const
     return 0;
 
   if (is_deletion())
-    return pos + seqs[0].size() - seqs[seqs.size() - 1].size();
+    return pos + seqs[0].size();
 
   if (is_insertion())
     return pos;

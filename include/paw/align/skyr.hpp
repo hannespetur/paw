@@ -12,8 +12,6 @@
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 class Skyr
 {
@@ -33,7 +31,8 @@ public:
   void find_all_edits();
   void find_variants_from_edits();
   void populate_variants_with_calls(bool use_asterisks = true);
-  std::vector<Variant> merge_variants(long const T);
+  Variant merge_variants(long start_v, long end_v);
+  std::vector<Variant> split_variants(long const T);
 
 
 private:
@@ -41,7 +40,6 @@ private:
 };
 
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -90,17 +88,14 @@ _get_variant_call(paw::Variant & variant,
 
 
 long
-_get_variant_call(paw::SIMDPP_ARCH_NAMESPACE::Variant & variant,
-                  std::set<paw::SIMDPP_ARCH_NAMESPACE::Event2> const & seq_edits,
-                  long const del_reach,
-                  bool use_asterisks = true)
+_const_get_variant_call(paw::Variant const & variant,
+                        std::set<paw::Event2> const & seq_edits,
+                        long del_reach)
 {
-  using namespace paw::SIMDPP_ARCH_NAMESPACE;
-
-  long call = 0;         // Call reference by default
+  long call = 0; // Call reference by default
   auto find_it = std::find_if(variant.event_to_allele.begin(),
                               variant.event_to_allele.end(),
-                              [&](std::pair<Event2, uint32_t> const & e) -> bool
+                              [&](std::pair<paw::Event2, uint32_t> const & e) -> bool
     {
       return seq_edits.count(e.first);
     });
@@ -110,13 +105,9 @@ _get_variant_call(paw::SIMDPP_ARCH_NAMESPACE::Variant & variant,
   {
     call = find_it->second;
   }
-  else if (use_asterisks && variant.pos < del_reach)
+  else if (variant.pos < del_reach)
   {
-    // Call asterisk if the variant is deleted by a previous deletion
-    if (variant.seqs[variant.seqs.size() - 1] != "*")
-      variant.seqs.push_back("*");         // Add asterisk allele if we need to
-
-    call = variant.seqs.size() - 1;
+    call = -1;
   }
 
   return call;
@@ -128,8 +119,6 @@ _get_variant_call(paw::SIMDPP_ARCH_NAMESPACE::Variant & variant,
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 Skyr::Skyr(std::vector<std::string> const & _seqs)
   : seqs(_seqs)
@@ -352,137 +341,273 @@ Skyr::populate_variants_with_calls(bool const use_asterisks)
       if (var.is_deletion())
       {
         assert(var.seqs[0].size() >= var.seqs[call].size());
-        del_reach = std::max(del_reach,
-                             static_cast<long>(var.pos +
-                                               var.seqs[0].size() -
-                                               var.seqs[call].size())
-                             );
+        del_reach = std::max(del_reach, var.get_max_del_reach());
       }
     }
   }
 }
 
 
-std::vector<Variant>
-Skyr::merge_variants(long const T)
+Variant
+Skyr::merge_variants(long v1, long v2)
 {
-  std::string seq = seqs[0]; // Reconstructed sequence
-  std::cerr << "seq = " << seq << "\n";
+  assert(seqs.size() > 0);
+  assert(v1 <= v2);
+
+  //std::string const & ref = seqs[0];
+  std::cerr << "split [" << v1 << "," << v2 << "]\n";
+
+  //if (v1 == v2)
+  //  return vars[v1];
+
+  Variant new_var;
+  new_var.pos = vars[v1].pos;
+
+  // add reference
+  {
+    long s1 = vars[v1].pos;
+    long s2;
+
+    if (v2 + 1l == static_cast<long>(vars.size()))
+      s2 = std::string::npos;
+    else
+      s2 = vars[v2 + 1].pos - s1;
+
+    new_var.seqs.push_back(seqs[0].substr(s1, s2));
+  }
+
+  for (long i = 1; i < static_cast<long>(edits.size()); ++i)
+  {
+    assert(edits.size() == seqs.size());
+    auto const & edit = edits[i];
+
+    long shift = 0;
+    long s1 = -1;
+    long s2 = -1;
+
+    for (auto const & e : edit)
+    {
+      if ((v2 + 1l) < static_cast<long>(vars.size()) && e.pos >= vars[v2 + 1].pos)
+      {
+        assert(e.pos == vars[v2 + 1].pos);
+        s2 = vars[v2 + 1].pos - s1 + shift;
+        std::cerr << "DONE " << e.pos << " " << e.ref << " " << e.alt << std::endl;
+        break;
+      }
+
+      if (s1 == -1 && e.pos == vars[v1].pos)
+      {
+        s1 = vars[v1].pos + shift;
+      }
+
+      assert(e.alt != "*");
+      shift += static_cast<long>(e.alt.size()) - static_cast<long>(e.ref.size());
+      std::cerr << "GO " << e.pos << " " << e.ref << " " << e.alt << "\n";
+    }
+
+    std::cerr << "info: " << s1 << "," << s2 << "," << shift << std::endl;
+    assert(s1 != -1);
+
+    if (s2 == -1)
+      new_var.seqs.push_back(seqs[i].substr(s1));
+    else
+      new_var.seqs.push_back(seqs[i].substr(s1, s2));
+
+    std::cerr << new_var.seqs.back() << " (" << i << ")" << std::endl;
+  }
+
+  return new_var;
+}
+
+
+std::vector<Variant>
+Skyr::split_variants(long const T)
+{
   std::vector<Variant> new_variants;
 
   if (vars.size() == 0)
     return new_variants; // No variants, nothing to do
 
-  // T = bp threshold for merging
-  //for (long i = 0; i < static_cast<long>(edits.size()); ++i)
-  //auto const & edit = edits[i];
-  assert(vars.size() > 0);
-  long del_reach = vars[0].get_max_del_reach();
-  long var_reach = vars[0].get_max_reach();
-  vars[0].print_seqs(std::cerr);
-  std::string original_seq = seqs[0];   // Reconstructed sequence
-
-  //std::cerr << seqs[i] << "\n";
-  std::string gapped_seq = seqs[0];   // Gapped reconstructed sequence
-  long shift = 0;   // Number of bases shifted by indels
-  long gapped_shift = 0;   // Number of bases shifted by indels in the gapped sequence
-  long prev_v = 0;
-
-  for (long v = 1; v < static_cast<long>(vars.size()); ++v)
+  // Process reference
   {
-    auto & var = vars[v];
-    var.print_seqs(std::cerr);
+    long var_reach = -1;//vars[0].get_max_reach();
+    long s = 0; // string index
+    std::string original_seq = seqs[0];
 
-    if (var_reach + T <= var.pos)
+    for (long v = 0; v < static_cast<long>(vars.size()); ++v)
     {
-      std::cerr << "split " << prev_v << "-" << v - 1 << " (" << var_reach << ")" << "\n";
+      auto const & var = vars[v];
+      assert(var.seqs.size() >= 2);
+      var_reach = std::max(var_reach, var.get_max_reach());
 
-      if (prev_v == v - 1)
+      // Check if there are more than T base till the next variant
+      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
       {
-        new_variants.push_back(vars[prev_v]);
-
-      }
-
-      prev_v = v;
-      continue;
-    }
-    else
-    {
-      std::cerr << "merge " << v << " (" << var_reach << ")" << "\n";
-    }
-
-    //assert(var.seqs.size() >= 2);
-    //long const call = _get_variant_call(var, edit, del_reach, true); // use_asterisks is true
-    //var.add_call(call);
-    //
-    //var.print_seqs(std::cerr);
-    //std::cerr << "call = " << var.seqs[call] << "\n";
-
-    /* // Check if we need to replace strings in the reconstructed sequence
-    if (call != 0l && var.seqs[call] != "*")
-    {
-      long new_pos = var.pos + shift;
-      original_seq = original_seq.replace(new_pos, var.seqs[0].size(), var.seqs[call]);
-      shift += var.seqs[call].size() - var.seqs[0].size();
-    }
-
-    if (var.seqs[call] != "*")
-    {
-      long new_gapped_pos = var.pos + gapped_shift;
-      auto longest_seq = var.seqs.cbegin();
-
-      if (call != 0)
-        gapped_seq = gapped_seq.replace(new_gapped_pos, var.seqs[0].size(), var.seqs[call]);
-
-      if (var.is_insertion())
-      {
-        // The longest sequence is at the back
-        longest_seq = var.seqs.cbegin() + (var.seqs.size() - 1);
-
-        // Add gaps at end
-        if (longest_seq->size() > var.seqs[call].size())
-        {
-          std::string gaps(longest_seq->size() - var.seqs[call].size(), '-');
-          gapped_seq = gapped_seq.replace(new_gapped_pos + var.seqs[call].size(), 0, gaps);
-        }
-
-        gapped_shift += longest_seq->size() - var.seqs[0].size();
-      }
-      else if (var.is_deletion())
-      {
-        // Longest sequence is the reference
-        if (longest_seq->size() > var.seqs[call].size())
-        {
-          std::string gaps(longest_seq->size() - var.seqs[call].size(), '-');
-          gapped_seq = gapped_seq.replace(new_gapped_pos, 0, gaps);
-        }
+        Variant new_var;
+        new_var.pos = s;
+        new_var.seqs.push_back(original_seq.substr(s, var_reach - s)); //
+        new_variants.push_back(std::move(new_var));
+        s = vars[v + 1].pos;
       }
     }
-    */
 
-    var_reach = std::max(var_reach, var.get_max_reach());
-
-    if (var.is_deletion())
-    {
-      assert(var.seqs[0].size() >= var.seqs[call].size());
-      del_reach = std::max(del_reach, var.get_max_del_reach());
-    }
-
-    if (prev_v < static_cast<long>(vars.size()))
-    {
-      vars[prev_v].print_seqs(std::cerr);
-    }
+    Variant new_var;
+    new_var.pos = s;
+    new_var.seqs.push_back(original_seq.substr(s));
+    new_variants.push_back(std::move(new_var));
   }
 
-  //std::cerr << gapped_seq << " (" << i << ")\n";
-  //fasta_out.add_record(fasta.ids[i], gapped_seq);
-  //}
+  // Process alts
+  for (long i = 1; i < static_cast<long>(edits.size()); ++i)
+  {
+    auto const & edit = edits[i];
+    long del_reach = -1;//vars[0].get_max_del_reach();
+    long var_reach = -1;//vars[0].get_max_reach();
+    long shift = 0;
+    long s = 0; // string index
+    long new_var_index = 0;
+    std::string original_seq = seqs[0]; // Reconstructed sequence
+    std::string gapped_seq = seqs[0]; // Gapped reconstructed sequence
+
+    for (long v = 0; v < static_cast<long>(vars.size()); ++v)
+    {
+      auto const & var = vars[v];
+      assert(var.seqs.size() >= 2);
+      //long const call = _get_variant_call(var, edit, del_reach, true);
+      long const call = _const_get_variant_call(var, edit, del_reach);
+      var_reach = std::max(var_reach, var.get_max_reach());
+
+      if (var.is_deletion())
+        del_reach = std::max(del_reach, var.get_max_del_reach());
+
+      if (call > 0)
+      {
+        original_seq = original_seq.replace(var.pos + shift, var.seqs[0].size(), var.seqs[call]);
+        shift += var.seqs[call].size() - var.seqs[0].size();
+      }
+
+      // Check if there are more than T base till the next variant
+      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      {
+        assert(new_var_index < static_cast<long>(new_variants.size()));
+        std::string new_seq = original_seq.substr(s, var_reach + shift - s);
+        auto & new_seqs = new_variants[new_var_index].seqs;
+
+        // Only add sequence if we did not see it before
+        if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
+        {
+          // new sequence
+          new_variants[new_var_index].seqs.push_back(std::move(new_seq));
+        }
+
+        ++new_var_index;
+        s = vars[v + 1].pos + shift;
+      }
+    }
+
+    std::string new_seq = original_seq.substr(s);
+    assert(new_var_index < static_cast<long>(new_variants.size()));
+    auto & new_seqs = new_variants[new_var_index].seqs;
+
+    if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
+    {
+      // new sequence
+      new_variants[new_var_index].seqs.push_back(std::move(new_seq));
+    }
+  }
 
   return new_variants;
 }
 
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
+/*
+long prev_v = 0;
+
+for (long v = 1; v < static_cast<long>(vars.size()); ++v)
+{
+  auto & var = vars[v];
+  var.print_seqs(std::cerr);
+
+  if (var_reach + T <= var.pos)
+  {
+    Variant new_var = merge_variants(prev_v, v - 1);
+    prev_v = v;
+    new_variants.push_back(std::move(new_var));
+    }*/
+
+//assert(var.seqs.size() >= 2);
+//long const call = _get_variant_call(var, edit, del_reach, true); // use_asterisks is true
+//var.add_call(call);
+//
+//var.print_seqs(std::cerr);
+//std::cerr << "call = " << var.seqs[call] << "\n";
+
+/* // Check if we need to replace strings in the reconstructed sequence
+if (call != 0l && var.seqs[call] != "*")
+{
+  long new_pos = var.pos + shift;
+  original_seq = original_seq.replace(new_pos, var.seqs[0].size(), var.seqs[call]);
+  shift += var.seqs[call].size() - var.seqs[0].size();
+}
+
+if (var.seqs[call] != "*")
+{
+  long new_gapped_pos = var.pos + gapped_shift;
+  auto longest_seq = var.seqs.cbegin();
+
+  if (call != 0)
+    gapped_seq = gapped_seq.replace(new_gapped_pos, var.seqs[0].size(), var.seqs[call]);
+
+  if (var.is_insertion())
+  {
+    // The longest sequence is at the back
+    longest_seq = var.seqs.cbegin() + (var.seqs.size() - 1);
+
+    // Add gaps at end
+    if (longest_seq->size() > var.seqs[call].size())
+    {
+      std::string gaps(longest_seq->size() - var.seqs[call].size(), '-');
+      gapped_seq = gapped_seq.replace(new_gapped_pos + var.seqs[call].size(), 0, gaps);
+    }
+
+    gapped_shift += longest_seq->size() - var.seqs[0].size();
+  }
+  else if (var.is_deletion())
+  {
+    // Longest sequence is the reference
+    if (longest_seq->size() > var.seqs[call].size())
+    {
+      std::string gaps(longest_seq->size() - var.seqs[call].size(), '-');
+      gapped_seq = gapped_seq.replace(new_gapped_pos, 0, gaps);
+    }
+  }
+}
+*/
+
+/*
+    var_reach = std::max(var_reach, var.get_max_reach());
+
+    if (var.is_deletion())
+      del_reach = std::max(del_reach, var.get_max_del_reach());
+
+    if (prev_v < static_cast<long>(vars.size()))
+      vars[prev_v].print_seqs(std::cerr);
+  }
+
+  {
+    long v = static_cast<long>(vars.size());
+
+    assert(prev_v < v);
+    Variant new_var = merge_variants(prev_v, v - 1);
+    new_variants.push_back(std::move(new_var));
+  }
+
+  for (auto const & new_var: new_variants)
+  {
+    new_var.print_seqs(std::cerr);
+  }
+*/
+
 } // namespace paw
 
 

@@ -14,9 +14,9 @@ namespace paw
 class Event2
 {
 public:
-  std::size_t pos;   // Position of the event.
-  std::string ref;   // Reference allele.
-  std::string alt;   // Alternative allele.
+  long pos; // Position of the event.
+  std::string ref; // Reference allele.
+  std::string alt; // Alternative allele.
 
   bool is_snp() const;
   bool is_deletion() const;
@@ -35,6 +35,7 @@ bool operator==(Event2 const & a, Event2 const & b);
 
 #if defined(IMPLEMENT_PAW)
 
+#include <set>
 
 namespace paw
 {
@@ -86,7 +87,7 @@ get_edit_script(std::pair<std::string, std::string> const & s)
   Tedit_script edit_script;
   std::vector<char> s1;
   std::vector<char> s2;
-  std::size_t pos = 0;
+  long pos = 0;
 
   auto are_sequences_empty = [&](){
                                return s1.size() == 0 && s2.size() == 0;
@@ -96,7 +97,7 @@ get_edit_script(std::pair<std::string, std::string> const & s)
                             {
                               Event2 new_edit =
                               {
-                                pos - s1.size(),
+                                pos - static_cast<long>(s1.size()),
                                 std::string(s1.begin(), s1.end()),
                                 std::string(s2.begin(), s2.end())
                               };
@@ -108,7 +109,7 @@ get_edit_script(std::pair<std::string, std::string> const & s)
                             };
 
 
-  for (std::size_t i = 0; i < s.first.size(); ++i)
+  for (long i = 0; i < static_cast<long>(s.first.size()); ++i)
   {
     // Both string cant have a gap
     assert(s.first[i] != '-' || s.second[i] != '-');
