@@ -14,6 +14,7 @@ namespace paw
 namespace SIMDPP_ARCH_NAMESPACE
 {
 
+
 class Vcf
 {
 private:

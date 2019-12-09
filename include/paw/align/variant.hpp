@@ -11,14 +11,13 @@
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
-
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
 
 class Variant
 {
 public:
-  std::map<Event2, uint32_t /*allele index*/> event_to_allele;
+  std::map<SIMDPP_ARCH_NAMESPACE::Event2, uint32_t /*allele index*/> event_to_allele;
   std::vector<uint16_t> calls;
 
 public:
@@ -34,6 +33,8 @@ public:
   bool is_deletion() const;
   bool is_insertion() const;
   bool is_snp() const;
+  long get_max_del_reach() const;
+  long get_max_reach() const;
   uint16_t get_call(long index) const;
 
   void print_events_to_alleles(std::ostream & ss) const;
@@ -44,7 +45,7 @@ public:
   void add_base_to_front(std::string const & reference);
   void add_call(uint16_t const call);
   void clear();
-  void add_event(Event2 const & e);
+  void add_event(SIMDPP_ARCH_NAMESPACE::Event2 const & e);
 ///
 
 };
@@ -53,7 +54,7 @@ public:
 bool operator<(Variant const & a, Variant const & b);
 bool operator==(Variant const & a, Variant const & b);
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -62,8 +63,8 @@ bool operator==(Variant const & a, Variant const & b);
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
 
 
 Variant::Variant(uint32_t _pos, Variant::Tseqs const & _seqs)
@@ -105,6 +106,32 @@ Variant::get_call(long index) const
 {
   assert(index < static_cast<long>(calls.size()));
   return calls[index];
+}
+
+
+long
+Variant::get_max_del_reach() const
+{
+  if (seqs.size() < 2 || !is_deletion())
+    return 0;
+
+  return pos + seqs[0].size() - seqs[seqs.size() - 1].size();
+}
+
+
+long
+Variant::get_max_reach() const
+{
+  if (seqs.size() < 2)
+    return 0;
+
+  if (is_deletion())
+    return pos + seqs[0].size() - seqs[seqs.size() - 1].size();
+
+  if (is_insertion())
+    return pos;
+
+  return pos + 1; //otherwise its a snp
 }
 
 
@@ -167,7 +194,7 @@ Variant::clear()
 
 
 void
-Variant::add_event(Event2 const & e)
+Variant::add_event(SIMDPP_ARCH_NAMESPACE::Event2 const & e)
 {
   event_to_allele[e] = this->seqs.size();
   this->seqs.push_back(e.alt);
@@ -188,7 +215,7 @@ operator==(Variant const & a, Variant const & b)
 }
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 #endif // IMPLEMENT_PAW

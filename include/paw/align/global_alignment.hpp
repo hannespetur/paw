@@ -71,9 +71,11 @@ global_alignment(Tseq const & seq1, // seq1 is query
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
       for (long v = 0; v < t; ++v)
+      {
         aln_results.vF_up[v] = aln_results.vF_up[v] +
                                static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
                                                                     opt.get_gap_extend()));
+      }
     }
 
     // vW_i,j has the scores for each substitution between bases q[i] and d[j]
