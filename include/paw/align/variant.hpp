@@ -11,13 +11,11 @@
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 class Variant
 {
 public:
-  std::map<SIMDPP_ARCH_NAMESPACE::Event2, uint32_t /*allele index*/> event_to_allele;
+  std::map<Event2, uint32_t /*allele index*/> event_to_allele;
   std::vector<uint16_t> calls;
 
 public:
@@ -45,7 +43,7 @@ public:
   void add_base_to_front(std::string const & reference);
   void add_call(uint16_t const call);
   void clear();
-  void add_event(SIMDPP_ARCH_NAMESPACE::Event2 const & e);
+  void add_event(Event2 const & e);
 ///
 
 };
@@ -63,8 +61,6 @@ bool operator==(Variant const & a, Variant const & b);
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 
 Variant::Variant(uint32_t _pos, Variant::Tseqs const & _seqs)
@@ -194,7 +190,7 @@ Variant::clear()
 
 
 void
-Variant::add_event(SIMDPP_ARCH_NAMESPACE::Event2 const & e)
+Variant::add_event(Event2 const & e)
 {
   event_to_allele[e] = this->seqs.size();
   this->seqs.push_back(e.alt);
@@ -215,7 +211,6 @@ operator==(Variant const & a, Variant const & b)
 }
 
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 #endif // IMPLEMENT_PAW

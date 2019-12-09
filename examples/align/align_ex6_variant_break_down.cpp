@@ -58,7 +58,7 @@ main(int argc, char ** argv)
     return EXIT_SUCCESS;
   }
 
-  paw::SIMDPP_ARCH_NAMESPACE::Skyr skyr(fasta.seqs);
+  paw::Skyr skyr(fasta.seqs);
   skyr.find_all_edits();
   skyr.find_variants_from_edits();
   skyr.populate_variants_with_calls();
@@ -95,7 +95,7 @@ main(int argc, char ** argv)
 
   if (fasta.ids.size() > 0)
   {
-    paw::SIMDPP_ARCH_NAMESPACE::Vcf vcf_out(vcf_output);
+    paw::Vcf vcf_out(vcf_output);
     vcf_out.reference = "N" + fasta.seqs[0];
 
     for (auto const & sn : fasta.ids)

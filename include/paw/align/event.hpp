@@ -7,8 +7,8 @@
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
 
 // An event is an single point mutation with two alleles, reference and alternative.
 class Event2
@@ -29,7 +29,7 @@ bool operator<(Event2 const & a, Event2 const & b);
 bool operator==(Event2 const & a, Event2 const & b);
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
@@ -38,8 +38,8 @@ bool operator==(Event2 const & a, Event2 const & b);
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
+//namespace SIMDPP_ARCH_NAMESPACE
+//{
 
 bool
 Event2::is_snp() const
@@ -159,7 +159,8 @@ get_edit_script(std::pair<std::string, std::string> const & s)
 }
 
 
+//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
-} // namespace SIMDPP_ARCH_NAMESPACE
+
 
 #endif // IMPLEMENT_PAW
