@@ -8,7 +8,6 @@
 #include <paw/align/event.hpp>
 #include <paw/align/fasta.hpp>
 #include <paw/align/global_alignment.hpp>
-#include <paw/align/libsimdpp_align.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/align/skyr.hpp>

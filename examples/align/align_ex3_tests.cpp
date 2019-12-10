@@ -45,11 +45,11 @@ struct Test
 };
 
 
-template<typename Tuint>
+template <typename Tuint>
 long
 calculate_score_from_aligned_strings(paw::AlignmentOptions<Tuint> const & opts,
-  std::pair<std::string, std::string> const & a_strings
-  )
+                                     std::pair<std::string, std::string> const & a_strings
+                                     )
 {
   assert(a_strings.first.size() == a_strings.second.size());
   bool is_ins = false;
@@ -147,9 +147,9 @@ transpose(std::vector<std::vector<long> > const & sm)
 
   std::vector<std::vector<long> > m(sm[0].size(), std::vector<long>(sm.size()));
 
-  for (long i = 0 ; i < (long)sm.size(); ++i)
+  for (long i = 0; i < (long)sm.size(); ++i)
   {
-    for (long j = 0 ; j < (long)sm[i].size(); ++j)
+    for (long j = 0; j < (long)sm[i].size(); ++j)
     {
       assert(j < (long)m.size());
       assert(i < (long)m[j].size());
@@ -212,7 +212,8 @@ main(int argc, char ** argv)
 
   std::vector<Test> tests =
   {
-    {"GGG", "GGG", 6 /*exp. score*/, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/, false /*left column free*/}, //test 0
+    {"GGG", "GGG", 6 /*exp. score*/, 2 /*match*/, 2 /*mismatch*/, 10 /*gap_open*/, 1 /*gap extend*/,
+     false /*left column free*/},                                                                                                 //test 0
     {"GGGG", "GGG", 1}, //test 1
     {"GGGGG", "GGG", 0}, //test 2
     {"GGG", "GGGG", 1}, //test 3
@@ -243,9 +244,10 @@ main(int argc, char ** argv)
      27, 2, 4, 6, 1}, // test 24
     {"A", "AAA", -5, 2, 4, 6, 1}, // test 25
     {"TGTGTTAATTAATTAATGCTTGTAGGA", "TATGTAGCTTATTCTATCCAAAGCAAT", -6, 2, 2, 5, 1}, //test 26
-    {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATA",
-     "TATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATA",
-     666, 1, -2, -4, -1}, // test 27
+    {
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATATCTATATATATATACATATATATATA",
+      "TATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATATA",
+      666, 1, -2, -4, -1}, // test 27
     {"ACGT", "GT", -2, 2, -2, -5, -1}, // test 28
     {"T", "TTTTTCCCCCAAGGGGGTTTTT", -23}, //test 29
     {"GTAGAGGGGGTTGGGCCAAGGTT", "G", -24}, // test 30
@@ -256,6 +258,8 @@ main(int argc, char ** argv)
     {"GGTG", "GGTGTCTTGCGTG", 8, 2, -2, -5, -1, false, true}, // test 35
     {"CCCCGTGGGTGGGTGG", "CCCCGGTGGATGGGTGGGGTGTCTTGCGTG", 24, 2, -2, -4, -1, false, true}, // test 36
     {"GGGACGTACGTACGT", "GGCCTTTTGGGACGTACTACGTT", 18, 2, -2, -5, -1, true, false}, // test 37
+    {"GGG", "TTTTGGGTTTT", 6, 2, -2, -5, -1, true, true}, // test 38
+    {"GGAGG", "TTTGGGGTTT", 3, 2, -2, -5, -1, true, true}, // test 39
   };
 
   // Run all tests if no specific tests are specified
@@ -271,73 +275,78 @@ main(int argc, char ** argv)
   long num_passed_tests = 0;
   long num_tests = tests_to_run.size();
 
-  auto test_if_expected_score = [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i, bool is_swapped) -> bool
-  {
-    bool are_all_tests_ok = true;
-    opts.set_match(test.match).set_mismatch(test.mismatch).set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
-    opts.left_column_free = test.left_column_free;
-    opts.right_column_free = test.right_column_free;
-
-    if (is_swapped)
-      std::swap(opts.left_column_free, opts.right_column_free);
-
-    if (is_swapped)
-      paw::global_alignment(test.seq2, test.seq1, opts);
-    else
-      paw::global_alignment(test.seq1, test.seq2, opts);
-
-    paw::AlignmentResults<uint8_t> const & ar = *opts.get_alignment_results();
-    std::string test_suffix;
-
-    if (is_swapped)
-      test_suffix = " (swapped)";
-    else
-      test_suffix = " (not swapped)";
-
-    if (ar.score != test.expected_score)
+  auto test_if_expected_score =
+    [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i, bool is_swapped) -> bool
     {
-      std::cout << "\nINCORRECT. Final score mismatch in test " << i << test_suffix
-                << ". Got score " << ar.score
-                << " but I expected " << test.expected_score << "\n" << std::endl;
-      are_all_tests_ok = false;
-    }
+      bool are_all_tests_ok = true;
+      opts.set_match(test.match).set_mismatch(test.mismatch);
+      opts.set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
+      opts.left_column_free = test.left_column_free;
+      opts.right_column_free = test.right_column_free;
 
-    std::pair<std::string, std::string> aligned_strings;
+      if (is_swapped)
+        std::swap(opts.left_column_free, opts.right_column_free);
 
-    if (is_swapped)
-      aligned_strings = ar.get_aligned_strings(test.seq2, test.seq1);
-    else
-      aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
+      if (is_swapped)
+        paw::global_alignment(test.seq2, test.seq1, opts);
+      else
+        paw::global_alignment(test.seq1, test.seq2, opts);
 
-    long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
+      paw::AlignmentResults<uint8_t> const & ar = *opts.get_alignment_results();
+      std::string test_suffix;
 
-    if (score_aligned_strings != test.expected_score)
-    {
-      std::cout << "\nINCORRECT. Traceback error, score from aligned strings does not match in test " << i << test_suffix
-                << ". Got score " << score_aligned_strings
-                << " but I expected " << test.expected_score << "\n" << std::endl;
-      are_all_tests_ok = false;
-    }
+      if (is_swapped)
+        test_suffix = " (swapped)";
+      else
+        test_suffix = " (not swapped)";
+
+      if (ar.score != test.expected_score)
+      {
+        std::cout << "\nINCORRECT. Final score mismatch in test " << i << test_suffix
+                  << ". Got score " << ar.score
+                  << " but I expected " << test.expected_score << "\n" << std::endl;
+        are_all_tests_ok = false;
+      }
+
+      std::pair<std::string, std::string> aligned_strings;
+
+      if (is_swapped)
+        aligned_strings = ar.get_aligned_strings(test.seq2, test.seq1);
+      else
+        aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
+
+      //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n" << std::endl;
+      long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
+
+      if (score_aligned_strings != test.expected_score)
+      {
+        std::cout <<
+          "\nINCORRECT. Traceback error, score from aligned strings does not match in test " << i << test_suffix
+                  << ". Got score " << score_aligned_strings
+                  << " but I expected " << test.expected_score << "\n" << std::endl;
+        are_all_tests_ok = false;
+      }
 
 #ifndef NDEBUG
-    assert(opts.score_matrix.size() > 0);
-    assert(opts.score_matrix[0].size() > 0);
+      assert(opts.score_matrix.size() > 0);
+      assert(opts.score_matrix[0].size() > 0);
 
-    if (opts.score_matrix.back().back() != test.expected_score)
-    {
-      std::cout << "\nINCORRECT. Incorrect final score of the score matrix in test " << i << test_suffix
-        << ".  Got score " << opts.score_matrix.back().back()
-        << " but I expected " << test.expected_score << "\n" << std::endl;
-      are_all_tests_ok = false;
-    }
+      if (opts.score_matrix.back().back() != test.expected_score)
+      {
+        std::cout << "\nINCORRECT. Incorrect final score of the score matrix in test " <<
+          i << test_suffix
+                  << ".  Got score " << opts.score_matrix.back().back()
+                  << " but I expected " << test.expected_score << "\n" << std::endl;
+        are_all_tests_ok = false;
+      }
 #endif
 
-    // Fix options in case we swapped left_column_free and right_column_free
-    if (is_swapped)
-      std::swap(opts.left_column_free, opts.right_column_free);
+      // Fix options in case we swapped left_column_free and right_column_free
+      if (is_swapped)
+        std::swap(opts.left_column_free, opts.right_column_free);
 
-    return are_all_tests_ok;
-  };
+      return are_all_tests_ok;
+    };
 
   for (auto i : tests_to_run)
   {
@@ -348,7 +357,7 @@ main(int argc, char ** argv)
     paw::AlignmentOptions<uint8_t> opts;
     bool are_all_tests_ok = test_if_expected_score(opts, test, i, is_swapped);
 
-    if (!swap_only && !noswap_only && opts.left_column_free == opts.right_column_free)
+    if (!swap_only && !noswap_only && opts.left_column_free == false && opts.right_column_free == false)
     {
 #ifndef NDEBUG
       std::vector<std::vector<long> > score_matrix = transpose(opts.score_matrix);
@@ -413,7 +422,8 @@ main(int argc, char ** argv)
         {
           if (vE_matrix[r][c] != opts.vF_scores[r][c])
           {
-            std::cout << "INCORRECT: Test " << i << ": vE' vs vF. row, col = " << r << "," << c << " mismatch " << vE_matrix[r][c] << " != "
+            std::cout << "INCORRECT: Test " << i << ": vE' vs vF. row, col = " << r << "," << c << " mismatch " <<
+              vE_matrix[r][c] << " != "
                       << opts.vF_scores[r][c] << "\n";
             r = vE_matrix.size();
             are_all_tests_ok = false;
@@ -422,7 +432,8 @@ main(int argc, char ** argv)
 
           if (vF_matrix[r][c] != opts.vE_scores[r][c])
           {
-            std::cout << "INCORRECT: Test " << i << " vE vs vF'. row, col = " << r << "," << c << " mismatch " << vF_matrix[r][c] << " != "
+            std::cout << "INCORRECT: Test " << i << " vE vs vF'. row, col = " << r << "," << c << " mismatch " <<
+              vF_matrix[r][c] << " != "
                       << opts.vE_scores[r][c] << "\n";
             r = vE_matrix.size();
             are_all_tests_ok = false;

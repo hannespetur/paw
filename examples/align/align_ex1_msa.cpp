@@ -66,13 +66,11 @@ main(int argc, char ** argv)
     parser.parse_option(backtracking,
                         'b',
                         "backtrack",
-                        "If set, backtracking/traceback will be made."
-                        );
+                        "If set, backtracking/traceback will be made.");
     parser.parse_option(fasta_output,
                         'f',
                         "fasta_output",
-                        "Output filename for aligned sequences."
-                        );
+                        "Output filename for aligned sequences.");
     parser.parse_option(SPLIT_THRESHOLD, ' ', "split_threshold", "Split threshold to use.");
     parser.parse_option(vcf_output, 'o', "vcf_output", "Output filename with variant records.");
     parser.finalize();

@@ -105,29 +105,38 @@ get_current_arch()
 
 SIMDPP_MAKE_DISPATCHER_RET0(get_current_arch, std::string)
 
-SIMDPP_MAKE_DISPATCHER((template<typename Tuint, typename Tseq>)
-                       (<Tuint, Tseq>)
-                       (void)
-                       (set_query)
-                       ((AlignmentOptions<Tuint> &) opt, (Tseq const &) seq)
+SIMDPP_MAKE_DISPATCHER((template <typename Tuint, typename Tseq>)
+                         (< Tuint, Tseq >)
+                         (void)
+                         (set_query)
+                         ((AlignmentOptions<Tuint>&)opt, (Tseq const &) seq)
                        )
 
 SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
-                         (<Tseq, Tuint>)
+                         (< Tseq, Tuint >)
                          (void)
                          (global_alignment)
                          ((Tseq const &) x, (Tseq const &) y, (
-                           AlignmentOptions<Tuint> &) z
+                           AlignmentOptions<Tuint>&)z
                          )
                        )
 
 SIMDPP_INSTANTIATE_DISPATCHER(
   (template void global_alignment<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
-     AlignmentOptions<uint8_t> & o)),
+     AlignmentOptions<uint8_t>&o)),
   (template void global_alignment<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
-     AlignmentOptions<uint16_t> & o))
+     AlignmentOptions<uint16_t>&o))
+  )
+
+SIMDPP_INSTANTIATE_DISPATCHER(
+  (template void global_alignment<std::vector<char>, uint8_t>(
+     std::vector<char> const & s1, std::vector<char> const & s2,
+     AlignmentOptions<uint8_t>&o)),
+  (template void global_alignment<std::vector<char>, uint16_t>(
+     std::vector<char> const & s1, std::vector<char> const & s2,
+     AlignmentOptions<uint16_t>&o))
   )
 
 
