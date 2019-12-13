@@ -341,7 +341,9 @@ Skyr::populate_variants_with_calls(bool const use_asterisks)
       if (var.is_deletion())
       {
         assert(var.seqs[0].size() >= var.seqs[call].size());
-        del_reach = std::max(del_reach, var.get_max_del_reach());
+        del_reach = std::max(del_reach, static_cast<long>(var.pos +
+                                                          var.seqs[0].size() -
+                                                          var.seqs[call].size()));
       }
     }
   }
@@ -477,6 +479,8 @@ Skyr::split_variants(long const T)
       long const call = _const_get_variant_call(var, edit, del_reach);
       var_reach = std::max(var_reach, var.get_max_reach());
 
+      // TODO (maybe)
+      // I need to change var.get_max_del_reach() to static_cast<long>(var.pos + var.seqs[0].size() - var.seqs[call].size())
       if (var.is_deletion())
         del_reach = std::max(del_reach, var.get_max_del_reach());
 
