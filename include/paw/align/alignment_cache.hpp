@@ -93,7 +93,7 @@ struct AlignmentCache
     vW.fill(std::numeric_limits<Tuint>::min());
     simdpp::store_u(&vW[0], W[v]);
     //std::cout << "vW[e] changed from " << static_cast<int>(vW[e]) << " to " << static_cast<int>(match_val) << "\n";
-    vW[e] = match_val;
+    vW[e] = match_val + 1;
     W[v] = simdpp::load_u(&vW[0]);
   }
 

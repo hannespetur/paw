@@ -102,18 +102,23 @@ main(int argc, char ** argv)
   skyr.find_all_edits();
   skyr.find_variants_from_edits();
 
-  //for (auto const & var : skyr.vars)
-  //  var.print_seqs(std::cerr);
+  bool constexpr use_asterisks = true;
+  skyr.populate_variants_with_calls(use_asterisks);
+
+  std::cerr << "skyr vars:\n";
+  for (auto const & var : skyr.vars)
+    var.print_seqs(std::cerr);
 
   auto vars = skyr.split_variants(SPLIT_THRESHOLD);
 
+  std::cerr << "splitted vars:\n";
   for (auto const & var : vars)
     var.print_seqs(std::cerr);
 
-  /*
-  auto t1 = Ttime::now();
-  std::cout << Tduration(t1 - t0).count() << " ms\n";
-  fasta_out.store(fasta_output);
+  //auto t1 = Ttime::now();
+  //std::cout << Tduration(t1 - t0).count() << " ms\n";
+
+  /*fasta_out.store(fasta_output);
 
   if (fasta.ids.size() > 0)
   {

@@ -119,9 +119,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-## Include paw
-list(APPEND PAW_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
-
 #simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_SSE2;X86_SSE3;X86_SSE4_1;X86_SSE4_1,X86_POPCNT_INSN;X86_AVX,X86_POPCNT_INSN;X86_AVX2,X86_POPCNT_INSN;X86_AVX512F,X86_POPCNT_INSN;X86_AVX512F,X86_POPCNT_INSN,X86_AVX512BW,X86_AVX512DQ,X86_AVX512VL") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
 simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_SSE2;X86_SSE4_1;X86_SSE4_1,X86_POPCNT_INSN;X86_AVX,X86_POPCNT_INSN") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS} ;X86_AVX2,X86_POPCNT_INSN
 #add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
@@ -133,12 +130,14 @@ set_target_properties(static PROPERTIES
     OUTPUT_NAME paw
     )
 target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
-target_include_directories(static PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(static SYSTEM PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(static PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 add_library(shared SHARED src/paw.cpp ${GEN_ARCH_FILES})
 set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
-target_include_directories(shared PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(shared SYSTEM PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(shared PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 
 ## Examples

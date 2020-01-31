@@ -61,7 +61,7 @@ _get_variant_call(paw::Variant & variant,
                   long del_reach,
                   bool use_asterisks = true)
 {
-  long call = 0;         // Call reference by default
+  long call = 0; // Call reference by default
   auto find_it = std::find_if(variant.event_to_allele.begin(),
                               variant.event_to_allele.end(),
                               [&](std::pair<paw::Event2, uint32_t> const & e) -> bool
@@ -78,7 +78,7 @@ _get_variant_call(paw::Variant & variant,
   {
     // Call asterisk if the variant is deleted by a previous deletion
     if (variant.seqs[variant.seqs.size() - 1] != "*")
-      variant.seqs.push_back("*");         // Add asterisk allele if we need to
+      variant.seqs.push_back("*"); // Add asterisk allele if we need to
 
     call = variant.seqs.size() - 1;
   }
