@@ -87,6 +87,12 @@ get_edit_script(std::pair<std::string, std::string> const & s)
 
   Tedit_script edit_script;
 
+  // reference string without gaps
+  std::string ref;
+  std::copy_if(s.first.begin(), s.first.end(), std::back_inserter(ref), [](char c){
+      return c != '-';
+    });
+
   // strings which are going to be used to create a new variant event
   std::vector<char> s1;
   std::vector<char> s2;
@@ -94,57 +100,61 @@ get_edit_script(std::pair<std::string, std::string> const & s)
   // position of the new variant event
   long pos = 0;
 
-  auto are_s1_s2_empty = [&s1, &s2]() -> bool {
-                           return s1.empty() && s2.empty();
-                         };
+  auto are_s1_s2_empty =
+    [&s1, &s2]() -> bool {
+      return s1.empty() && s2.empty();
+    };
 
-  auto add_to_edit_script = [&pos, &s, &s1, &s2, &edit_script]() -> void
-                            {
-                              long event_position = pos - static_cast<long>(s1.size());
-                              assert(event_position >= 0);
+  auto add_to_edit_script =
+    [&pos, &s, &s1, &s2, &edit_script, &ref]() -> void
+    {
+      long event_position = pos - static_cast<long>(s1.size());
+      assert(event_position >= 0);
 
-                              // Normalization is not possible if event_position is zero
-                              if (event_position > 0)
-                              {
-                                if (s1.empty())
-                                {
-                                  // Normalize insertion
-                                  long const s2_size = s2.size();
+      // Normalization is not possible if event_position is zero
+      if (event_position > 0)
+      {
+        if (s1.empty())
+        {
+          // Normalize insertion
+          long const s2_size = s2.size();
+          assert(event_position - 1 < static_cast<long>(ref.size()));
 
-                                  while (event_position > 0 && s2[s2_size - 1] == s.first[event_position - 1])
-                                  {
-                                    s2.insert(s2.begin(), s2[s2_size - 1]); // Insert base in front
-                                    s2.resize(s2_size); // Remove base in back to keep the same size
-                                    --event_position; // Adjust event position accordingly
-                                  }
-                                }
-                                else if (s2.empty())
-                                {
-                                  // Normalize deletion
-                                  long const s1_size = s1.size();
+          while (event_position > 0 && s2[s2_size - 1] == ref[event_position - 1])
+          {
+            s2.insert(s2.begin(), s2[s2_size - 1]); // Insert base in front
+            s2.resize(s2_size); // Remove base in back to keep the same size
+            --event_position; // Adjust event position accordingly
+          }
+        }
+        else if (s2.empty())
+        {
+          // Normalize deletion
+          long const s1_size = s1.size();
+          assert(event_position - 1 < static_cast<long>(ref.size()));
 
-                                  while (event_position > 0 && s1[s1_size - 1] == s.first[event_position - 1])
-                                  {
-                                    s1.insert(s1.begin(), s1[s1_size - 1]); // Insert base in front
-                                    s1.resize(s1_size); // Remove base in back to keep the same size
-                                    --event_position; // Adjust event position accordingly
-                                  }
-                                }
-                              }
+          while (event_position > 0 && s1[s1_size - 1] == ref[event_position - 1])
+          {
+            s1.insert(s1.begin(), s1[s1_size - 1]); // Insert base in front
+            s1.resize(s1_size); // Remove base in back to keep the same size
+            --event_position; // Adjust event position accordingly
+          }
+        }
+      }
 
-                              // Create a new variant event
-                              Event2 new_edit =
-                              {
-                                event_position,
-                                std::string(s1.begin(), s1.end()),
-                                std::string(s2.begin(), s2.end())
-                              };
+      // Create a new variant event
+      Event2 new_edit =
+      {
+        event_position,
+        std::string(s1.begin(), s1.end()),
+        std::string(s2.begin(), s2.end())
+      };
 
-                              edit_script.insert(std::move(new_edit));
+      edit_script.insert(std::move(new_edit));
 
-                              s1.clear();
-                              s2.clear();
-                            };
+      s1.clear();
+      s2.clear();
+    };
 
 
   for (long i = 0; i < static_cast<long>(s.first.size()); ++i)

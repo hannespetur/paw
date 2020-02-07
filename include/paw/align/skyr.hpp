@@ -219,6 +219,7 @@ Skyr::find_all_edits()
       scores[i] = ar->score;
 
       auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
+      //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
       edits[i] = get_edit_script(aligned_strings);
       all_edits.insert(edits[i].begin(), edits[i].end());
     }
@@ -284,7 +285,6 @@ Skyr::find_variants_from_edits()
       {
         // Case 2: Deletions at the same position.
         assert(e.ref.size() > new_var.seqs[0].size());
-
         /// Extend all sequences.
         auto begin_extend = e.ref.cbegin() + new_var.seqs[0].size();
 
