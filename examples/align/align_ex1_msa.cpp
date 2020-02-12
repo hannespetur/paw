@@ -97,17 +97,31 @@ main(int argc, char ** argv)
 
   //auto t0 = Ttime::now();
 
+  for (long s = 0; s < static_cast<long>(fasta.seqs.size()); ++s)
+  {
+    std::cerr << s << ": " << fasta.seqs[s] << "\n";
+  }
+
   // Align the sequence using the SKYR algorithm
   paw::Skyr skyr(fasta.seqs);
-  skyr.find_all_edits();
+  bool const is_normalize = false;
+  skyr.find_all_edits(is_normalize);
   skyr.find_variants_from_edits();
 
-  bool constexpr use_asterisks = true;
-  skyr.populate_variants_with_calls(use_asterisks);
-
-  std::cerr << "skyr vars:\n";
-  for (auto const & var : skyr.vars)
-    var.print_seqs(std::cerr);
+  //bool constexpr use_asterisks = true;
+  //skyr.populate_variants_with_calls(use_asterisks);
+  //
+  //std::cerr << "skyr vars and their calls:\n";
+  //
+  //for (auto const & var : skyr.vars)
+  //{
+  //  var.print_seqs(std::cerr);
+  //
+  //  for (auto const & call : var.calls)
+  //    std::cerr << call << " ";
+  //
+  //  std::cerr << "\n";
+  //}
 
   auto vars = skyr.split_variants(SPLIT_THRESHOLD);
 

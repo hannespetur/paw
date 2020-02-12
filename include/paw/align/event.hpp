@@ -80,7 +80,7 @@ operator==(Event2 const & a, Event2 const & b)
 
 
 std::set<Event2> inline
-get_edit_script(std::pair<std::string, std::string> const & s)
+get_edit_script(std::pair<std::string, std::string> const & s, bool const is_normalize)
 {
   using Tedit_script = std::set<Event2>;
   assert(s.first.size() == s.second.size());
@@ -106,13 +106,13 @@ get_edit_script(std::pair<std::string, std::string> const & s)
     };
 
   auto add_to_edit_script =
-    [&pos, &s, &s1, &s2, &edit_script, &ref]() -> void
+    [&pos, &s, &s1, &s2, &edit_script, &ref, is_normalize]() -> void
     {
       long event_position = pos - static_cast<long>(s1.size());
       assert(event_position >= 0);
 
       // Normalization is not possible if event_position is zero
-      if (event_position > 0)
+      if (is_normalize && event_position > 0)
       {
         if (s1.empty())
         {

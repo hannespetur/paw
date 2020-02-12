@@ -28,7 +28,7 @@ public:
   Skyr(std::vector<std::string> const & _seqs);
   Skyr(std::vector<std::vector<char> > const & _seqs);
 
-  void find_all_edits();
+  void find_all_edits(bool const is_normalize);
   void find_variants_from_edits();
   void populate_variants_with_calls(bool use_asterisks = true);
   Variant merge_variants(long start_v, long end_v);
@@ -190,7 +190,7 @@ Skyr::find_most_similar_haplotype(Tscores const & scores) const
 
 
 void
-Skyr::find_all_edits()
+Skyr::find_all_edits(bool const is_normalize)
 {
   std::size_t iteration = 0;
   Tscores scores(seqs.size(), std::numeric_limits<long>::min());
@@ -220,7 +220,7 @@ Skyr::find_all_edits()
 
       auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
       //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
-      edits[i] = get_edit_script(aligned_strings);
+      edits[i] = get_edit_script(aligned_strings, is_normalize);
       all_edits.insert(edits[i].begin(), edits[i].end());
     }
 
