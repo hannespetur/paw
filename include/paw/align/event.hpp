@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string> // std::string
 
 #include <simdpp/simd.h>
@@ -30,6 +31,9 @@ bool operator==(Event2 const & a, Event2 const & b);
 
 
 //} // namespace SIMDPP_ARCH_NAMESPACE
+
+std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s, bool const is_normalize);
+
 } // namespace paw
 
 
@@ -79,7 +83,7 @@ operator==(Event2 const & a, Event2 const & b)
 }
 
 
-std::set<Event2> inline
+std::set<Event2>
 get_edit_script(std::pair<std::string, std::string> const & s, bool const is_normalize)
 {
   using Tedit_script = std::set<Event2>;

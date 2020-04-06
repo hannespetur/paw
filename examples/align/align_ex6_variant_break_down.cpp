@@ -59,7 +59,7 @@ main(int argc, char ** argv)
   }
 
   paw::Skyr skyr(fasta.seqs);
-  skyr.find_all_edits();
+  skyr.find_all_edits(true); // normalize
   skyr.find_variants_from_edits();
   skyr.populate_variants_with_calls();
 
