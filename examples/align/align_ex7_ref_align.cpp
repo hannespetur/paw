@@ -48,6 +48,7 @@ main(int argc, char ** argv)
 
   for (long s = 0; s < static_cast<long>(contigs.seqs.size()); ++s)
   {
+    auto const & id = contigs.ids[s];
     auto const & seq = contigs.seqs[s];
 
     if (static_cast<long>(seq.size()) < min_length)
@@ -74,31 +75,46 @@ main(int argc, char ** argv)
 
     if (edits.size() > 0)
     {
-      //std::cerr << aligned_strings.first << "\n";
       //std::cerr << "Found " << edits.size() << " variants.\n";
-      auto it = edits.begin();
+      bool is_id_printed = false;
+      //std::cout << id << "\n";
+      std::vector<paw::Event2> edits_vec(edits.begin(), edits.end());
+      //auto it = edits.begin();
 
-      for (long i = 0; i < static_cast<long>(edits.size()); ++i, ++it)
+      for (long i = 0; i < static_cast<long>(edits.size()); ++i)
       {
-        assert(it != edits.end());
-        auto const & e = *it;
+        //assert(it != edits.end());
+        auto const & e = edits_vec[i];
 
-        if (e.is_deletion() &&
-            (i == 0 || i == static_cast<long>(edits.size() - 1) || static_cast<long>(e.pos + e.ref.size()) > 29850))
+        if (!e.is_snp() &&
+            (i == 0 || i == static_cast<long>(edits_vec.size() - 1) || static_cast<long>(e.pos + e.ref.size()) > 29850))
         {
           continue;
         }
 
         long const size_diff = static_cast<long>(e.ref.size()) - static_cast<long>(e.alt.size());
-        long const threshold = 30;
+        //long const threshold = 30;
 
         // Don't allow deletions to be larger than 1k bp, since that it larger than primers
-        if (size_diff >= 1000)
+        if (size_diff >= 500)
           continue;
 
-        if (size_diff < -threshold || size_diff > threshold)
+        if ((i >= 2 && (e.pos - 100) < edits_vec[i - 2].pos) ||
+            (i <= static_cast<long>(edits_vec.size() - 3) && (e.pos + 100) > edits_vec[i + 2].pos))
         {
-          std::cout << (e.pos + 1) << " " << e.ref << " " << e.alt << " "
+          continue;
+        }
+
+        //if (size_diff < -threshold || size_diff > threshold)
+        {
+          if (!is_id_printed)
+          {
+            std::cout << id << "\n";
+            is_id_printed = true;
+          }
+
+          std::cout << (e.pos + 1) << " " << (e.ref.size() == 0 ? "-" : e.ref) << " "
+                    << (e.alt.size() == 0 ? "-" : e.alt) << " "
                     << e.ref.size() << " " << e.alt.size() << "\n";
         }
       }
