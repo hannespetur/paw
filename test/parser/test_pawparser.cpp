@@ -2,7 +2,7 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <paw/parser.hpp>
 
@@ -177,17 +177,17 @@ TEST_CASE("Parse options")
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::exception::invalid_option_value
+      paw::exception::invalid_option_value &
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'i', "int", "Test int value."),
-      paw::exception::invalid_option_value
+      paw::exception::invalid_option_value &
       );
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'u', "uint", "Test uint value."),
-      paw::exception::invalid_option_value
+      paw::exception::invalid_option_value &
       );
   }
 
@@ -196,7 +196,7 @@ TEST_CASE("Parse options")
     paw::Parser pawparser({"program", "-d", "-b"});
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::exception::missing_value
+      paw::exception::missing_value &
       );
 
     REQUIRE_NOTHROW(pawparser.parse_option(options.my_bool, 'b', "bool", "Test bool value."));

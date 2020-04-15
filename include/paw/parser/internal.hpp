@@ -34,7 +34,7 @@ print_string(std::ostringstream & ss,
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
+#if defined(IMPLEMENT_PAW)
 
 /******************
  * IMPLEMENTATION *

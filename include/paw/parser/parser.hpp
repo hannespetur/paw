@@ -30,7 +30,7 @@ public:
    */
   struct Arg
   {
-public:
+  public:
     /** Short option for the 'help' page.
      * No option shown if it is paw::internal::NO_SHORT_OPTION.
      */
@@ -47,9 +47,6 @@ public:
 
   /** Type definition of the container used to store the arguments.*/
   using Args = std::vector<Arg>;
-
-  /** Type definition for subcommands.*/
-  using Subcommands = std::vector<std::pair<std::string, std::string> >;
 
 public:
   /** \brief Construction of a paw parser instance.
@@ -98,6 +95,14 @@ public:
    */
   FlagMap const &
   get_flag_map_reference();
+
+  /**
+   * Get a read-only reference to the list of subcommands.
+   * \returns std::vector of Subcommands
+   * \exception None.
+   */
+  std::vector<std::pair<std::string, std::string> > const &
+  get_subcommands_reference();
 
   /** Parses an option that was passed by the user.
    * If 'T' is not a boolean, we expect that the argument has a single value.
@@ -457,7 +462,7 @@ Parser::parse_remaining_positional_arguments(T & list,
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
+#if defined(IMPLEMENT_PAW)
 
 
 namespace paw
@@ -474,9 +479,8 @@ Parser::Parser(int argc, char ** argv) :
 
 
 Parser::Parser(std::vector<std::string> const & arguments)
+  : raw_args(arguments)
 {
-  raw_args = std::vector<std::string>(arguments);
-
   // raw_args is assumed to be never empty
   if (raw_args.size() == 0)
     raw_args.push_back("<program>");
@@ -593,6 +597,13 @@ Parser::FlagMap const &
 Parser::get_flag_map_reference()
 {
   return flag_map;
+}
+
+
+std::vector<std::pair<std::string, std::string> > const &
+Parser::get_subcommands_reference()
+{
+  return subcommands;
 }
 
 
@@ -753,16 +764,25 @@ Parser::generate_help_message() const
   }
 
   // Subcommands section
-  if (subcommand.size() > 0)
+  if (subcommands.size() > 0)
   {
     ss << "\nSUBCOMMANDS";
 
+    long max_subcmd_size = 0;
+
     for (auto const & subcmd : subcommands)
     {
-      print_string(ss, subcmd.first, INDENT, MAX_WIDTH);
-      print_string(ss, subcmd.second, INDENT * 2, MAX_WIDTH);
-      ss << '\n';
+      if (static_cast<long>(subcmd.first.size()) > max_subcmd_size)
+        max_subcmd_size = subcmd.first.size();
     }
+
+    for (auto const & subcmd : subcommands)
+    {
+      long const num_spaces = max_subcmd_size + 1 - subcmd.first.size();
+      print_string(ss, subcmd.first + std::string(num_spaces, ' ') + subcmd.second, INDENT, MAX_WIDTH);
+    }
+
+    ss << '\n';
   }
 
   // Options section
@@ -791,7 +811,7 @@ Parser::generate_help_message() const
 
       print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
       print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
-      ss << "\n";
+      ss << '\n';
     }
   }
 

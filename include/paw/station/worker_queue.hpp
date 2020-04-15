@@ -53,8 +53,7 @@ public:
 } // namespace paw
 
 
-#ifdef IMPLEMENT_PAW
-/* IMPLEMENTATION*/
+#if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
 #include <thread> // std::this_thread::sleep_for
 
@@ -63,9 +62,8 @@ namespace paw
 
 
 WorkerQueue::WorkerQueue()
-{
-  queue_size = 0;
-}
+  : queue_size(0)
+{}
 
 
 void

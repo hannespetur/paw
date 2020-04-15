@@ -1,8 +1,12 @@
 # build directories
-debug/
-release/
-build*/
-GPATH
-GRTAGS
-GSYMS
-GTAGS
+/debug/
+/release/
+/cmake-build*/
+/build*/
+/GPATH
+/GRTAGS
+/GSYMS
+/GTAGS
+/.*/
+/CMakeLists.txt.user
+/cmake-*/
