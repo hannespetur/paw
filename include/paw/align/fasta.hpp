@@ -33,10 +33,7 @@ public:
 
   void add_record(std::string id, std::string seq);
   void load(std::string const & fn);
-
-#if PAW_BOOST_FOUND
   void store(std::string const & fn);
-#endif // PAW_BOOST_FOUND
 
   std::string get_sequence(std::size_t index) const;
 
@@ -107,6 +104,7 @@ Fasta::get_sequence(std::size_t const index) const
 void
 Fasta::load(std::string const & fn)
 {
+#if PAW_BOOST_FOUND
   std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
   io::filtering_istream in;
 
@@ -116,6 +114,9 @@ Fasta::load(std::string const & fn)
 
   // Read file
   in.push(file);
+#else
+  std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
+#endif // PAW_BOOST_FOUND
 
   std::stringstream ss; // sequence stream
   //FastaRecord rec = {"", ""}; // Empty FASTA record
