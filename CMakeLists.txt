@@ -53,6 +53,20 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+###
+# OPTIONAL DEPENDENCIES
+###
+# Find Boost
+find_package(Boost COMPONENTS filesystem system iostreams)
+
+if (Boost_FOUND)
+  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
+  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+
+  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
+  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
+endif()
+
 
 # Pass information of paw to the source
 configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/_config.hpp
@@ -72,20 +86,6 @@ message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 ## Find zlib
 find_package(ZLIB REQUIRED)
 list(APPEND PAW_LINK_LIBRARIES ${ZLIB_LIBRARIES})
-
-###
-# OPTIONAL DEPENDENCIES
-###
-# Find Boost
-find_package(Boost COMPONENTS filesystem system iostreams)
-
-if (Boost_FOUND)
-  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
-  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
-
-  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
-  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
-endif()
 
 # Find thread library (e.g. pthread on unix)
 find_package (Threads)

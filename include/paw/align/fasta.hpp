@@ -3,6 +3,8 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
+#include <paw/internal/config.hpp>
+
 
 namespace paw
 {
@@ -31,7 +33,10 @@ public:
 
   void add_record(std::string id, std::string seq);
   void load(std::string const & fn);
+
+#if PAW_BOOST_FOUND
   void store(std::string const & fn);
+#endif // PAW_BOOST_FOUND
 
   std::string get_sequence(std::size_t index) const;
 
@@ -50,15 +55,15 @@ public:
 #include <sstream>
 #include <vector>
 
+#if PAW_BOOST_FOUND
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-
 namespace io = boost::iostreams;
-
+#endif // PAW_BOOST_FOUND
 
 namespace paw
 {
@@ -74,9 +79,9 @@ FastaRecord::FastaRecord(std::string const & _id, std::string const & _seq)
 
 
 Fasta::Fasta()
-    : records(0)
-    , ids(0)
-    , seqs(0)
+  : records(0)
+  , ids(0)
+  , seqs(0)
 {}
 
 
@@ -118,7 +123,7 @@ Fasta::load(std::string const & fn)
   std::string seq;
   std::getline(in, id); // Read first header
 
-  for (std::string line; std::getline(in, line); )
+  for (std::string line; std::getline(in, line);)
   {
     // Check if the next line is a header line
     if (line[0] == '>')
@@ -182,6 +187,7 @@ Fasta::store(std::string const & fn)
   }
   else
   {
+#if PAW_BOOST_FOUND
     std::ofstream ofile(fn, std::ios_base::out | std::ios_base::binary);
     io::filtering_streambuf<boost::iostreams::input> out;
 
@@ -190,6 +196,10 @@ Fasta::store(std::string const & fn)
 
     out.push(ss);
     boost::iostreams::copy(out, ofile);
+#else
+    std::cerr << "ERROR: Cannot write a gz file without Boost." << std::endl;
+    std::exit(1);
+#endif // PAW_BOOST_FOUND
   }
 }
 
