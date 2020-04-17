@@ -7,18 +7,9 @@
 #include <sstream>
 #include <set>
 
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
 #include <paw/parser.hpp>
 #include <paw/internal/config.hpp>
-
 #include <paw/align.hpp>
-
-
-namespace io = boost::iostreams;
 
 
 inline bool

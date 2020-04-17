@@ -1,38 +1,45 @@
 #include <paw/align.hpp>
 #include <paw/internal/config.hpp>
 
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
 #include <chrono> // std::chrono::high_resolution_clock
 #include <string>
 #include <vector>
 #include <fstream> // std::ifstream
 
+#if PAW_BOOST_FOUND
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 namespace io = boost::iostreams;
+#endif // PAW_BOOST_FOUND
+
 
 namespace
 {
 
-inline std::string
-get_sequence_from_fa(std::string const & fn, bool gzip = false)
+std::string
+get_sequence_from_fa(std::string const & fn)
 {
+#if PAW_BOOST_FOUND
   std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
-
   io::filtering_istream in;
 
-  if (gzip)
-    in.push(io::gzip_decompressor());
+  // If filename ends with ".gz", assume we should decompress with gzip
+  if (fn.size() >= 3 && fn.substr(fn.size() - 3, 3) == ".gz")
+    in.push(io::gzip_decompressor()); // gzip file
 
+  // Read file
   in.push(file);
+#else
+  std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
+#endif // PAW_BOOST_FOUND
 
   std::stringstream ss;
   std::string str;
   std::getline(in, str); // Throw away header
 
-  for (; std::getline(in, str); )
+  for (; std::getline(in, str);)
   {
     if (str[0] == '>')
       break;
@@ -54,10 +61,10 @@ main(int, char **)
   std::cerr << "Current archs are: " << current_archs << "\n";
 
   std::string const src_dir(STR(PAW_SOURCE_DIR));
-  std::string database = get_sequence_from_fa(src_dir + "/test/data/MT-human.fa", false);
+  std::string database = get_sequence_from_fa(src_dir + "/test/data/MT-human.fa");
   //database = get_sequence_from_fa(PROJECT_SOURCE_DIR + "/test/data/t2.fa.gz", true);
 
-  std::string query = get_sequence_from_fa(src_dir + "/test/data/MT-orang.fa", false);
+  std::string query = get_sequence_from_fa(src_dir + "/test/data/MT-orang.fa");
 
   // Change to uppercase
   std::transform(database.begin(), database.end(), database.begin(), ::toupper);
