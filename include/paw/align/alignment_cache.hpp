@@ -47,26 +47,38 @@ struct AlignmentCache
 
     /// Calculate DNA W_profile
     {
-      std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
+      std::array<char, 5> constexpr DNA_BASES = {{'A', 'C', 'G', 'T', 'N'}};
 
-      for (std::size_t i = 0; i < DNA_BASES.size(); ++i)
+      for (long i = 0; i < 5; ++i)
       {
         char const dna_base = DNA_BASES[i];
         auto & W = W_profile[i];
         W.clear(); // Clear previous elements
         W.reserve(num_vectors);
 
-        for (long v = 0; v < num_vectors; ++v)
+        // All is a mismatch with N
+        if (dna_base == 'N')
         {
-          typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, mismatch_val);
-
-          for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
+          for (long v = 0; v < num_vectors; ++v)
           {
-            if (dna_base == *(begin(query) + j))
-              seq[e] = match_val;
+            typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, mismatch_val);
+            W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
           }
+        }
+        else
+        {
+          for (long v = 0; v < num_vectors; ++v)
+          {
+            typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, mismatch_val);
 
-          W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
+            for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
+            {
+              if (dna_base == *(begin(query) + j))
+                seq[e] = match_val;
+            }
+
+            W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
+          }
         }
       }
 
@@ -74,6 +86,7 @@ struct AlignmentCache
       assert(static_cast<std::size_t>(num_vectors) == W_profile[1].size());
       assert(static_cast<std::size_t>(num_vectors) == W_profile[2].size());
       assert(static_cast<std::size_t>(num_vectors) == W_profile[3].size());
+      assert(static_cast<std::size_t>(num_vectors) == W_profile[4].size());
     } /// Done calculating DNA W_profile
   }
 

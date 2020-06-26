@@ -32,15 +32,16 @@ public:
   AlignmentResults() = default;
 
   AlignmentResults(AlignmentResults const & ar)
-  : mB()
-  , reductions()
-  , vH_up()
-  , vF_up()
+    : mB()
+    , reductions()
+    , vH_up()
+    , vF_up()
   {
     reductions = ar.reductions;
     vH_up = ar.vH_up;
     vF_up = ar.vF_up;
   }
+
 
   AlignmentResults &
   operator=(AlignmentResults const & ar)
@@ -62,99 +63,104 @@ public:
   }
 
 
-  template<typename Tseq>
+  template <typename Tseq>
   std::pair<std::string, std::string> inline
   get_aligned_strings(Tseq const & q, Tseq const & d) const;
 
-  inline void reduce_every_element(long val)
+  template <typename Tseq>
+  std::pair<long, long> inline
+  get_database_begin_end(Tseq const & q, Tseq const & d) const;
+
+  inline void
+  reduce_every_element(long val)
   {
     std::for_each(reductions.begin(), reductions.end(), [val](long & element){element += val;});
   }
+
 
   inline void clear();
   inline void reset(paw::AlignmentCache<Tuint> * cache);
 };
 
 
-template<typename Tuint>
-template<typename Tseq>
+template <typename Tuint>
+template <typename Tseq>
 std::pair<std::string, std::string> inline
 AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) const
 {
   long i = database_end;
   long j = query_end;
 
-  assert(j <= (long)q.size());
-  assert(i <= (long)d.size());
+  assert(j <= static_cast<long>(q.size()));
+  assert(i <= static_cast<long>(d.size()));
 
   std::pair<std::string, std::string> s;
-
-  /*
-  if (m < static_cast<long>(q.size()))
-  {
-    s.first.append(std::string(q.rbegin(), q.rbegin() + q.size() - query_end));
-    s.second.append(d.size() - query_end, '-');
-
-    del_count = 1;
-    del_ext_count = d.size() - query_end - 1;
-  }
-  */
-
-  assert(s.first.size() == s.second.size());
+  //std::cerr << database_end << " " << query_end << " " << d.size() << " " << q.size() << "\n";
+  /////*
+  //if (query_end < static_cast<long>(q.size()))
+  //{
+  //  s.first.append(std::string(q.rbegin(), q.rbegin() + q.size() - query_end));
+  //  s.second.append(d.size() - query_end, '-');
+  //
+  //  //del_count = 1;
+  //  //del_ext_count = d.size() - query_end - 1;
+  //}
+  ////*/
+  //return s;
 
   auto add_del = [&]()
-  {
-    assert(j > 0);
-    assert(j <= (long)q.size());
-    //std::cout << "DEL SELECTED " << q[j - 1] << " " << j << "\n";
-    s.first.push_back(q[j - 1]);
-    s.second.push_back('-');
-    --j;
-  };
+                 {
+                   assert(j > 0);
+                   assert(j <= static_cast<long>(q.size()));
+                   //std::cout << "DEL SELECTED " << q[j - 1] << " " << j << "\n";
+                   s.first.push_back(q[j - 1]);
+                   s.second.push_back('-');
+                   --j;
+                 };
 
   auto add_del_ext = [&]()
-  {
-    assert(j > 0);
-    assert(j <= (long)q.size());
-    //std::cout << "DELE SELECTED " << q[j - 1] << " " << j << "\n";
-    s.first.push_back(q[j - 1]);
-    s.second.push_back('-');
-    --j;
-  };
+                     {
+                       assert(j > 0);
+                       assert(j <= static_cast<long>(q.size()));
+                       //std::cout << "DELE SELECTED " << q[j - 1] << " " << j << "\n";
+                       s.first.push_back(q[j - 1]);
+                       s.second.push_back('-');
+                       --j;
+                     };
 
   auto add_ins = [&]()
-  {
-    assert(i > 0);
-    assert(i <= (long)d.size());
-    //std::cout << "INS SELECTED " << d[i - 1] << " " << i << "\n";
-    s.first.push_back('-');
-    s.second.push_back(d[i - 1]);
-    --i;
-  };
+                 {
+                   assert(i > 0);
+                   assert(i <= static_cast<long>(d.size()));
+                   //std::cout << "INS SELECTED " << d[i - 1] << " " << i << "\n";
+                   s.first.push_back('-');
+                   s.second.push_back(d[i - 1]);
+                   --i;
+                 };
 
   auto add_ins_ext = [&]()
-  {
-    assert(i > 0);
-    assert(i <= (long)d.size());
-    //std::cout << "INSE SELECTED " << d[i - 1] << " " << i << "\n";
-    s.first.push_back('-');
-    s.second.push_back(d[i - 1]);
-    --i;
-  };
+                     {
+                       assert(i > 0);
+                       assert(i <= static_cast<long>(d.size()));
+                       //std::cout << "INSE SELECTED " << d[i - 1] << " " << i << "\n";
+                       s.first.push_back('-');
+                       s.second.push_back(d[i - 1]);
+                       --i;
+                     };
 
   auto add_sub = [&]()
-  {
-    assert(j > 0l);
-    assert(j <= (long)q.size());
-    assert(i > 0l);
-    assert(i <= (long)d.size());
-    //std::cout << "SUB SELECTED " << q[j - 1] << " " << d[i - 1] << "\n";
+                 {
+                   assert(j > 0l);
+                   assert(j <= static_cast<long>(q.size()));
+                   assert(i > 0l);
+                   assert(i <= static_cast<long>(d.size()));
+                   //std::cout << "SUB SELECTED " << q[j - 1] << " " << d[i - 1] << "\n";
 
-    s.first.push_back(q[j - 1]);
-    s.second.push_back(d[i - 1]);
-    --i;
-    --j;
-  };
+                   s.first.push_back(q[j - 1]);
+                   s.second.push_back(d[i - 1]);
+                   --i;
+                   --j;
+                 };
 
   while (i > 0 || j > 0)
   {
@@ -215,9 +221,73 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
 }
 
 
+template <typename Tuint>
+template <typename Tseq>
+std::pair<long, long> inline
+AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) const
+{
+  long i = database_end;
+  long j = query_end;
+
+  assert(j == static_cast<long>(q.size()));
+  assert(i == static_cast<long>(d.size()));
+
+  std::pair<long, long> res = {0, database_end};
+
+  while (i > 0 || j > 0)
+  {
+    if (j == 0)
+    {
+      res.first = i;
+      break;
+    }
+
+    assert(i >= 0);
+    assert(j >= 0);
+    long const v = j % mB.t;
+    long const e = j / mB.t;
+
+    if (i == 0)
+    {
+      assert(j > 0);
+      --j;
+
+      while (j > 0)
+        --j;
+    }
+    else if (mB.is_del(i - 1, v, e))
+    {
+      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
+        --j;
+
+      assert(j > 0);
+      --j;
+    }
+    else if (mB.is_ins(i - 1, v, e))
+    {
+      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+        --i;
+
+      assert(i > 0);
+      --i;
+
+      if (j == query_end)
+        res.second = i;
+    }
+    else
+    {
+      --i;
+      --j;
+    }
+  }
+
+  return res;
+}
+
+
 #if defined(IMPLEMENT_PAW)
 
-template<typename Tuint>
+template <typename Tuint>
 void inline
 AlignmentResults<Tuint>::clear()
 {
@@ -228,7 +298,7 @@ AlignmentResults<Tuint>::clear()
 }
 
 
-template<typename Tuint>
+template <typename Tuint>
 void inline
 AlignmentResults<Tuint>::reset(paw::AlignmentCache<Tuint> * cache)
 {
@@ -239,7 +309,6 @@ AlignmentResults<Tuint>::reset(paw::AlignmentCache<Tuint> * cache)
   database_end = 0;
   */
 }
-
 
 
 #endif // defined(IMPLEMENT_PAW)

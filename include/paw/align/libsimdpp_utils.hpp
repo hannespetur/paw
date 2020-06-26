@@ -35,7 +35,7 @@ struct T<uint8_t>
   using vec_pack = std::vector<pack>;
   using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
-  using arr_vec_pack = std::array<vec_pack, 4>;
+  using arr_vec_pack = std::array<vec_pack, 5>;
 };
 
 template <>
@@ -47,7 +47,7 @@ struct T<uint16_t>
   using vec_pack = std::vector<pack>;
   using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
-  using arr_vec_pack = std::array<vec_pack, 4>;
+  using arr_vec_pack = std::array<vec_pack, 5>;
 };
 
 
@@ -79,7 +79,15 @@ shift_one_right(typename T<Tuint>::pack pack,
 inline long
 magic_function(char const c)
 {
-  return 0x03 & ((c >> 2) ^ (c >> 1));
+  switch (c)
+  {
+  case 'n':
+  case 'N':
+    return 4;
+
+  default:
+    return 0x03 & ((c >> 2) ^ (c >> 1));
+  }
 }
 
 
@@ -193,12 +201,42 @@ print_score_vectors(long m,
                     std::array<long, S / sizeof(Tuint)> const & reductions
                     )
 {
-  std::cout << "Standard H_up  : "; print_score_vector_standard<Tuint>(m, vH_up, top_left_score, x_gain, y_gain_total, reductions);
-  std::cout << "Standard H     : "; print_score_vector_standard<Tuint>(m, vH, top_left_score, x_gain, y_gain_total, reductions);
-  std::cout << "Standard E     : "; print_score_vector_standard<Tuint>(m, vE, top_left_score, x_gain, y_gain_total, reductions);
-  std::cout << "Standard F_up  : "; print_score_vector_standard<Tuint>(m, vF_up, top_left_score, x_gain, y_gain_total, reductions);
-  std::cout << "Standard F     : "; print_score_vector_standard<Tuint>(m, vF, top_left_score, x_gain, y_gain_total, reductions);
-  std::cout << "Standard W     : "; print_score_vector_standard<Tuint>(m, vW, top_left_score, x_gain, y_gain_total, reductions);
+  std::cout << "Standard H_up  : "; print_score_vector_standard<Tuint>(m,
+                                                                       vH_up,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
+  std::cout << "Standard H     : "; print_score_vector_standard<Tuint>(m,
+                                                                       vH,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
+  std::cout << "Standard E     : "; print_score_vector_standard<Tuint>(m,
+                                                                       vE,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
+  std::cout << "Standard F_up  : "; print_score_vector_standard<Tuint>(m,
+                                                                       vF_up,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
+  std::cout << "Standard F     : "; print_score_vector_standard<Tuint>(m,
+                                                                       vF,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
+  std::cout << "Standard W     : "; print_score_vector_standard<Tuint>(m,
+                                                                       vW,
+                                                                       top_left_score,
+                                                                       x_gain,
+                                                                       y_gain_total,
+                                                                       reductions);
   std::cout << "=====\n";
 }
 
