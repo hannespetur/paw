@@ -47,25 +47,15 @@ struct AlignmentCache
 
     /// Calculate DNA W_profile
     {
-      std::array<char, 5> constexpr DNA_BASES = {{'A', 'C', 'G', 'T', 'N'}};
+      std::array<char, 4> constexpr DNA_BASES = {{'A', 'C', 'G', 'T'}};
 
-      for (long i = 0; i < 5; ++i)
+      for (long i = 0; i < 4; ++i)
       {
         char const dna_base = DNA_BASES[i];
         auto & W = W_profile[i];
         W.clear(); // Clear previous elements
         W.reserve(num_vectors);
 
-        // All is a mismatch with N
-        if (dna_base == 'N')
-        {
-          for (long v = 0; v < num_vectors; ++v)
-          {
-            typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, mismatch_val);
-            W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
-          }
-        }
-        else
         {
           for (long v = 0; v < num_vectors; ++v)
           {
@@ -73,12 +63,28 @@ struct AlignmentCache
 
             for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
             {
-              if (dna_base == *(begin(query) + j))
+              assert(j < static_cast<long>(query.size()));
+              char const query_dna_base = *(begin(query) + j);
+
+              if (dna_base == query_dna_base || query_dna_base == 'N')
                 seq[e] = match_val;
             }
 
             W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
           }
+        }
+      }
+
+      // All is a match with N
+      {
+        auto & W = W_profile[4];
+        W.clear(); // Clear previous elements
+        W.reserve(num_vectors);
+
+        for (long v = 0; v < num_vectors; ++v)
+        {
+          typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, match_val);
+          W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
         }
       }
 

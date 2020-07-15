@@ -26,8 +26,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 
 /// See namespaces at:
@@ -42,8 +41,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -56,8 +54,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -70,8 +67,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -84,8 +80,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -98,8 +93,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -112,8 +106,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -127,8 +120,7 @@ template <typename Tseq, typename Tuint>
 void
 global_alignment(Tseq const & seq1,
                  Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts
-                 );
+                 AlignmentOptions<Tuint> & opts);
 
 }
 

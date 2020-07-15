@@ -30,6 +30,7 @@ private:
   Tuint mismatch = 2; /// Penalty of mismatches
   Tuint gap_open = 5; /// Penalty of opening a gap
   Tuint gap_extend = 1; /// Penalty of extending a gap
+  Tuint clip = 5; /// Penalty of clipping the query
   //bool is_traceback = true; /// Set if the alignment traceback is required
 
   // TODO: Implement usage of "convex" gap cost
@@ -60,6 +61,7 @@ public:
     , mismatch(2)
     , gap_open(5)
     , gap_extend(1)
+    , clip(5)
     , ac(new AlignmentCache<Tuint>())
     , ar(new AlignmentResults<Tuint>())
   {}
@@ -75,6 +77,7 @@ public:
     mismatch = ao.mismatch;
     gap_open = ao.gap_open;
     gap_extend = ao.gap_extend;
+    clip = ao.clip;
 
     ac = ao.ac;
     ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
@@ -91,6 +94,7 @@ public:
     mismatch = ao.mismatch;
     gap_open = ao.gap_open;
     gap_extend = ao.gap_extend;
+    clip = ao.clip;
 
     ac = std::move(ao.ac);
     ar = std::move(ao.ar);
@@ -108,6 +112,7 @@ public:
     mismatch = ao.mismatch;
     gap_open = ao.gap_open;
     gap_extend = ao.gap_extend;
+    clip = ao.clip;
 
     ac = ao.ac;
     ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
@@ -126,6 +131,7 @@ public:
     mismatch = ao.mismatch;
     gap_open = ao.gap_open;
     gap_extend = ao.gap_extend;
+    clip = ao.clip;
 
     ac = std::move(ao.ac);
     ar = std::move(ao.ar);
@@ -173,6 +179,16 @@ public:
   }
 
 
+  /// \brief Sets penalty of clipping
+  /// It is assumed that the penalty is less or equal to 0
+  AlignmentOptions &
+  set_clip(long val)
+  {
+    clip = val >= 0 ? static_cast<Tuint>(val) : static_cast<Tuint>(-val);
+    return *this;
+  }
+
+
   /*
   /// \brief Sets gap penalty for both opening and extending a gap
   /// It is assumed that the penalty is less or equal to 0
@@ -216,6 +232,8 @@ public:
   get_gap_open() const {return gap_open;}
   inline Tuint
   get_gap_extend() const {return gap_extend;}
+  inline Tuint
+  get_clip() const {return clip;}
   inline AlignmentCache<Tuint> *
   get_alignment_cache() const {return ac.get();}
   inline AlignmentResults<Tuint> *

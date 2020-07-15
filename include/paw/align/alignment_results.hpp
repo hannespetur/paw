@@ -19,7 +19,9 @@ struct AlignmentResults
 
   long score{0};
   SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> mB;
+  long query_begin{0};
   long query_end{0};
+  long database_begin{0};
   long database_end{0};
 
   //long reduction{0};
@@ -70,6 +72,16 @@ public:
   template <typename Tseq>
   std::pair<long, long> inline
   get_database_begin_end(Tseq const & q, Tseq const & d) const;
+
+  template <typename Tseq>
+  std::pair<long, long> inline
+  apply_clipping(Tseq const & q,
+                 Tseq const & d,
+                 Tuint match,
+                 Tuint mismatch,
+                 Tuint gap_open,
+                 Tuint gap_extend,
+                 Tuint clip);
 
   inline void
   reduce_every_element(long val)
@@ -281,6 +293,121 @@ AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) 
     }
   }
 
+  return res;
+}
+
+
+template <typename Tuint>
+template <typename Tseq>
+std::pair<long, long> inline
+AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
+                                        Tseq const & d,
+                                        Tuint match,
+                                        Tuint mismatch,
+                                        Tuint gap_open,
+                                        Tuint gap_extend,
+                                        Tuint clip)
+{
+  long i = database_end;
+  long j = query_end;
+
+  long const old_score = score;
+  long tmp_score{0l};
+  //long begin_clip{0l};
+  //long end_clip{database_end};
+
+  assert(j == static_cast<long>(q.size()));
+  assert(i == static_cast<long>(d.size()));
+
+  std::pair<long, long> res = {0, query_end};
+
+  while (i > 0 || j > 0)
+  {
+    if (j == 0)
+    {
+      //res.first = i;
+      break;
+    }
+
+    assert(i >= 0);
+    assert(j >= 0);
+    long const v = j % mB.t;
+    long const e = j / mB.t;
+
+    if (i == 0)
+    {
+      assert(j > 0);
+      --j;
+
+      while (j > 0)
+        --j;
+    }
+    else if (mB.is_del(i - 1, v, e))
+    {
+      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
+      {
+        tmp_score -= static_cast<long>(gap_extend);
+        --j;
+      }
+
+      assert(j > 0);
+      tmp_score -= static_cast<long>(gap_open);
+      --j;
+    }
+    else if (mB.is_ins(i - 1, v, e))
+    {
+      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+      {
+        if (j < query_end)
+          tmp_score -= static_cast<long>(gap_extend);
+
+        --i;
+      }
+
+      assert(i > 0);
+      --i;
+
+      if (j < query_end)
+        tmp_score -= static_cast<long>(gap_open);
+    }
+    else
+    {
+      --i;
+      --j;
+
+      if (q[j] == d[i] || q[j] == 'N' || d[i] == 'N')
+      {
+        // Check clip of end
+        if (tmp_score < 0 - static_cast<long>(clip))
+        {
+          res.second = j + 1;
+          score += 0 - static_cast<long>(clip) - tmp_score;
+          //std::cout << "BETTER END CLIP " << tmp_score << " > " << old_score << " " <<  i << "," << j << "\n";
+          tmp_score = 0l - static_cast<long>(clip);
+        }
+
+        // giff match
+        tmp_score += static_cast<long>(match);
+
+        // Check clip of begin
+        if (tmp_score - static_cast<long>(clip) > score)
+        {
+          res.first = j;
+          score = tmp_score - static_cast<long>(clip);
+          //std::cout << "BETTER BEGIN CLIP " << score << "\n";
+        }
+      }
+      else
+      {
+        //std::cout << "mismatch " << i << "," << j << "\n";
+        tmp_score -= static_cast<long>(mismatch);
+      }
+    }
+  }
+
+  //std::cout << "new_score, old_score, tmp_score = " << score << " " << old_score << " " << tmp_score << "\n";
+  assert(tmp_score >= old_score);
+  score = tmp_score;
   return res;
 }
 
