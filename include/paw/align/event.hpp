@@ -15,7 +15,8 @@ namespace paw
 class Event2
 {
 public:
-  long pos; // Position of the event.
+  long pos{0}; // Position of the event, compared to the database.
+  long pos_q{0}; // Position of the event, compared to the query.
   std::string ref; // Reference allele.
   std::string alt; // Alternative allele.
 
@@ -103,6 +104,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
 
   // position of the new variant event
   long pos = 0;
+  long pos_q = 0;
 
   auto are_s1_s2_empty =
     [&s1, &s2]() -> bool {
@@ -110,10 +112,12 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
     };
 
   auto add_to_edit_script =
-    [&pos, &s, &s1, &s2, &edit_script, &ref, is_normalize]() -> void
+    [&pos, &pos_q, &s, &s1, &s2, &edit_script, &ref, is_normalize]() -> void
     {
       long event_position = pos - static_cast<long>(s1.size());
+      long event_position_q = pos_q - static_cast<long>(s2.size());
       assert(event_position >= 0);
+      assert(event_position_q >= 0);
 
       // Normalization is not possible if event_position is zero
       if (is_normalize && event_position > 0)
@@ -129,6 +133,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
             s2.insert(s2.begin(), s2[s2_size - 1]); // Insert base in front
             s2.resize(s2_size); // Remove base in back to keep the same size
             --event_position; // Adjust event position accordingly
+            --event_position_q;
           }
         }
         else if (s2.empty())
@@ -142,6 +147,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
             s1.insert(s1.begin(), s1[s1_size - 1]); // Insert base in front
             s1.resize(s1_size); // Remove base in back to keep the same size
             --event_position; // Adjust event position accordingly
+            --event_position_q;
           }
         }
       }
@@ -150,6 +156,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
       Event2 new_edit =
       {
         event_position,
+        event_position_q,
         std::string(s1.begin(), s1.end()),
         std::string(s2.begin(), s2.end())
       };
@@ -173,6 +180,8 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
         s2.push_back(s.second[i]); // Extend the insertion
       else
         add_to_edit_script();
+
+      ++pos_q;
     }
     else if (s.second[i] == '-')
     {
@@ -191,6 +200,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
         add_to_edit_script();
 
       ++pos;
+      ++pos_q;
       s1.push_back(s.first[i]);
       s2.push_back(s.second[i]);
       add_to_edit_script();
@@ -202,6 +212,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
         add_to_edit_script();
 
       ++pos;
+      ++pos_q;
     }
   }
 
