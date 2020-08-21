@@ -33,7 +33,9 @@ bool operator==(Event2 const & a, Event2 const & b);
 
 //} // namespace SIMDPP_ARCH_NAMESPACE
 
-std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s, bool const is_normalize);
+std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
+                                 bool const is_normalize,
+                                 bool const is_trim_indel_on_ends);
 
 } // namespace paw
 
@@ -85,7 +87,9 @@ operator==(Event2 const & a, Event2 const & b)
 
 
 std::set<Event2>
-get_edit_script(std::pair<std::string, std::string> const & s, bool const is_normalize)
+get_edit_script(std::pair<std::string, std::string> const & s,
+                bool const is_normalize,
+                bool const is_trim_indel_on_ends)
 {
   using Tedit_script = std::set<Event2>;
   assert(s.first.size() == s.second.size());
@@ -112,12 +116,19 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
     };
 
   auto add_to_edit_script =
-    [&pos, &pos_q, &s, &s1, &s2, &edit_script, &ref, is_normalize]() -> void
+    [&pos, &pos_q, &s, &s1, &s2, &edit_script, &ref, is_normalize, is_trim_indel_on_ends]() -> void
     {
       long event_position = pos - static_cast<long>(s1.size());
       long event_position_q = pos_q - static_cast<long>(s2.size());
       assert(event_position >= 0);
       assert(event_position_q >= 0);
+
+      if (is_trim_indel_on_ends && (s1.size() != s2.size() && event_position == 0))
+      {
+        s1.clear();
+        s2.clear();
+        return;
+      }
 
       // Normalization is not possible if event_position is zero
       if (is_normalize && event_position > 0)
@@ -152,21 +163,22 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
         }
       }
 
-      // Create a new variant event
-      Event2 new_edit =
       {
-        event_position,
-        event_position_q,
-        std::string(s1.begin(), s1.end()),
-        std::string(s2.begin(), s2.end())
-      };
+        // Create a new variant event
+        Event2 new_edit =
+        {
+          event_position,
+          event_position_q,
+          std::string(s1.begin(), s1.end()),
+          std::string(s2.begin(), s2.end())
+        };
 
-      edit_script.insert(std::move(new_edit));
+        edit_script.insert(std::move(new_edit));
+      }
 
       s1.clear();
       s2.clear();
     };
-
 
   for (long i = 0; i < static_cast<long>(s.first.size()); ++i)
   {
@@ -177,9 +189,14 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
     {
       // Insertion
       if (are_s1_s2_empty() || (s2.size() > 0 && s1.size() == 0))
+      {
         s2.push_back(s.second[i]); // Extend the insertion
+      }
       else
-        add_to_edit_script();
+      {
+        add_to_edit_script(); // add previous variant
+        s2.push_back(s.second[i]); // start new insertion
+      }
 
       ++pos_q;
     }
@@ -187,13 +204,18 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
     {
       // Deletion
       if (are_s1_s2_empty() || (s1.size() > 0 && s2.size() == 0))
+      {
         s1.push_back(s.first[i]); // Extend the deletion
+      }
       else
-        add_to_edit_script();
+      {
+        add_to_edit_script(); // add previous variant
+        s1.push_back(s.first[i]); // start new deletion
+      }
 
       ++pos;
     }
-    else if (s.first[i] != s.second[i])
+    else if (s.first[i] != s.second[i] && s.first[i] != 'N' && s.second[i] != 'N')
     {
       // Mismatch
       if (!are_s1_s2_empty())
@@ -216,7 +238,7 @@ get_edit_script(std::pair<std::string, std::string> const & s, bool const is_nor
     }
   }
 
-  if (!are_s1_s2_empty())
+  if (!are_s1_s2_empty() && !is_trim_indel_on_ends)
     add_to_edit_script();
 
   return edit_script;

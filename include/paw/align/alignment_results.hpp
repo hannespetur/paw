@@ -313,8 +313,7 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
 
   long const old_score = score;
   long tmp_score{0l};
-  //long begin_clip{0l};
-  //long end_clip{database_end};
+  long best_begin_clip_improvement{0};
 
   assert(j == static_cast<long>(q.size()));
   assert(i == static_cast<long>(d.size()));
@@ -392,9 +391,15 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
         // Check clip of begin
         if (tmp_score - static_cast<long>(clip) > score)
         {
-          res.first = j;
-          score = tmp_score - static_cast<long>(clip);
-          //std::cout << "BETTER BEGIN CLIP " << score << "\n";
+          long const diff = tmp_score - static_cast<long>(clip) - score;
+
+          if (diff > best_begin_clip_improvement)
+          {
+            best_begin_clip_improvement = diff;
+            res.first = j;
+          }
+
+          //std::cout << "BETTER BEGIN CLIP " << score << " > " << score << " diff=" << diff << "\n";
         }
       }
       else
@@ -407,7 +412,7 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
 
   //std::cout << "new_score, old_score, tmp_score = " << score << " " << old_score << " " << tmp_score << "\n";
   assert(tmp_score >= old_score);
-  score = tmp_score;
+  score = tmp_score + best_begin_clip_improvement;
   return res;
 }
 

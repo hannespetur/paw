@@ -220,7 +220,7 @@ Skyr::find_all_edits(bool const is_normalize)
 
       auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
       //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
-      edits[i] = get_edit_script(aligned_strings, is_normalize);
+      edits[i] = get_edit_script(aligned_strings, is_normalize, false);
       all_edits.insert(edits[i].begin(), edits[i].end());
     }
 
