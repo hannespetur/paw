@@ -18,6 +18,13 @@ public:
   std::string ref; // Reference allele.
   std::string alt; // Alternative allele.
 
+  Event2(long _pos, long _pos_q, std::string const & _ref, std::string const & _alt)
+    : pos(_pos)
+    , pos_q(_pos_q)
+    , ref(_ref)
+    , alt(_alt)
+  {}
+
   bool is_snp() const;
   bool is_deletion() const;
   bool is_insertion() const;
@@ -163,13 +170,9 @@ get_edit_script(std::pair<std::string, std::string> const & s,
 
       {
         // Create a new variant event
-        Event2 new_edit =
-        {
-          event_position,
-          event_position_q,
-          std::string(s1.begin(), s1.end()),
-          std::string(s2.begin(), s2.end())
-        };
+        Event2 new_edit(event_position, event_position_q,
+                        std::string(s1.begin(), s1.end()),
+                        std::string(s2.begin(), s2.end()));
 
         edit_script.insert(std::move(new_edit));
       }

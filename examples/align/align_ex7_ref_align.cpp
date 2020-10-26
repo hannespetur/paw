@@ -70,8 +70,7 @@ main(int argc, char ** argv)
     }
 
     std::swap(aligned_strings1.first, aligned_strings1.second);
-    //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
-    auto edits = paw::get_edit_script(aligned_strings1, true); // is_normalize
+    auto edits = paw::get_edit_script(aligned_strings1, true, false); // is_normalize, is_trim_indel_on_ends
 
     if (edits.size() > 0)
     {
