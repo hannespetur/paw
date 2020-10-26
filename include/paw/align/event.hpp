@@ -8,8 +8,6 @@
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 // An event is an single point mutation with two alleles, reference and alternative.
 class Event2
@@ -31,8 +29,6 @@ bool operator<(Event2 const & a, Event2 const & b);
 bool operator==(Event2 const & a, Event2 const & b);
 
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
-
 std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
                                  bool const is_normalize,
                                  bool const is_trim_indel_on_ends);
@@ -46,8 +42,6 @@ std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
 
 namespace paw
 {
-//namespace SIMDPP_ARCH_NAMESPACE
-//{
 
 bool
 Event2::is_snp() const
@@ -73,9 +67,13 @@ Event2::is_insertion() const
 bool
 operator<(Event2 const & a, Event2 const & b)
 {
+  // ordering is such that deletions are first
   return a.pos < b.pos ||
-         (a.pos == b.pos && a.ref < b.ref) ||
-         (a.pos == b.pos && a.ref == b.ref && a.alt < b.alt);
+         (a.pos == b.pos && a.alt.size() < b.alt.size()) ||
+         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() < b.ref.size()) ||
+         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() == b.ref.size() && a.alt < b.alt) ||
+         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() == b.ref.size() && a.alt == b.alt &&
+          a.ref < b.ref);
 }
 
 
@@ -107,8 +105,8 @@ get_edit_script(std::pair<std::string, std::string> const & s,
   std::vector<char> s2;
 
   // position of the new variant event
-  long pos = 0;
-  long pos_q = 0;
+  long pos{0};
+  long pos_q{0};
 
   auto are_s1_s2_empty =
     [&s1, &s2]() -> bool {
@@ -245,7 +243,6 @@ get_edit_script(std::pair<std::string, std::string> const & s,
 }
 
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 
