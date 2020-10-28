@@ -74,13 +74,14 @@ Event2::is_insertion() const
 bool
 operator<(Event2 const & a, Event2 const & b)
 {
-  // ordering is such that deletions are first
+  // ordering is: insertion, deletion, snp
+  long const order_a = a.is_deletion() + 2l * static_cast<long>(a.is_snp());
+  long const order_b = b.is_deletion() + 2l * static_cast<long>(b.is_snp());
+
   return a.pos < b.pos ||
-         (a.pos == b.pos && a.alt.size() < b.alt.size()) ||
-         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() < b.ref.size()) ||
-         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() == b.ref.size() && a.alt < b.alt) ||
-         (a.pos == b.pos && a.alt.size() == b.alt.size() && a.ref.size() == b.ref.size() && a.alt == b.alt &&
-          a.ref < b.ref);
+         (a.pos == b.pos && order_a < order_b) ||
+         (a.pos == b.pos && order_a == order_b && a.ref < b.ref) ||
+         (a.pos == b.pos && order_a == order_b && a.ref == b.ref && a.alt < b.alt);
 }
 
 
