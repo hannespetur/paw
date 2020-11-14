@@ -23,6 +23,10 @@ namespace paw
 /** Main Data Structure for paw parser.*/
 class Parser
 {
+private:
+  /** Type definition for the container to use for positional arguments.*/
+  using Positional = std::vector<std::string>;
+
 public:
   /** \brief Data structure for command line arguments.
    *  \details Arguments in this data structure are ready for display in the 'help' page of the
@@ -30,7 +34,7 @@ public:
    */
   struct Arg
   {
-  public:
+public:
     /** Short option for the 'help' page.
      * No option shown if it is paw::internal::NO_SHORT_OPTION.
      */
@@ -94,7 +98,7 @@ public:
    * \exception None.
    */
   FlagMap const &
-  get_flag_map_reference();
+  get_flag_map_reference() const;
 
   /**
    * Get a read-only reference to the list of subcommands.
@@ -102,7 +106,15 @@ public:
    * \exception None.
    */
   std::vector<std::pair<std::string, std::string> > const &
-  get_subcommands_reference();
+  get_subcommands_reference() const;
+
+  /**
+   * Get a read-only reference to the list of positional arguments
+   * \returns std::vector<std::string> containing the arguments in order
+   * \exception None.                                            \
+   */
+  Positional const &
+  get_positional_arguments_reference() const;
 
   /** Parses an option that was passed by the user.
    * If 'T' is not a boolean, we expect that the argument has a single value.
@@ -120,8 +132,7 @@ public:
                char const shrt,
                std::string const & lng,
                std::string const & description,
-               std::string const & meta_string = "value"
-               );
+               std::string const & meta_string = "value");
 
   /** Parses an argument with a list of values.
    * \param[in,out] list Reference to the list to change if the option was parsed.
@@ -140,8 +151,7 @@ public:
                     std::string const & lng,
                     std::string const & description,
                     char const delimiter = paw::internal::DEFAULT_LIST_DELIMITER,
-                    std::string const & meta_string = "value1,..."
-                    );
+                    std::string const & meta_string = "value1,...");
 
   /** Parses the next positional argument.
    * \param[in,out] val Reference to the value to change if the option was parsed.
@@ -154,8 +164,7 @@ public:
   inline void
   parse_positional_argument(T & val,
                             std::string const & meta_string,
-                            std::string const & description
-                            );
+                            std::string const & description);
 
   /** Parse all remaining positional arguments.
    * \param[in,out] list Reference to the list to change if the option was parsed.
@@ -167,8 +176,7 @@ public:
   inline void
   parse_remaining_positional_arguments(T & list,
                                        std::string const & meta_string,
-                                       std::string const & description
-                                       );
+                                       std::string const & description);
 
   /** Parses the subcommand for the program.
    * \param[in,out] subcommand Subcommand to parse.
@@ -194,8 +202,7 @@ public:
   void
   set_version(unsigned const major,
               unsigned const minor,
-              unsigned const patch
-              );
+              unsigned const patch);
 
   /** Sets the version of the program using a std::string.
    * \param[in] version Version of the program.
@@ -213,9 +220,6 @@ public:
 
 
 private:
-  /** Type definition for the container to use for positional arguments.*/
-  using Positional = std::vector<std::string>;
-
   /** Vector of all optional arguments.*/
   Args opt_args;
 
@@ -238,7 +242,7 @@ private:
   Positional positional;
 
   /** Iterator that points to the next positional argument.*/
-  Positional::iterator next_positional;
+  long next_positional{0};
 
   /** Copy of the arguments parsed.*/
   std::vector<std::string> raw_args;
@@ -272,8 +276,7 @@ Parser::parse_option(T & val,
                      char const shrt,
                      std::string const & lng,
                      std::string const & description,
-                     std::string const & meta_string
-                     )
+                     std::string const & meta_string)
 {
   {
     std::ostringstream ss;
@@ -300,8 +303,7 @@ Parser::parse_option(T & val,
       throw paw::exception::invalid_option_value(shrt,
                                                  lng,
                                                  ss.str(),
-                                                 this->generate_help_message()
-                                                 );
+                                                 this->generate_help_message());
     }
   }
 }
@@ -316,8 +318,7 @@ Parser::parse_option(bool & val,
                      char const shrt,
                      std::string const & lng,
                      std::string const & description,
-                     std::string const & /*mega_string makes no sense for booleans*/
-                     )
+                     std::string const & /*mega_string makes no sense for booleans*/)
 {
   Arg arg; // = {shrt, lng, description, meta_string, std::string("")};
   arg.shrt = shrt;
@@ -340,8 +341,7 @@ Parser::parse_option_list(T & list,
                           std::string const & lng,
                           std::string const & description,
                           char const delimiter,
-                          std::string const & meta_string
-                          )
+                          std::string const & meta_string)
 {
   /* Lambda help function that takes in a range and adds all items in the range to a container
    * with an 'insert' method. */
@@ -403,19 +403,18 @@ template <typename T>
 inline void
 Parser::parse_positional_argument(T & val,
                                   std::string const & meta_string,
-                                  std::string const & description
-                                  )
+                                  std::string const & description)
 {
   pos_args.push_back({paw::internal::NO_SHORT_OPTION, "", description, meta_string, ""});
 
-  if (next_positional == positional.end())
+  if (next_positional >= static_cast<long>(positional.size()))
   {
     missing_positional_argument = true;
     return;
   }
 
   std::istringstream ss {
-    *next_positional
+    positional[next_positional]
   };
   ss >> val;
 
@@ -431,21 +430,19 @@ template <typename T>
 inline void
 Parser::parse_remaining_positional_arguments(T & list,
                                              std::string const & meta_string,
-                                             std::string const & description
-                                             )
+                                             std::string const & description)
 {
   pos_args.push_back({paw::internal::NO_SHORT_OPTION,
                       "",
                       description,
                       meta_string,
-                      ""}
-                     );
+                      ""});
 
-  while (next_positional != positional.end())
+  while (next_positional < positional.size())
   {
     typename T::value_type val;
     std::istringstream ss {
-      *next_positional
+      positional[next_positional]
     };
     ss >> val;
     list.insert(list.end(), val);
@@ -515,8 +512,7 @@ Parser::Parser(std::vector<std::string> const & arguments)
 
         if (next_it == arguments.cend() ||
             next_it->size() == 0 ||
-            (next_it->size() > 1 && (*next_it)[0] == '-')
-            )
+            (next_it->size() > 1 && (*next_it)[0] == '-'))
         {
           flag_map.emplace(std::move(flag), std::string(""));
         }
@@ -543,8 +539,7 @@ Parser::Parser(std::vector<std::string> const & arguments)
 
         if (next_it == arguments.cend() ||
             next_it->size() == 0 ||
-            (next_it->size() > 1 && (*next_it)[0] == '-')
-            )
+            (next_it->size() > 1 && (*next_it)[0] == '-'))
         {
           flag_map.emplace(std::move(flag), std::string(""));
         }
@@ -556,8 +551,6 @@ Parser::Parser(std::vector<std::string> const & arguments)
       }
     }
   }
-
-  next_positional = positional.begin();
 }
 
 
@@ -594,16 +587,23 @@ Parser::check_for_invalid_options()
 
 
 Parser::FlagMap const &
-Parser::get_flag_map_reference()
+Parser::get_flag_map_reference() const
 {
   return flag_map;
 }
 
 
 std::vector<std::pair<std::string, std::string> > const &
-Parser::get_subcommands_reference()
+Parser::get_subcommands_reference() const
 {
   return subcommands;
+}
+
+
+Parser::Positional const &
+Parser::get_positional_arguments_reference() const
+{
+  return positional;
 }
 
 
@@ -613,8 +613,7 @@ Parser::parse_subcommand(std::string & subcommand)
   parse_positional_argument(subcommand,
                             "subcommand",
                             "Subcommand to execute. "
-                            "List of available subcommands are shown in the following section."
-                            );
+                            "List of available subcommands are shown in the following section.");
 
   if (subcommands.size() == 0)
     throw paw::exception::invalid_subcommand(subcommand, this->generate_help_message());
@@ -670,18 +669,15 @@ Parser::finalize(bool const allow_no_arguments)
     if (find_subcommand_it == subcommands.cend())
     {
       throw paw::exception::invalid_subcommand(subcommand,
-                                               this->generate_help_message()
-                                               );
+                                               this->generate_help_message());
     }
   }
 
-  std::size_t const N = std::distance(positional.begin(), next_positional);
-
   if (missing_positional_argument)
   {
-    throw paw::exception::missing_positional_argument(pos_args[N].meta_string,
-                                                      this->generate_help_message()
-                                                      );
+    assert(next_positional < static_cast<long>(pos_args.size()));
+    throw paw::exception::missing_positional_argument(pos_args[next_positional].meta_string,
+                                                      this->generate_help_message());
   }
 
   this->check_for_invalid_options();

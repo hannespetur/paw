@@ -146,7 +146,7 @@ struct Options
 };
 
 
-TEST_CASE("Parse options")
+TEST_CASE("Parse options of different types")
 {
   Options options;
 
@@ -217,4 +217,69 @@ TEST_CASE("Parse options")
   {
     paw::Parser pawparser({"program", "--files", "f1.txt"});
   }
+}
+
+
+TEST_CASE("Parse options and positional arguments")
+{
+  Options options;
+
+  paw::Parser pawparser(
+    {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string=StRiNg", "--bool=",
+     "test1", "test2"}
+    );
+
+  pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+  pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
+  pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
+  pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
+  pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
+
+  auto const & pos_args = pawparser.get_positional_arguments_reference();
+
+  REQUIRE(pos_args.size() >= 1);
+  REQUIRE(pos_args[0] == "test1");
+  REQUIRE(pos_args.size() >= 2);
+  REQUIRE(pos_args[1] == "test2");
+
+  std::string positional1{};
+  std::string positional2{};
+  pawparser.parse_positional_argument(positional1, "first", "first positional argument");
+  pawparser.parse_positional_argument(positional2, "second", "second positional argument");
+
+  REQUIRE(options.my_bool);
+  REQUIRE(options.my_int == -1);
+  REQUIRE(options.my_uint > 0);
+  REQUIRE(options.my_uint == static_cast<unsigned int>(-1));
+  REQUIRE(options.my_double == -100.5);
+  REQUIRE(options.my_string == "StRiNg");
+  REQUIRE(positional1 == "test1");
+  REQUIRE(positional2 == "test2");
+}
+
+
+TEST_CASE("Parse options and positional arguments with bool swallowing one of arguments")
+{
+  Options options;
+
+  paw::Parser pawparser(
+    {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string=StRiNg", "--bool",
+     "test1", "test2"}
+    );
+
+  pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+  pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
+  pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
+  pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
+  pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
+
+  std::string positional1{};
+  std::string positional2{};
+  pawparser.parse_positional_argument(positional1, "first", "first positional argument");
+  pawparser.parse_positional_argument(positional2, "second", "second positional argument");
+
+  REQUIRE_THROWS_AS(
+    pawparser.finalize(),
+    paw::exception::missing_positional_argument &
+    );
 }
