@@ -262,24 +262,54 @@ TEST_CASE("Parse options and positional arguments with bool swallowing one of ar
 {
   Options options;
 
-  paw::Parser pawparser(
-    {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string=StRiNg", "--bool",
-     "test1", "test2"}
-    );
-
-  pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
-  pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
-  pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
-  pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
-  pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
-
   std::string positional1{};
   std::string positional2{};
-  pawparser.parse_positional_argument(positional1, "first", "first positional argument");
-  pawparser.parse_positional_argument(positional2, "second", "second positional argument");
 
-  REQUIRE_THROWS_AS(
-    pawparser.finalize(),
-    paw::exception::missing_positional_argument &
-    );
+  SECTION("bool")
+  {
+    paw::Parser pawparser(
+      {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string", "String", "--bool",
+       "test1", "test2"}
+      );
+
+    pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+    pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
+    pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
+    pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
+    pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
+
+    pawparser.parse_positional_argument(positional1, "first", "first positional argument");
+    pawparser.parse_positional_argument(positional2, "second", "second positional argument");
+    pawparser.finalize();
+
+    REQUIRE(options.my_bool);
+  }
+
+  SECTION("no bool")
+  {
+    paw::Parser pawparser(
+      {"program", "-d-100.5", "--int=-1", "--uint=-1", "--string", "String",
+       "test1", "test2"}
+      );
+
+    pawparser.parse_option(options.my_bool, 'b', "bool", "Test boolean value.");
+    pawparser.parse_option(options.my_int, 'i', "int", "Test int value.");
+    pawparser.parse_option(options.my_uint, 'u', "uint", "Test unsigned int value.");
+    pawparser.parse_option(options.my_double, 'd', "double", "Test double value.");
+    pawparser.parse_option(options.my_string, 's', "string", "Test string value.");
+
+    pawparser.parse_positional_argument(positional1, "first", "first positional argument");
+    pawparser.parse_positional_argument(positional2, "second", "second positional argument");
+
+    pawparser.finalize();
+    REQUIRE(!options.my_bool);
+  }
+
+  REQUIRE(options.my_int == -1);
+  REQUIRE(options.my_uint > 0);
+  REQUIRE(options.my_uint == static_cast<unsigned int>(-1));
+  REQUIRE(options.my_double == -100.5);
+  REQUIRE(options.my_string == "String");
+  REQUIRE(positional1 == "test1");
+  REQUIRE(positional2 == "test2");
 }

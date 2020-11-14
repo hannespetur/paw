@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm> // std::find
+#include <cassert>
+#include <iostream> //
 #include <map> // std::multimap
 #include <unordered_set> // std::unordered_set
 #include <sstream> // std::istringstream, std::ostringstream
@@ -244,19 +246,19 @@ private:
   Args pos_args;
 
   /** The name of the program. */
-  std::string program_name;
+  std::string program_name{};
 
   /** The version of the program. */
-  std::string version;
+  std::string version{};
 
   /** Keys that maps options (or 'flags') to their given values as given by the user.*/
   FlagMap flag_map;
 
   /** Indicator whether there was a missing positional argument. */
-  bool missing_positional_argument = false;
+  bool missing_positional_argument{false};
 
   /** Vector of all values of positional arguments, in the same order as they were inserted.*/
-  std::vector<std::string> positional;
+  std::vector<std::string> positional{};
 
   /** Iterator that points to the next positional argument.*/
   long next_positional{0};
@@ -309,8 +311,33 @@ Parser::parse_option(T & val,
     if (flag_it->second.size() == 0)
       throw paw::exception::missing_value(shrt, lng, this->generate_help_message());
 
+    std::string value;
+
+    // values that could have been positional start with 2 (integer)
+    if (flag_it->second[0] == static_cast<char>(2))
+    {
+      std::string index_str(std::next(flag_it->second.begin()), flag_it->second.end());
+      long index{0};
+
+      std::istringstream ss_i {
+        index_str
+      };
+      ss_i >> index;
+
+      assert(index < static_cast<long>(positional.size()));
+
+      value = positional[index];
+      positional[index].clear();
+    }
+    else
+    {
+      value = flag_it->second;
+    }
+
+    assert(value.size() > 0);
+
     std::istringstream ss {
-      flag_it->second
+      value
     };
     ss >> val;
 
@@ -373,8 +400,33 @@ Parser::parse_advanced_option(T & val,
     if (flag_it->second.size() == 0)
       throw paw::exception::missing_value(shrt, lng, this->generate_help_message());
 
+    std::string value;
+
+    // values that could have been positional start with 2 (integer)
+    if (flag_it->second[0] == static_cast<char>(2))
+    {
+      std::string index_str(std::next(flag_it->second.begin()), flag_it->second.end());
+      long index{0};
+
+      std::istringstream ss_i {
+        index_str
+      };
+      ss_i >> index;
+
+      assert(index < static_cast<long>(positional.size()));
+
+      value = positional[index];
+      positional[index].clear();
+    }
+    else
+    {
+      value = flag_it->second;
+    }
+
+    assert(value.size() > 0);
+
     std::istringstream ss {
-      flag_it->second
+      value
     };
     ss >> val;
 
@@ -485,6 +537,12 @@ Parser::parse_positional_argument(T & val,
 {
   pos_args.push_back({paw::internal::NO_SHORT_OPTION, "", description, meta_string, ""});
 
+  while (next_positional < static_cast<long>(positional.size()) &&
+         positional[next_positional].size() == 0)
+  {
+    ++next_positional;
+  }
+
   if (next_positional >= static_cast<long>(positional.size()))
   {
     missing_positional_argument = true;
@@ -518,6 +576,12 @@ Parser::parse_remaining_positional_arguments(T & list,
 
   while (next_positional < positional.size())
   {
+    if (positional[next_positional].size() == 0)
+    {
+      ++next_positional;
+      continue;
+    }
+
     typename T::value_type val;
     std::istringstream ss {
       positional[next_positional]
@@ -592,11 +656,18 @@ Parser::Parser(std::vector<std::string> const & arguments)
             next_it->size() == 0 ||
             (next_it->size() > 1 && (*next_it)[0] == '-'))
         {
+          // next argument starts with '-', there is no value
           flag_map.emplace(std::move(flag), std::string(""));
         }
         else
         {
-          flag_map.emplace(std::move(flag), std::string(*next_it));
+          // Add the next argument as a positional, but prepare it to be a value as well
+          std::string prefix(1, static_cast<char>(2));
+          assert(prefix.size() == 1);
+          assert(prefix[0] == 2);
+          prefix.append(std::to_string(positional.size()));
+          flag_map.emplace(flag, prefix);
+          positional.push_back(*next_it);
           arg_it = next_it;
         }
       }
@@ -623,7 +694,13 @@ Parser::Parser(std::vector<std::string> const & arguments)
         }
         else
         {
-          flag_map.emplace(std::move(flag), std::string(*next_it));
+          std::string prefix(1, static_cast<char>(2));
+          assert(prefix.size() == 1);
+          assert(prefix[0] == 2);
+          prefix.append(std::to_string(positional.size()));
+          flag_map.emplace(flag, prefix);
+
+          positional.push_back(*next_it);
           arg_it = next_it;
         }
       }
