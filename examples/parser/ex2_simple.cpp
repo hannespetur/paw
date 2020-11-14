@@ -46,18 +46,19 @@ main(int argc, char ** argv)
     parser.parse_option(options.my_string, 's', "string", "Test string value.");
     parser.parse_option_list(options.my_strings, 'S', "strings", "Test a list of strings.");
     parser.parse_option_list(options.my_ints, 'I', "ints", "Test a list of ints.");
+
     parser.parse_positional_argument(options.my_first_pos_argument,
                                      "first",
-                                     "First positional argument."
-                                     );
+                                     "First positional argument.");
+
     parser.parse_positional_argument(options.my_second_pos_argument,
                                      "second",
-                                     "Second positional argument."
-                                     );
+                                     "Second positional argument.");
+
     parser.parse_remaining_positional_arguments(options.my_remaining_pos_arguments,
                                                 "remaining args...",
-                                                "Other remaining stuff."
-                                                );
+                                                "Other remaining stuff.");
+
     parser.finalize();
   }
   catch (const std::exception & e)

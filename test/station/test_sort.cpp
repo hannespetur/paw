@@ -1,4 +1,4 @@
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <algorithm> // std::is_sorted
 #include <vector> // std::vector

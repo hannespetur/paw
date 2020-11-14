@@ -1,9 +1,6 @@
-cmake_minimum_required (VERSION 2.8.11)
-
 add_library(catch SHARED main.cpp)
 set_property(TARGET catch PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-list(APPEND PAW_LINK_LIBRARIES catch)
+list(APPEND PAW_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/test/include")
 
 add_subdirectory(parser)
 add_subdirectory(station)

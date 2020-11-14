@@ -1,8 +1,7 @@
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <deque> // std::deque
 #include <list> // std::list
-#include <vector> // std::vector
 
 #include <paw/station/algorithm.hpp> // paw::all_of
 
@@ -17,7 +16,7 @@ check_empty_ints()
   T ints;
   REQUIRE(std::all_of(ints.begin(), ints.end(), [](int i){
     return i == 999999;
-  }) == true); // Returns true if the range is empty
+  })); // Returns true if the range is empty
 }
 
 
@@ -36,9 +35,9 @@ void
 check_for_all_with_a_non_empty_container_false()
 {
   T ints = {1, 2, 3, 6, 4, 1, 2, 5, 2, 10};
-  REQUIRE(paw::all_of(ints.begin(), ints.end(), [](int i){
+  REQUIRE(!paw::all_of(ints.begin(), ints.end(), [](int i){
     return i < 10;
-  }) == false);
+  }));
 }
 
 
@@ -49,7 +48,7 @@ check_for_all_with_a_non_empty_container_true()
   T ints = {1, 2, 3, 6, 4, 1, 2, 5, 2, 10};
   REQUIRE(paw::all_of(ints.begin(), ints.end(), [](int i){
     return i <= 10;
-  }) == true);
+  }));
 }
 
 

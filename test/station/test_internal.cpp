@@ -1,4 +1,4 @@
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <paw/station/internal/algorithm_help_functions.hpp> // stations_internal::get_random_ints
 

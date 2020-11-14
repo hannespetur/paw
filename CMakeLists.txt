@@ -1,7 +1,21 @@
-cmake_minimum_required (VERSION 2.8.11)
-include(CheckCXXCompilerFlag)
+cmake_minimum_required (VERSION 3.2)
 
 project (paw CXX)
+
+include(CheckCXXCompilerFlag)
+
+# Include custom CMake modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(SimdppMultiarch)
+
+
+# Find which archs are compilable and which are runnable
+simdpp_get_compilable_archs(COMPILABLE_ARCHS)
+simdpp_get_runnable_archs(RUNNABLE_ARCHS)
+
+message(STATUS "Compilable archs are: ${COMPILABLE_ARCHS}")
+message(STATUS "Runnable archs are: ${RUNNABLE_ARCHS}")
+
 
 set(PAW_VERSION_MAJOR 0)
 set(PAW_VERSION_MINOR 1)
@@ -39,11 +53,28 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+###
+# OPTIONAL DEPENDENCIES
+###
+# Find Boost
+find_package(Boost COMPONENTS filesystem system iostreams)
+
+if (Boost_FOUND)
+  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
+  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+
+  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
+  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
+endif()
+
 
 # Pass information of paw to the source
-configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/config.hpp
+configure_file(${PROJECT_SOURCE_DIR}/include/paw/internal/_config.hpp
                ${PROJECT_BINARY_DIR}/include/paw/internal/config.hpp
                @ONLY)
+
+# Include configured files
+list(APPEND PAW_INCLUDE_DIRS ${PROJECT_BINARY_DIR}/include)
 
 ## Set to release by default
 if(NOT CMAKE_BUILD_TYPE)
@@ -52,23 +83,22 @@ endif()
 
 message(STATUS "CMAKE_BUILD_TYPE is set to ${CMAKE_BUILD_TYPE}")
 
-
-###
-# OPTIONAL DEPENDENCIES
-###
-# Find Boost
-find_package(Boost COMPONENTS filesystem system)
+## Find zlib
+find_package(ZLIB REQUIRED)
+list(APPEND PAW_LINK_LIBRARIES ${ZLIB_LIBRARIES})
 
 # Find thread library (e.g. pthread on unix)
 find_package (Threads)
-set(PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+list(APPEND PAW_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
-# If c++17 is supported, use that
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+# Check which compiler flags are supported
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 
-if (COMPILER_SUPPORTS_CXX17)
+# Use highest CXX compiler flag available
+if (COMPILER_SUPPORTS_CXX17)# AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # Compilation fails on GCC 7.3 with c++17.
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++17")
 elseif (COMPILER_SUPPORTS_CXX14)
   set(CMAKE_CXX_FLAGS_COMMON "-std=c++14")
@@ -79,31 +109,35 @@ else()
 endif()
 
 ## Setup other compiler flags
-set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wfatal-errors")
+set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors -m64 -march=x86-64 -mtune=generic")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_COMMON} -O0 -Wextra -pedantic -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_COMMON}")
-
-if(NOT PORTABLE)
-  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=generic")
-endif()
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -pedantic -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -DNDEBUG")
 
 ## Build libraries in /lib and binaries in /bin
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-## Include paw
-include_directories("${PROJECT_SOURCE_DIR}/include")
+#simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_SSE2;X86_SSE3;X86_SSE4_1;X86_SSE4_1,X86_POPCNT_INSN;X86_AVX,X86_POPCNT_INSN;X86_AVX2,X86_POPCNT_INSN;X86_AVX512F,X86_POPCNT_INSN;X86_AVX512F,X86_POPCNT_INSN,X86_AVX512BW,X86_AVX512DQ,X86_AVX512VL") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS}
+simdpp_multiarch(GEN_ARCH_FILES src/align.cpp "NONE_NULL;X86_SSE2;X86_SSE4_1;X86_SSE4_1,X86_POPCNT_INSN;X86_AVX,X86_POPCNT_INSN") # ${RUNNABLE_ARCHS}, ${COMPILABLE_ARCHS} ;X86_AVX2,X86_POPCNT_INSN
+#add_executable(${PROJECT_NAME} src/main.cpp ${GEN_ARCH_FILES})
 
 ## Static and shared libraries
 # Note: You can make a static library with 'make static' and a shared library with 'make shared'. These libraries will have ready all implementations (of non-templated functions). If you use you should not define IMPLEMENT in your any cpp file as you would otherwise need)
-add_library(static STATIC EXCLUDE_FROM_ALL paw.cpp)
-SET_TARGET_PROPERTIES(static PROPERTIES OUTPUT_NAME paw)
+add_library(static STATIC EXCLUDE_FROM_ALL src/paw.cpp ${GEN_ARCH_FILES})
+set_target_properties(static PROPERTIES
+    OUTPUT_NAME paw
+    )
+target_link_libraries(static INTERFACE ${PAW_LINK_LIBRARIES})
+target_include_directories(static SYSTEM PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(static PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-add_library(shared SHARED paw.cpp)
-SET_TARGET_PROPERTIES(shared PROPERTIES OUTPUT_NAME paw)
-set_property(TARGET shared PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(shared SHARED src/paw.cpp ${GEN_ARCH_FILES})
+set_target_properties(shared PROPERTIES OUTPUT_NAME paw POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(shared INTERFACE ${PAW_LINK_LIBRARIES})
+target_include_directories(shared SYSTEM PUBLIC ${PAW_INCLUDE_DIRS})
+target_include_directories(shared PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 
 ## Examples

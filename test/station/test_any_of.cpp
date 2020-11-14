@@ -1,4 +1,4 @@
-#include "../catch.hpp"
+#include "../include/catch.hpp"
 
 #include <deque> // std::deque
 #include <list> // std::list
