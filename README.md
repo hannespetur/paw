@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hannespetur/paw.svg?branch=master)](https://travis-ci.org/hannespetur/paw)
+I[![Build Status](https://travis-ci.org/hannespetur/paw.svg?branch=master)](https://travis-ci.org/hannespetur/paw)
 
 ## paw
 Paw libraries are header-only libraries made to be both simple and convenient to use.
@@ -12,7 +12,12 @@ paw::Parser is a library for parsing command-line arguments. Its most distinctiv
 ### paw::Station
 paw::Station is a threadpool library built on top of the `std::thread` class. Each "station" manages the work to available threads.
 
-**Dependencies**: C++11 support (GCC >= 4.8.1, Clang >= 3.3), multi-threading library (i.e. compile with the `-pthread` flag on Linux)
+**Dependencies**: C++11 support (GCC >= 4.8.1, Clang >= 3.3), multi-threading library (compile with the `-pthread` flag on Linux)
+
+### paw::Align
+paw::Align is a pairwise alignment library. The alignments are SIMD optimized and the library includes backtracing. The library is compiled with various CPU extension and the optimal one is selected at runtime.
+
+**Dependencies**: C++11 support (GCC >= 4.8.1, Clang >= 3.3)
 
 ### More libraries to come...
 Hopefully.
