@@ -177,18 +177,15 @@ TEST_CASE("Parse options of different types")
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_double, 'd', "double", "Test double value."),
-      paw::exception::invalid_option_value &
-      );
+      paw::exception::invalid_option_value &);
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'i', "int", "Test int value."),
-      paw::exception::invalid_option_value &
-      );
+      paw::exception::invalid_option_value &);
 
     REQUIRE_THROWS_AS(
       pawparser.parse_option(options.my_int, 'u', "uint", "Test uint value."),
-      paw::exception::invalid_option_value &
-      );
+      paw::exception::invalid_option_value &);
   }
 
   SECTION("Option with missing value")
@@ -213,9 +210,89 @@ TEST_CASE("Parse options of different types")
     REQUIRE(options.my_strings[2] == std::string("f3.txt"));
   }
 
-  SECTION("Option list with missing value")
+  SECTION("Valid advanced option string list")
   {
-    paw::Parser pawparser({"program", "--files", "f1.txt"});
+    paw::Parser pawparser({"program", "--files=f1.txt,f2.txt", "-ff3.txt", "main.txt"});
+    pawparser.parse_advanced_option_list(options.my_strings, 'f', "files", "Test file list");
+    REQUIRE(options.my_strings.size() == 3);
+    REQUIRE(options.my_strings[0] == std::string("f1.txt"));
+    REQUIRE(options.my_strings[1] == std::string("f2.txt"));
+    REQUIRE(options.my_strings[2] == std::string("f3.txt"));
+  }
+
+  SECTION("Invalid option int list")
+  {
+    paw::Parser pawparser({"program", "--ints=f1", "main.txt"});
+
+    REQUIRE_THROWS_AS(
+      pawparser.parse_option_list(options.my_ints, 'i', "ints", "Test int list"),
+      paw::exception::invalid_option_value &);
+  }
+
+  SECTION("Invalid advanced option int list")
+  {
+    paw::Parser pawparser({"program", "--ints=f1", "main.txt"});
+
+    REQUIRE_THROWS_AS(
+      pawparser.parse_advanced_option_list(options.my_ints, 'i', "ints", "Test int list"),
+      paw::exception::invalid_option_value &);
+  }
+}
+
+
+TEST_CASE("Parser gets invalid options")
+{
+  SECTION("No invalid options case")
+  {
+    int ok{0};
+    paw::Parser parser({"program", "--ok", "1"});
+    parser.parse_option(ok, ' ', "ok", "OK.");
+
+    REQUIRE(ok == 1);
+    parser.finalize();
+  }
+
+  SECTION("Options normal")
+  {
+    int ok{0};
+    paw::Parser parser({"program", "--ok", "1", "--fail=1"});
+    parser.parse_option(ok, ' ', "ok", "OK.");
+
+    REQUIRE(ok == 1);
+
+    REQUIRE_THROWS_AS(parser.finalize(),
+                      paw::exception::invalid_option &);
+  }
+
+  SECTION("Options normal and advanced working case")
+  {
+    int ok{0};
+    int ok2{0};
+
+    paw::Parser parser({"program", "--ok", "1", "--ok2=42"});
+    parser.parse_option(ok, ' ', "ok", "OK.");
+    parser.parse_advanced_option(ok2, ' ', "ok2", "OK2.");
+
+    REQUIRE(ok == 1);
+    REQUIRE(ok2 == 42);
+
+    parser.finalize();
+  }
+
+  SECTION("Options normal and advanced failing case")
+  {
+    int ok{0};
+    int ok2{0};
+
+    paw::Parser parser({"program", "--ok", "1", "--ok2=42", "--fail", "1"});
+    parser.parse_option(ok, ' ', "ok", "OK.");
+    parser.parse_advanced_option(ok2, ' ', "ok2", "OK2.");
+
+    REQUIRE(ok == 1);
+    REQUIRE(ok2 == 42);
+
+    REQUIRE_THROWS_AS(parser.finalize(),
+                      paw::exception::invalid_option &);
   }
 }
 

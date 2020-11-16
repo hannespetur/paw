@@ -150,6 +150,13 @@ public:
                         std::string const & description,
                         std::string const & meta_string = "value");
 
+  /** If set, advanced/hidden options will be shown in the help page.
+   * \param[in] value Boolean whether advanced option should be turned on
+   *            (default is true).
+   * \exception None.
+   */
+  void see_advanced_options(bool value = true);
+
   /** Parses an argument with a list of values.
    * \param[in,out] list Reference to the list to change if the option was parsed.
    * \param[in] shrt Short option.
@@ -168,6 +175,25 @@ public:
                     std::string const & description,
                     char const delimiter = paw::internal::DEFAULT_LIST_DELIMITER,
                     std::string const & meta_string = "value1,...");
+
+  /** Advanced option version of Parser::parse_option_list.
+   * \param[in,out] list Reference to the list to change if the option was parsed.
+   * \param[in] shrt Short option.
+   * \param[in] lng Long option.
+   * \param[in] description Short description of the option.
+   * \param[in] delimiter Delimiter between items in the list.
+   * \param[in] meta_string Meta string for the option's value.
+   * \exception paw::exception::missing_value thrown when option list was parsed,
+   *            but without a value.
+   */
+  template <typename T>
+  inline void
+  parse_advanced_option_list(T & list,
+                             char const shrt,
+                             std::string const & lng,
+                             std::string const & description,
+                             char const delimiter = paw::internal::DEFAULT_LIST_DELIMITER,
+                             std::string const & meta_string = "value1,...");
 
   /** Parses the next positional argument.
    * \param[in,out] val Reference to the value to change if the option was parsed.
@@ -242,6 +268,9 @@ private:
   /** Vector of all advanced/hidden arguments.*/
   Args opt_adv_args;
 
+  /** If set to true, advanced/hidden options will be shown in the help page. */
+  bool _see_advanced_options{false};
+
   /** Vector of all positional arguments. */
   Args pos_args;
 
@@ -280,6 +309,18 @@ private:
    * \exception None.
    */
   FlagMap::iterator find_flag(char const shrt, std::string const & lng);
+
+  /** Helper function for parsing an option list with a delimiter
+   */
+  template <typename T>
+  inline void
+  parse_option_range_to_list(
+    T & list,
+    std::pair<FlagMap::iterator, FlagMap::iterator> it_range,
+    char const shrt,
+    std::string const & lng,
+    char const delimiter);
+
 
 };
 
@@ -442,6 +483,13 @@ Parser::parse_advanced_option(T & val,
 }
 
 
+void
+Parser::see_advanced_options(bool value)
+{
+  _see_advanced_options = value;
+}
+
+
 template <>
 inline void
 Parser::parse_advanced_option(bool & val,
@@ -475,57 +523,93 @@ Parser::parse_option_list(T & list,
 {
   /* Lambda help function that takes in a range and adds all items in the range to a container
    * with an 'insert' method. */
-  auto parse_option_range_to_list_lambda =
-    [&](std::pair<FlagMap::iterator, FlagMap::iterator> it_range)
-    {
-      while (it_range.first != it_range.second)
-      {
-        if (it_range.first->second.size() == 0)
-          throw paw::exception::missing_value(shrt, lng, this->generate_help_message());
-
-        std::string::iterator begin = it_range.first->second.begin();
-        std::string::iterator end = it_range.first->second.end();
-        std::string::iterator delim = std::find(begin, end, delimiter);
-
-        while (begin != end)
-        {
-          {
-            typename T::value_type val;
-            std::istringstream ss {
-              std::string(begin, delim)
-            };
-            ss >> val;
-
-            // Check if there were any logical errors
-            if (ss.fail() || !ss.eof())
-            {
-              throw paw::exception::invalid_option_value(shrt,
-                                                         lng,
-                                                         ss.str(),
-                                                         this->generate_help_message());
-            }
-
-            list.insert(list.end(), val); // insert new value back to list
-          }
-
-          if (delim == end)
-            break;
-
-          begin = delim + 1;
-          delim = std::find(begin, end, delimiter);
-        }
-
-        ++it_range.first;
-      }
-    };
-
   opt_args.push_back({shrt, lng, description, meta_string, ""});
 
   // Parse long option flag
-  parse_option_range_to_list_lambda(flag_map.equal_range(lng));
+  parse_option_range_to_list(list, flag_map.equal_range(lng), shrt, lng, delimiter);
 
   // Parse short option flag
-  parse_option_range_to_list_lambda(flag_map.equal_range(std::string(1, shrt)));
+  parse_option_range_to_list(list,
+                             flag_map.equal_range(std::string(1, shrt)),
+                             shrt,
+                             lng,
+                             delimiter);
+}
+
+
+template <typename T>
+inline void
+Parser::parse_advanced_option_list(T & list,
+                                   char const shrt,
+                                   std::string const & lng,
+                                   std::string const & description,
+                                   char const delimiter,
+                                   std::string const & meta_string)
+{
+  /* Lambda help function that takes in a range and adds all items in the range to a container
+   * with an 'insert' method. */
+  opt_adv_args.push_back({shrt, lng, description, meta_string, ""});
+
+  // Parse long option flag
+  parse_option_range_to_list(list, flag_map.equal_range(lng), shrt, lng, delimiter);
+
+  // Parse short option flag
+  parse_option_range_to_list(list,
+                             flag_map.equal_range(std::string(1, shrt)),
+                             shrt,
+                             lng,
+                             delimiter);
+}
+
+
+template <typename T>
+inline void
+Parser::parse_option_range_to_list(
+  T & list,
+  std::pair<FlagMap::iterator, FlagMap::iterator> it_range,
+  char const shrt,
+  std::string const & lng,
+  char const delimiter)
+{
+  while (it_range.first != it_range.second)
+  {
+    if (it_range.first->second.size() == 0)
+      throw paw::exception::missing_value(shrt, lng, this->generate_help_message());
+
+    std::string::iterator begin = it_range.first->second.begin();
+    std::string::iterator end = it_range.first->second.end();
+    std::string::iterator delim = std::find(begin, end, delimiter);
+
+    while (begin != end)
+    {
+      {
+        typename T::value_type val;
+        std::istringstream ss {
+          std::string(begin, delim)
+        };
+        ss >> val;
+
+        // Check if there were any logical errors
+        if (ss.fail() || !ss.eof())
+        {
+          throw paw::exception::invalid_option_value(shrt,
+                                                     lng,
+                                                     ss.str(),
+                                                     this->generate_help_message());
+        }
+
+        list.insert(list.end(), val);     // insert new value back to list
+      }
+
+      if (delim == end)
+        break;
+
+      begin = delim + 1;
+      delim = std::find(begin, end, delimiter);
+    }
+
+    ++it_range.first;
+  }
 }
 
 
@@ -723,6 +807,14 @@ Parser::check_for_invalid_options()
   std::unordered_set<std::string> known_options;
 
   for (auto const & arg : opt_args)
+  {
+    if (arg.shrt != paw::internal::NO_SHORT_OPTION)
+      known_options.insert(std::string(1, arg.shrt));
+
+    known_options.insert(arg.lng);
+  }
+
+  for (auto const & arg : opt_adv_args)
   {
     if (arg.shrt != paw::internal::NO_SHORT_OPTION)
       known_options.insert(std::string(1, arg.shrt));
@@ -930,40 +1022,55 @@ Parser::generate_help_message() const
     for (auto const & subcmd : subcommands)
     {
       long const num_spaces = max_subcmd_size + 1 - subcmd.first.size();
-      print_string(ss, subcmd.first + std::string(num_spaces, ' ') + subcmd.second, INDENT, MAX_WIDTH);
+      print_string(ss,
+                   subcmd.first + std::string(num_spaces, ' ') + subcmd.second,
+                   INDENT,
+                   MAX_WIDTH);
     }
 
     ss << '\n';
   }
 
+  // lambda for printing options
+  auto print_options =
+    [&](Args const & args)
+    {
+      for (auto const & arg : args)
+      {
+        std::ostringstream opt_ss;
+        opt_ss << "--" << arg.lng;
+
+        if (arg.meta_string.size() > 0 && arg.meta_string != paw::internal::OPTION_HAS_NO_VALUE)
+          opt_ss << "=" << arg.meta_string;
+
+        if (arg.shrt != paw::internal::NO_SHORT_OPTION)
+        {
+          opt_ss << " or -" << arg.shrt;
+
+          if (arg.meta_string.size() > 0 && arg.meta_string != paw::internal::OPTION_HAS_NO_VALUE)
+            opt_ss << arg.meta_string;
+        }
+
+        if (arg.default_value.size() > 0)
+          opt_ss << " [default: " << arg.default_value << "]";
+
+        print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
+        print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
+        ss << '\n';
+      }
+    };
+
   // Options section
   if (opt_args.size() > 0)
   {
     ss << "\nOPTIONS";
+    print_options(opt_args);
+  }
 
-    for (auto const & arg : opt_args)
-    {
-      std::ostringstream opt_ss;
-      opt_ss << "--" << arg.lng;
-
-      if (arg.meta_string.size() > 0 && arg.meta_string != paw::internal::OPTION_HAS_NO_VALUE)
-        opt_ss << "=" << arg.meta_string;
-
-      if (arg.shrt != paw::internal::NO_SHORT_OPTION)
-      {
-        opt_ss << " or -" << arg.shrt;
-
-        if (arg.meta_string.size() > 0 && arg.meta_string != paw::internal::OPTION_HAS_NO_VALUE)
-          opt_ss << arg.meta_string;
-      }
-
-      if (arg.default_value.size() > 0)
-        opt_ss << " [default: " << arg.default_value << "]";
-
-      print_string(ss, opt_ss.str(), INDENT, MAX_WIDTH);
-      print_string(ss, arg.description, INDENT * 2, MAX_WIDTH);
-      ss << '\n';
-    }
+  if (_see_advanced_options && opt_adv_args.size() > 0)
+  {
+    ss << "\nADVANCED OPTIONS";
+    print_options(opt_adv_args);
   }
 
   // Version number
