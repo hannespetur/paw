@@ -32,7 +32,7 @@ public:
    */
   struct Arg
   {
-public:
+  public:
     /** Short option for the 'help' page.
      * No option shown if it is paw::internal::NO_SHORT_OPTION.
      */
@@ -155,7 +155,8 @@ public:
    *            (default is true).
    * \exception None.
    */
-  void see_advanced_options(bool value = true);
+  inline void
+  see_advanced_options(bool value = true);
 
   /** Parses an argument with a list of values.
    * \param[in,out] list Reference to the list to change if the option was parsed.
