@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -15,67 +16,71 @@ namespace paw
 template <typename Tuint>
 struct AlignmentResults
 {
-  using Tvec_pack = typename T<Tuint>::vec_pack;
+  //using Tvec_pack = typename T<Tuint>::vec_pack;
 
   long score{0};
-  SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint> mB;
   long query_begin{0};
   long query_end{0};
   long database_begin{0};
   long database_end{0};
+  std::unique_ptr<std::pair<std::string, std::string> > aligned_strings_ptr;
 
   //long reduction{0};
-  std::array<long, S / sizeof(Tuint)> reductions;
-  Tvec_pack vH_up;
-  Tvec_pack vF_up;
+  //std::array<long, S / sizeof(Tuint)> reductions;
+  //Tvec_pack vH_up;
+  //Tvec_pack vF_up;
 
 public:
 
-  AlignmentResults() = default;
-
-  AlignmentResults(AlignmentResults const & ar)
-    : mB()
-    , reductions()
-    , vH_up()
-    , vF_up()
-  {
-    reductions = ar.reductions;
-    vH_up = ar.vH_up;
-    vF_up = ar.vF_up;
-  }
-
-
-  AlignmentResults &
-  operator=(AlignmentResults const & ar)
-  {
-    reductions = ar.reductions;
-    vH_up = ar.vH_up;
-    vF_up = ar.vF_up;
-    return *this;
-  }
+//  AlignmentResults() = default;
+//
+//  AlignmentResults(AlignmentResults const & ar)
+//    : mB()
+//    , reductions()
+//    , vH_up()
+//    , vF_up()
+//  {
+//    reductions = ar.reductions;
+//    vH_up = ar.vH_up;
+//    vF_up = ar.vF_up;
+//  }
 
 
-  AlignmentResults &
-  operator=(AlignmentResults && ar) noexcept
-  {
-    reductions = std::move(ar.reductions);
-    vH_up = std::move(ar.vH_up);
-    vF_up = std::move(ar.vF_up);
-    return *this;
-  }
+//  AlignmentResults &
+//  operator=(AlignmentResults const & ar)
+//  {
+//    reductions = ar.reductions;
+//    vH_up = ar.vH_up;
+//    vF_up = ar.vF_up;
+//    return *this;
+//  }
 
 
-  template <typename Tseq>
-  std::pair<std::string, std::string> inline
-  get_aligned_strings(Tseq const & q, Tseq const & d) const;
+//  AlignmentResults &
+//  operator=(AlignmentResults && ar) noexcept
+//  {
+//    reductions = std::move(ar.reductions);
+//    vH_up = std::move(ar.vH_up);
+//    vF_up = std::move(ar.vF_up);
+//    return *this;
+//  }
+
 
   template <typename Tseq>
-  std::pair<long, long> inline
-  get_database_begin_end(Tseq const & q, Tseq const & d) const;
+  inline void
+  get_aligned_strings(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                      Tseq const & q,
+                      Tseq const & d);
 
   template <typename Tseq>
   std::pair<long, long> inline
-  apply_clipping(Tseq const & q,
+  get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                         Tseq const & q, Tseq const & d) const;
+
+  template <typename Tseq>
+  std::pair<long, long> inline
+  apply_clipping(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                 Tseq const & q,
                  Tseq const & d,
                  Tuint match,
                  Tuint mismatch,
@@ -83,22 +88,18 @@ public:
                  Tuint gap_extend,
                  Tuint clip);
 
-  inline void
-  reduce_every_element(long val)
-  {
-    std::for_each(reductions.begin(), reductions.end(), [val](long & element){element += val;});
-  }
-
 
   inline void clear();
-  inline void reset(paw::AlignmentCache<Tuint> * cache);
+  inline void reset(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> * cache);
 };
 
 
 template <typename Tuint>
 template <typename Tseq>
-std::pair<std::string, std::string> inline
-AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) const
+inline void
+AlignmentResults<Tuint>::get_aligned_strings(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                                             Tseq const & q,
+                                             Tseq const & d)
 {
   long i = database_end;
   long j = query_end;
@@ -189,8 +190,8 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
 
     assert(i >= 0);
     assert(j >= 0);
-    long const v = j % mB.t;
-    long const e = j / mB.t;
+    long const v = j % aln_cache.mB.t;
+    long const e = j / aln_cache.mB.t;
 
     if (i == 0)
     {
@@ -200,17 +201,17 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
       while (j > 0)
         add_del_ext();
     }
-    else if (mB.is_del(i - 1, v, e))
+    else if (aln_cache.mB.is_del(i - 1, v, e))
     {
-      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
+      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
         add_del_ext();
 
       assert(j > 0);
       add_del();
     }
-    else if (mB.is_ins(i - 1, v, e))
+    else if (aln_cache.mB.is_ins(i - 1, v, e))
     {
-      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+      while (i > 1 && aln_cache.mB.is_ins_extend(i - 1, v, e))
         add_ins_ext();
 
       assert(i > 0);
@@ -222,21 +223,21 @@ AlignmentResults<Tuint>::get_aligned_strings(Tseq const & q, Tseq const & d) con
     }
   }
 
-  std::pair<std::string, std::string> out =
-  {
-    std::string(s.first.rbegin(), s.first.rend()),
-    std::string(s.second.rbegin(), s.second.rend())
-  };
-
-  assert(out.first.size() == out.second.size());
-  return out;
+  aligned_strings_ptr = std::unique_ptr<std::pair<std::string, std::string> >(
+    new std::pair<std::string, std::string>(
+      {std::string(s.first.rbegin(), s.first.rend()),
+       std::string(s.second.rbegin(), s.second.rend())
+      }
+      ));
 }
 
 
 template <typename Tuint>
 template <typename Tseq>
 std::pair<long, long> inline
-AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) const
+AlignmentResults<Tuint>::get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                                                Tseq const & q,
+                                                Tseq const & d) const
 {
   long i = database_end;
   long j = query_end;
@@ -256,8 +257,8 @@ AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) 
 
     assert(i >= 0);
     assert(j >= 0);
-    long const v = j % mB.t;
-    long const e = j / mB.t;
+    long const v = j % aln_cache.mB.t;
+    long const e = j / aln_cache.mB.t;
 
     if (i == 0)
     {
@@ -267,17 +268,17 @@ AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) 
       while (j > 0)
         --j;
     }
-    else if (mB.is_del(i - 1, v, e))
+    else if (aln_cache.mB.is_del(i - 1, v, e))
     {
-      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
+      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
         --j;
 
       assert(j > 0);
       --j;
     }
-    else if (mB.is_ins(i - 1, v, e))
+    else if (aln_cache.mB.is_ins(i - 1, v, e))
     {
-      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+      while (i > 1 && aln_cache.mB.is_ins_extend(i - 1, v, e))
         --i;
 
       assert(i > 0);
@@ -300,7 +301,8 @@ AlignmentResults<Tuint>::get_database_begin_end(Tseq const & q, Tseq const & d) 
 template <typename Tuint>
 template <typename Tseq>
 std::pair<long, long> inline
-AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
+AlignmentResults<Tuint>::apply_clipping(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+                                        Tseq const & q,
                                         Tseq const & d,
                                         Tuint match,
                                         Tuint mismatch,
@@ -330,8 +332,8 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
 
     assert(i >= 0);
     assert(j >= 0);
-    long const v = j % mB.t;
-    long const e = j / mB.t;
+    long const v = j % aln_cache.mB.t;
+    long const e = j / aln_cache.mB.t;
 
     if (i == 0)
     {
@@ -341,9 +343,9 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
       while (j > 0)
         --j;
     }
-    else if (mB.is_del(i - 1, v, e))
+    else if (aln_cache.mB.is_del(i - 1, v, e))
     {
-      while (j > 1 && mB.is_del_extend(i - 1, j % mB.t, j / mB.t))
+      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
       {
         tmp_score -= static_cast<long>(gap_extend);
         --j;
@@ -353,9 +355,9 @@ AlignmentResults<Tuint>::apply_clipping(Tseq const & q,
       tmp_score -= static_cast<long>(gap_open);
       --j;
     }
-    else if (mB.is_ins(i - 1, v, e))
+    else if (aln_cache.mB.is_ins(i - 1, v, e))
     {
-      while (i > 1 && mB.is_ins_extend(i - 1, v, e))
+      while (i > 1 && aln_cache.mB.is_ins_extend(i - 1, v, e))
       {
         if (j < query_end)
           tmp_score -= static_cast<long>(gap_extend);
@@ -423,23 +425,10 @@ template <typename Tuint>
 void inline
 AlignmentResults<Tuint>::clear()
 {
-  mB = SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint>();
+  //aln_cache.mB = Backtrack<Tuint>();
   score = 0;
   query_end = 0;
   database_end = 0;
-}
-
-
-template <typename Tuint>
-void inline
-AlignmentResults<Tuint>::reset(paw::AlignmentCache<Tuint> * cache)
-{
-  /*
-  mB = SIMDPP_ARCH_NAMESPACE::Backtrack<Tuint>();
-  score = 0;
-  query_end = 0;
-  database_end = 0;
-  */
 }
 
 

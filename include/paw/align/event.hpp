@@ -25,20 +25,20 @@ public:
     , alt(_alt)
   {}
 
-  bool is_snp() const;
-  bool is_deletion() const;
-  bool is_insertion() const;
+  inline bool is_snp() const;
+  inline bool is_deletion() const;
+  inline bool is_insertion() const;
 
 };
 
 
-bool operator<(Event2 const & a, Event2 const & b);
-bool operator==(Event2 const & a, Event2 const & b);
+inline bool operator<(Event2 const & a, Event2 const & b);
+inline bool operator==(Event2 const & a, Event2 const & b);
 
 
-std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
-                                 bool const is_normalize,
-                                 bool const is_trim_indel_on_ends);
+inline std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
+                                        bool const is_normalize,
+                                        bool const is_trim_indel_on_ends);
 
 } // namespace paw
 

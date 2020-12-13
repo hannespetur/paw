@@ -7,28 +7,12 @@
 
 #include <simdpp/simd.h>
 
+#include <paw/align/cigar.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 
 
 namespace paw
 {
-namespace SIMDPP_ARCH_NAMESPACE
-{
-
-enum CigarOperation
-{
-  MATCH = 0,
-  INSERTION,
-  DELETION
-};
-
-
-struct Cigar
-{
-  std::size_t count;
-  CigarOperation operation;
-};
-
 
 template <typename Tuint>
 struct Backtrack
@@ -206,15 +190,12 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar);
 //inline void print_backtrack(Backtrack const & mB);
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
 } //namespace paw
 
 
 #if defined(IMPLEMENT_PAW)
 
 namespace paw
-{
-namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tint>
@@ -311,7 +292,6 @@ template <typename Tuint>
 Tuint constexpr Backtrack<Tuint>::INS_E_BT;
 
 
-} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 

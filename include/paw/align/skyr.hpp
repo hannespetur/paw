@@ -19,7 +19,7 @@ public:
   using Tscores = std::vector<int64_t>;   // Container for alignment scores
 
   std::vector<std::string> seqs;
-  std::set<Event2> free_edits;   // Alignment edits that have been made free
+  //std::set<Event2> free_edits;   // Alignment edits that have been made free
   std::vector<std::set<Event2> > edits;   // Edits found for each alignment
   std::multiset<Event2> all_edits;
   std::vector<Variant> vars;
@@ -196,6 +196,7 @@ Skyr::find_all_edits(bool const is_normalize)
   Tscores scores(seqs.size(), std::numeric_limits<long>::min());
   using Tuint = uint8_t;
   AlignmentOptions<Tuint> opts;
+  opts.get_aligned_strings = true;
 
   while (std::find(is_done.begin() + 1, is_done.end(), 0) != is_done.end())
   {
@@ -216,9 +217,11 @@ Skyr::find_all_edits(bool const is_normalize)
       //std::cerr << "Current arch = " << paw::get_current_arch() << "\n";
       paw::global_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
       auto ar = opts.get_alignment_results();
+      assert(ar);
       scores[i] = ar->score;
 
-      auto aligned_strings = ar->get_aligned_strings(seqs[0], seqs[i]);
+      assert(ar->aligned_strings_ptr);
+      auto const & aligned_strings = *(ar->aligned_strings_ptr);
       //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
       edits[i] = get_edit_script(aligned_strings, is_normalize, false);
       all_edits.insert(edits[i].begin(), edits[i].end());
@@ -232,13 +235,13 @@ Skyr::find_all_edits(bool const is_normalize)
       is_done[max_i] = 1;
       bool is_novel_snp = false;
 
-      for (auto const & e : edits[max_i])
+      for (Event2 const & e : edits[max_i])
       {
-        if (e.is_snp() && free_edits.count(e) == 0)
+        if (e.is_snp() && opts.free_edits.count(e) == 0)
         {
           is_novel_snp = true;
-          free_edits.insert(e);
-          opts.get_alignment_cache()->set_free_snp(e.pos, e.alt[0]);
+          opts.free_edits.insert(e);
+          //opts.get_alignment_cache()->set_free_snp(e.pos, e.alt[0]);
         }
       }
 
