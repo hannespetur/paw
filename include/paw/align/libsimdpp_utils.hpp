@@ -49,6 +49,9 @@ struct T<uint16_t>
 };
 
 
+namespace SIMDPP_ARCH_NAMESPACE
+{
+
 template <typename Tuint>
 inline typename T<Tuint>::pack
 shift_one_right(typename T<Tuint>::pack pack,
@@ -234,4 +237,5 @@ print_score_vectors(long m,
 }
 
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // anon namespace

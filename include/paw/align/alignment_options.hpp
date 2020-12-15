@@ -323,7 +323,7 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
     vF0.fill(0);
     // Store the optimal scores in vector 0
     simdpp::store_u(&vF0[0], aln_cache.vF_up[0]);
-    assert(vF0.size() == aln_results.reductions.size());
+    assert(vF0.size() == aln_cache.reductions.size());
     Tarr_uint new_reductions;
     new_reductions.fill(0);
     assert(vF0.size() == new_reductions.size());
@@ -390,13 +390,12 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
 
 template <typename Tuint>
 std::vector<long> inline
-get_score_row(AlignmentOptions<Tuint> const & opt,
-              AlignmentCache<Tuint> & aln_cache,
+get_score_row(AlignmentCache<Tuint> const & aln_cache,
               long const i,
               typename T<Tuint>::vec_pack const & vX)
 {
   //AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
-  AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
+  //AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
   long const m = aln_cache.query_size;
   long const t = aln_cache.num_vectors;
 
@@ -519,19 +518,18 @@ merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<Alignment
 }
 */
 
-
 #ifndef NDEBUG
 
 template <typename Tuint>
 inline void
 store_scores(AlignmentOptions<Tuint> & opt,
+             AlignmentCache<Tuint> const & aln_cache,
              long const i,
              typename T<Tuint>::vec_pack const & vE)
 {
-  AlignmentResults<Tuint> const & aln_results = *opt.get_alignment_results();
-  opt.score_matrix.push_back(get_score_row(opt, i, aln_cache.vH_up));
-  opt.vE_scores.push_back(get_score_row(opt, i, vE));
-  opt.vF_scores.push_back(get_score_row(opt, i, aln_cache.vF_up));
+  opt.score_matrix.push_back(get_score_row(aln_cache, i, aln_cache.vH_up));
+  opt.vE_scores.push_back(get_score_row(aln_cache, i, vE));
+  opt.vF_scores.push_back(get_score_row(aln_cache, i, aln_cache.vF_up));
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }

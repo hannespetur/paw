@@ -160,7 +160,7 @@ global_alignment(Tseq const & seq1, // seq1 is query
   Tvec_pack vE(aln_cache.vF_up);
 
 #ifndef NDEBUG
-  store_scores(opt, 0, vE);
+  store_scores(opt, aln_cache, 0, vE);
 #endif // NDEBUG
 
   Tpack const gap_open_pack_x = simdpp::make_int(opt.get_gap_open_val_x(aln_cache));
@@ -321,7 +321,7 @@ global_alignment(Tseq const & seq1, // seq1 is query
     std::swap(vH, aln_cache.vH_up);
 
 #ifndef NDEBUG
-    store_scores(opt, i + 1l, vE);
+    store_scores(opt, aln_cache, i + 1l, vE);
 #endif
   } /// End of outer loop
 
