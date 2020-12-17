@@ -13,11 +13,11 @@
 namespace paw
 {
 
+// NOTE: AlignmentResults contain stuff which is irrelevant of type of SIMD instructions used, therefore
+// it is (and should not be) in the SIMDPP_ARCH_NAMESPACE namespace
 template <typename Tuint>
 struct AlignmentResults
 {
-  //using Tvec_pack = typename T<Tuint>::vec_pack;
-
   long score{0};
   long query_begin{0};
   long query_end{0};
@@ -25,47 +25,7 @@ struct AlignmentResults
   long database_end{0};
   std::unique_ptr<std::pair<std::string, std::string> > aligned_strings_ptr;
 
-  //long reduction{0};
-  //std::array<long, S / sizeof(Tuint)> reductions;
-  //Tvec_pack vH_up;
-  //Tvec_pack vF_up;
-
 public:
-
-//  AlignmentResults() = default;
-//
-//  AlignmentResults(AlignmentResults const & ar)
-//    : mB()
-//    , reductions()
-//    , vH_up()
-//    , vF_up()
-//  {
-//    reductions = ar.reductions;
-//    vH_up = ar.vH_up;
-//    vF_up = ar.vF_up;
-//  }
-
-
-//  AlignmentResults &
-//  operator=(AlignmentResults const & ar)
-//  {
-//    reductions = ar.reductions;
-//    vH_up = ar.vH_up;
-//    vF_up = ar.vF_up;
-//    return *this;
-//  }
-
-
-//  AlignmentResults &
-//  operator=(AlignmentResults && ar) noexcept
-//  {
-//    reductions = std::move(ar.reductions);
-//    vH_up = std::move(ar.vH_up);
-//    vF_up = std::move(ar.vF_up);
-//    return *this;
-//  }
-
-
   template <typename Tseq>
   inline void
   get_aligned_strings(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,

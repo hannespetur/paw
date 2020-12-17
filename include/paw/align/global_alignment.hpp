@@ -3,7 +3,6 @@
 #include <paw/align/alignment_cache.hpp>
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/alignment_results.hpp>
-//#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 
@@ -320,9 +319,9 @@ global_alignment(Tseq const & seq1, // seq1 is query
     std::swap(vF, aln_cache.vF_up);
     std::swap(vH, aln_cache.vH_up);
 
-#ifndef NDEBUG
+  #ifndef NDEBUG
     store_scores(opt, aln_cache, i + 1l, vE);
-#endif
+  #endif
   } /// End of outer loop
 
   std::vector<Tuint> arr(S / sizeof(Tuint));

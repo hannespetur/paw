@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 
@@ -115,6 +116,14 @@ struct AlignmentCache
   reduce_every_element(long val)
   {
     std::for_each(reductions.begin(), reductions.end(), [val](long & element){element += val;});
+  }
+
+
+  inline void
+  set_free_snps(std::set<Event2> const & events)
+  {
+    for (auto const & e : events)
+      set_free_snp(e.pos, e.alt[0]);
   }
 
 

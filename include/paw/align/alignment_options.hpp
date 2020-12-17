@@ -37,7 +37,6 @@ private:
   Tuint clip = 5; /// Penalty of clipping the query
   //bool is_traceback = true; /// Set if the alignment traceback is required
 
-
   // TODO: Implement usage of "convex" gap cost
   //Tuint gap_open_2 = 5; /// Penalty of opening a gap in when using a secondary value
   //Tuint gap_extend_2 = 1; /// Penalty of extending a gap in when using a secondary value
@@ -266,6 +265,13 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
                           opt.get_gap_open(),
                           opt.get_gap_extend());
   }
+
+  // set free snps
+  //for (Event2 const & e : opt.free_edits)
+  //{
+  //  assert(e.is_snp());
+  //  aln_cache.set_free_snp(e.pos, e.alt[0]);
+  //}
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +

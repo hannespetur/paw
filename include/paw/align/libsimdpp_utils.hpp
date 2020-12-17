@@ -22,6 +22,9 @@ constexpr int S = 16;
 constexpr int S = 16;
 #endif
 
+namespace SIMDPP_ARCH_NAMESPACE
+{
+
 template <typename Tuint>
 struct T : std::false_type
 {};
@@ -48,16 +51,11 @@ struct T<uint16_t>
   using arr_vec_pack = std::array<vec_pack, 5>;
 };
 
-
-namespace SIMDPP_ARCH_NAMESPACE
-{
-
 template <typename Tuint>
 inline typename T<Tuint>::pack
 shift_one_right(typename T<Tuint>::pack pack,
                 typename T<Tuint>::uint const left,
-                std::array<long, S / sizeof(typename T<Tuint>::uint)> const & reductions
-                )
+                std::array<long, S / sizeof(typename T<Tuint>::uint)> const & reductions)
 {
   std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
