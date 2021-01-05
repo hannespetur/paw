@@ -83,12 +83,12 @@ main(int, char **)
   //std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
   //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
-  t0 = Ttime::now();
-  opts = paw::AlignmentOptions<uint16_t>();
-  paw::arch_popcnt_avx2::global_alignment(database, query, opts);
-  t1 = Ttime::now();
-  std::cout << "avx2 " << Tduration(t1 - t0).count() << " ms\n";
-  std::cout << "score = " << opts.get_alignment_results()->score << "\n";
+  //t0 = Ttime::now();
+  //opts = paw::AlignmentOptions<uint16_t>();
+  //paw::arch_popcnt_avx2::global_alignment(database, query, opts);
+  //t1 = Ttime::now();
+  //std::cout << "avx2 " << Tduration(t1 - t0).count() << " ms\n";
+  //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
