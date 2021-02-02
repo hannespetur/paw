@@ -9,9 +9,9 @@
 
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/alignment_results.hpp>
-#include <paw/align/global_alignment.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
+#include <paw/align/pairwise_alignment.hpp>
 #include <paw/internal/config.hpp>
 
 
@@ -115,26 +115,26 @@ SIMDPP_MAKE_DISPATCHER((template <typename Tuint, typename Tseq>)
 SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          (< Tseq, Tuint >)
                          (void)
-                         (global_alignment)
+                         (pairwise_alignment)
                          ((Tseq const &) x, (Tseq const &) y, (
                            AlignmentOptions<Tuint>&)z
                          )
                        )
 
 SIMDPP_INSTANTIATE_DISPATCHER(
-  (template void global_alignment<std::string, uint8_t>(
+  (template void pairwise_alignment<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint8_t>&o)),
-  (template void global_alignment<std::string, uint16_t>(
+  (template void pairwise_alignment<std::string, uint16_t>(
      std::string const & s1, std::string const & s2,
      AlignmentOptions<uint16_t>&o))
   )
 
 SIMDPP_INSTANTIATE_DISPATCHER(
-  (template void global_alignment<std::vector<char>, uint8_t>(
+  (template void pairwise_alignment<std::vector<char>, uint8_t>(
      std::vector<char> const & s1, std::vector<char> const & s2,
      AlignmentOptions<uint8_t>&o)),
-  (template void global_alignment<std::vector<char>, uint16_t>(
+  (template void pairwise_alignment<std::vector<char>, uint16_t>(
      std::vector<char> const & s1, std::vector<char> const & s2,
      AlignmentOptions<uint16_t>&o))
   )

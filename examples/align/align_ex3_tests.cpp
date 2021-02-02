@@ -277,7 +277,7 @@ main(int argc, char ** argv)
 
   std::string const current_archs = paw::get_current_arch();
   std::cout << "Current archs are: " << current_archs << "\n";
-  std::cout << "== global_alignment ==\n";
+  std::cout << "== pairwise_alignment ==\n";
   long num_passed_tests = 0;
   long num_tests = tests_to_run.size();
 
@@ -295,9 +295,9 @@ main(int argc, char ** argv)
         std::swap(opts.left_column_free, opts.right_column_free);
 
       if (is_swapped)
-        paw::global_alignment(test.seq2, test.seq1, opts);
+        paw::pairwise_alignment(test.seq2, test.seq1, opts);
       else
-        paw::global_alignment(test.seq1, test.seq2, opts);
+        paw::pairwise_alignment(test.seq1, test.seq2, opts);
 
       paw::AlignmentResults<uint8_t> const & ar = *opts.get_alignment_results();
       std::string test_suffix;

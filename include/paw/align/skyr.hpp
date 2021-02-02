@@ -5,7 +5,7 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
-#include <paw/align/global_alignment.hpp>
+#include <paw/align/pairwise_alignment.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/variant.hpp>
 
@@ -215,7 +215,7 @@ Skyr::find_all_edits(bool const is_normalize)
       }
 
       //std::cerr << "Current arch = " << paw::get_current_arch() << "\n";
-      paw::global_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
+      paw::pairwise_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
       auto ar = opts.get_alignment_results();
       assert(ar);
       scores[i] = ar->score;

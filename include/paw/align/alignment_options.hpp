@@ -27,6 +27,7 @@ public:
   bool continuous_alignment{false}; /// When set, always continue with the same alignment as long as the query is the same
   std::set<Event2> free_edits; // free SNP events
   bool get_aligned_strings{false};
+  bool is_clip{false};
 
 private:
   /// User options

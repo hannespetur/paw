@@ -3,10 +3,11 @@
 #include <sstream>
 #include <string>
 
+
 namespace paw
 {
 
-std::string
+inline std::string
 reverse_complement(std::string const & sequence)
 {
   std::ostringstream r;

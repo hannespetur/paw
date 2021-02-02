@@ -53,12 +53,12 @@ main(int argc, char ** argv)
     if (static_cast<long>(seq.size()) < min_length)
       continue;
 
-    paw::global_alignment(seq, ref.seqs[0], opts);
+    paw::pairwise_alignment(seq, ref.seqs[0], opts);
     auto ar1 = opts.get_alignment_results();
     auto aligned_strings1 = *(ar1->aligned_strings_ptr);
 
     std::string rseq = paw::reverse_complement(seq);
-    paw::global_alignment(rseq, ref.seqs[0], opts);
+    paw::pairwise_alignment(rseq, ref.seqs[0], opts);
     auto ar2 = opts.get_alignment_results();
     auto aligned_strings2 = *(ar2->aligned_strings_ptr);
 
@@ -120,7 +120,7 @@ main(int argc, char ** argv)
 
     //std::cerr << "Score = " << ar->score << std::endl;
   }
-  //paw::global_alignment(seq1, seq2, opts);
+  //paw::pairwise_alignment(seq1, seq2, opts);
   //std::cerr << "Score = " << opts.get_alignment_results()->score << std::endl;
   return EXIT_SUCCESS;
 }

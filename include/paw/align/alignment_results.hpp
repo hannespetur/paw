@@ -23,6 +23,8 @@ struct AlignmentResults
   long query_end{0};
   long database_begin{0};
   long database_end{0};
+  long clip_begin{0};
+  long clip_end{0};
   std::unique_ptr<std::pair<std::string, std::string> > aligned_strings_ptr;
 
 public:
@@ -32,10 +34,8 @@ public:
                       Tseq const & q,
                       Tseq const & d);
 
-  template <typename Tseq>
   std::pair<long, long> inline
-  get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
-                         Tseq const & q, Tseq const & d) const;
+  get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache) const;
 
   template <typename Tseq>
   std::pair<long, long> inline
@@ -193,17 +193,11 @@ AlignmentResults<Tuint>::get_aligned_strings(paw::SIMDPP_ARCH_NAMESPACE::Alignme
 
 
 template <typename Tuint>
-template <typename Tseq>
 std::pair<long, long> inline
-AlignmentResults<Tuint>::get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
-                                                Tseq const & q,
-                                                Tseq const & d) const
+AlignmentResults<Tuint>::get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache) const
 {
   long i = database_end;
   long j = query_end;
-
-  assert(j == static_cast<long>(q.size()));
-  assert(i == static_cast<long>(d.size()));
 
   std::pair<long, long> res = {0, database_end};
 
@@ -273,7 +267,10 @@ AlignmentResults<Tuint>::apply_clipping(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tu
   long i = database_end;
   long j = query_end;
 
+#ifndef NDEBUG
   long const old_score = score;
+#endif // NDEBUG
+
   long tmp_score{0l};
   long best_begin_clip_improvement{0};
 
