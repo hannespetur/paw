@@ -289,6 +289,7 @@ main(int argc, char ** argv)
       opts.set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
       opts.left_column_free = test.left_column_free;
       opts.right_column_free = test.right_column_free;
+      opts.get_aligned_strings = true;
 
       if (is_swapped)
         std::swap(opts.left_column_free, opts.right_column_free);
@@ -314,12 +315,12 @@ main(int argc, char ** argv)
         are_all_tests_ok = false;
       }
 
-      std::pair<std::string, std::string> aligned_strings;
+      std::pair<std::string, std::string> const & aligned_strings = *ar.aligned_strings_ptr;
 
-      if (is_swapped)
-        aligned_strings = ar.get_aligned_strings(test.seq2, test.seq1);
-      else
-        aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
+      //if (is_swapped)
+      //  aligned_strings = ar.get_aligned_strings(test.seq2, test.seq1);
+      //else
+      //  aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
 
       //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n" << std::endl;
       long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);

@@ -2,10 +2,13 @@
 
 #include <string>
 
+#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
-
+#include <paw/align/libsimdpp_backtracker.hpp>
 
 namespace paw
+{
+namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tuint>
@@ -13,8 +16,9 @@ struct AlignmentCache
 {
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
   using Tarr_uint = typename T<Tuint>::arr_uint;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string query {""};
+  std::string query{""};
   Tuint x_gain {0};
   Tuint y_gain {0};
   long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
@@ -23,7 +27,17 @@ struct AlignmentCache
   Tuint mismatch_val {0};
   Tuint gap_open_val {0};
   Tuint max_score_val {0};
+  Tvec_pack vH_up{};
+  Tvec_pack vF_up{};
+  Backtrack<Tuint> mB{};
   Tarr_vec_pack W_profile;
+  std::array<long, S / sizeof(Tuint)> reductions;
+
+  AlignmentCache()
+  {
+    //W_profile.fill(0);
+    reductions.fill(0);
+  }
 
 
   inline void
@@ -31,7 +45,8 @@ struct AlignmentCache
   {
     query = std::move(new_query);
     query_size = query.size();
-    num_vectors = (query_size + T<Tuint>::pack::length) / T<Tuint>::pack::length;
+    num_vectors = (query_size + T<Tuint>::pack::length) /
+                  T<Tuint>::pack::length;
   }
 
 
@@ -59,7 +74,7 @@ struct AlignmentCache
         {
           for (long v = 0; v < num_vectors; ++v)
           {
-            typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, mismatch_val);
+            std::vector<Tuint> seq(T<Tuint>::pack::length, mismatch_val);
 
             for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
             {
@@ -83,7 +98,7 @@ struct AlignmentCache
 
         for (long v = 0; v < num_vectors; ++v)
         {
-          typename T<Tuint>::vec_uint seq(T<Tuint>::pack::length, match_val);
+          std::vector<Tuint> seq(T<Tuint>::pack::length, match_val);
           W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
         }
       }
@@ -98,11 +113,26 @@ struct AlignmentCache
 
 
   inline void
+  reduce_every_element(long val)
+  {
+    std::for_each(reductions.begin(), reductions.end(), [val](long & element){element += val;});
+  }
+
+
+  inline void
+  set_free_snps(std::set<Event2> const & events)
+  {
+    for (auto const & e : events)
+      set_free_snp(e.pos, e.alt[0]);
+  }
+
+
+  inline void
   set_free_snp(long pos, char alt)
   {
     assert(pos < static_cast<long>(query.size()));
     //std::cerr << "Adding free SNP pos,alt = " << pos << ',' << alt << '\n';
-    auto & W = W_profile[SIMDPP_ARCH_NAMESPACE::magic_function(alt)];
+    auto & W = W_profile[magic_function(alt)];
     assert(pos < static_cast<long>(query.size()));
 
     long const v = pos % num_vectors;
@@ -119,4 +149,5 @@ struct AlignmentCache
 
 };
 
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw

@@ -1,6 +1,4 @@
-//#include <paw/align/event.hpp>
 #include <paw/align.hpp>
-#include <paw/align/sequence_utils.hpp>
 #include <paw/parser.hpp>
 #include <paw/internal/config.hpp>
 
@@ -32,6 +30,7 @@ main(int argc, char ** argv)
   paw::AlignmentOptions<uint8_t> opts;
   opts.left_column_free = true;
   opts.right_column_free = true;
+  opts.get_aligned_strings = true;
 
   paw::Fasta ref;
   ref.load(ref_fn);
@@ -56,12 +55,12 @@ main(int argc, char ** argv)
 
     paw::global_alignment(seq, ref.seqs[0], opts);
     auto ar1 = opts.get_alignment_results();
-    auto aligned_strings1 = ar1->get_aligned_strings(seq, ref.seqs[0]);
+    auto aligned_strings1 = *(ar1->aligned_strings_ptr);
 
     std::string rseq = paw::reverse_complement(seq);
     paw::global_alignment(rseq, ref.seqs[0], opts);
     auto ar2 = opts.get_alignment_results();
-    auto aligned_strings2 = ar1->get_aligned_strings(rseq, ref.seqs[0]);
+    auto aligned_strings2 = *(ar2->aligned_strings_ptr);
 
     if (ar2->score > ar1->score)
     {

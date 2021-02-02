@@ -22,6 +22,9 @@ constexpr int S = 16;
 constexpr int S = 16;
 #endif
 
+namespace SIMDPP_ARCH_NAMESPACE
+{
+
 template <typename Tuint>
 struct T : std::false_type
 {};
@@ -33,7 +36,6 @@ struct T<uint8_t>
   using mask = pack::mask_vector_type;
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
-  using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
   using arr_vec_pack = std::array<vec_pack, 5>;
 };
@@ -45,21 +47,15 @@ struct T<uint16_t>
   using mask = pack::mask_vector_type;
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
-  using vec_uint = std::vector<uint>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
   using arr_vec_pack = std::array<vec_pack, 5>;
 };
-
-
-namespace SIMDPP_ARCH_NAMESPACE
-{
 
 template <typename Tuint>
 inline typename T<Tuint>::pack
 shift_one_right(typename T<Tuint>::pack pack,
                 typename T<Tuint>::uint const left,
-                std::array<long, S / sizeof(typename T<Tuint>::uint)> const & reductions
-                )
+                std::array<long, S / sizeof(typename T<Tuint>::uint)> const & reductions)
 {
   std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
@@ -162,10 +158,8 @@ print_score_vector_standard(long m,
   Tvec_uint vec(vX[0].length, 0);
   std::vector<Tvec_uint> mat(t, vec);
 
-  for (long v = 0; v < t; ++v)
-  {
+  for (long v{0}; v < t; ++v)
     simdpp::store_u(&mat[v][0], vX[v]);
-  }
 
   for (long j = 0; j <= m; ++j)
   {
@@ -241,5 +235,5 @@ print_score_vectors(long m,
 }
 
 
-} //namespace SIMDPP_ARCH_NAMESPACE
+} // namespace SIMDPP_ARCH_NAMESPACE
 } // anon namespace

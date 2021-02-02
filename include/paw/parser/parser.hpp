@@ -32,7 +32,7 @@ public:
    */
   struct Arg
   {
-  public:
+public:
     /** Short option for the 'help' page.
      * No option shown if it is paw::internal::NO_SHORT_OPTION.
      */
@@ -659,7 +659,7 @@ Parser::parse_remaining_positional_arguments(T & list,
                       meta_string,
                       ""});
 
-  while (next_positional < positional.size())
+  while (next_positional < static_cast<long>(positional.size()))
   {
     if (positional[next_positional].size() == 0)
     {

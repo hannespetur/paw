@@ -1,10 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
 #include <set>
 #include <string> // std::string
-
-#include <simdpp/simd.h>
-
+#include <vector>
 
 namespace paw
 {
@@ -25,53 +25,31 @@ public:
     , alt(_alt)
   {}
 
-  bool is_snp() const;
-  bool is_deletion() const;
-  bool is_insertion() const;
+  inline bool
+  is_snp() const
+  {
+    return ref.size() == 1 && alt.size() == 1;
+  }
+
+
+  inline bool
+  is_deletion() const
+  {
+    return alt.size() == 0;
+  }
+
+
+  inline bool
+  is_insertion() const
+  {
+    return ref.size() == 0;
+  }
+
 
 };
 
 
-bool operator<(Event2 const & a, Event2 const & b);
-bool operator==(Event2 const & a, Event2 const & b);
-
-
-std::set<Event2> get_edit_script(std::pair<std::string, std::string> const & s,
-                                 bool const is_normalize,
-                                 bool const is_trim_indel_on_ends);
-
-} // namespace paw
-
-
-#if defined(IMPLEMENT_PAW)
-
-#include <set>
-
-namespace paw
-{
-
-bool
-Event2::is_snp() const
-{
-  return ref.size() == 1 && alt.size() == 1;
-}
-
-
-bool
-Event2::is_deletion() const
-{
-  return alt.size() == 0;
-}
-
-
-bool
-Event2::is_insertion() const
-{
-  return ref.size() == 0;
-}
-
-
-bool
+inline bool
 operator<(Event2 const & a, Event2 const & b)
 {
   // ordering is: insertion, deletion, snp
@@ -85,14 +63,14 @@ operator<(Event2 const & a, Event2 const & b)
 }
 
 
-bool
+inline bool
 operator==(Event2 const & a, Event2 const & b)
 {
   return a.pos == b.pos && a.ref == b.ref && a.alt == b.alt;
 }
 
 
-std::set<Event2>
+inline std::set<Event2>
 get_edit_script(std::pair<std::string, std::string> const & s,
                 bool const is_normalize,
                 bool const is_trim_indel_on_ends)
@@ -248,6 +226,3 @@ get_edit_script(std::pair<std::string, std::string> const & s,
 
 
 } // namespace paw
-
-
-#endif // IMPLEMENT_PAW

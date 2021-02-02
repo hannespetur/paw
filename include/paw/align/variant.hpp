@@ -52,7 +52,6 @@ public:
 bool operator<(Variant const & a, Variant const & b);
 bool operator==(Variant const & a, Variant const & b);
 
-//} // namespace SIMDPP_ARCH_NAMESPACE
 } // namespace paw
 
 

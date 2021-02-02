@@ -7,6 +7,7 @@
 
 #include <simdpp/simd.h>
 
+#include <paw/align/cigar.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 
 
@@ -14,21 +15,6 @@ namespace paw
 {
 namespace SIMDPP_ARCH_NAMESPACE
 {
-
-enum CigarOperation
-{
-  MATCH = 0,
-  INSERTION,
-  DELETION
-};
-
-
-struct Cigar
-{
-  std::size_t count;
-  CigarOperation operation;
-};
-
 
 template <typename Tuint>
 struct Backtrack
@@ -76,6 +62,7 @@ struct Backtrack
   inline Tpack const &
   get_pack(long const i /*row index*/, long const v /*vector index*/) const
   {
+    assert(i < static_cast<long>(matrix.size()));
     return matrix[i][v / BT_PER_CELL];
   }
 
@@ -83,9 +70,9 @@ struct Backtrack
   void inline
   set_del(long const i /*row index*/,
           long const v /*vector index*/,
-          Tmask const mask /*mask to set*/
-          )
+          Tmask const mask /*mask to set*/)
   {
+    assert(i < static_cast<long>(matrix.size()));
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL]
                                  | (simdpp::blend(static_cast<Tpack>(simdpp::make_uint(DEL_BT <<
                                                                                        (N_BT_BITS *
@@ -99,9 +86,9 @@ struct Backtrack
   void inline
   set_ins(long const i /*row index*/,
           long const v /*vector index*/,
-          Tmask const mask /*mask to set*/
-          )
+          Tmask const mask /*mask to set*/)
   {
+    assert(i < static_cast<long>(matrix.size()));
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
                                  (simdpp::blend(static_cast<Tpack>(simdpp::make_uint(INS_BT <<
                                                                                      (N_BT_BITS * (v % BT_PER_CELL)))),
@@ -114,9 +101,9 @@ struct Backtrack
   void inline
   set_del_extend(long const i /*row index*/,
                  long const v /*vector index*/,
-                 Tmask const mask /*mask to set*/
-                 )
+                 Tmask const mask /*mask to set*/)
   {
+    assert(i < static_cast<long>(matrix.size()));
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
                                  (simdpp::blend(static_cast<Tpack>(simdpp::make_uint(DEL_E_BT <<
                                                                                      (N_BT_BITS * (v % BT_PER_CELL)))),
@@ -129,9 +116,9 @@ struct Backtrack
   void inline
   set_ins_extend(long const i /*row index*/,
                  long const v /*vector index*/,
-                 Tmask const mask /*mask to set*/
-                 )
+                 Tmask const mask /*mask to set*/)
   {
+    assert(i < static_cast<long>(matrix.size()));
     matrix[i][v / BT_PER_CELL] = matrix[i][v / BT_PER_CELL] |
                                  (simdpp::blend(static_cast<Tpack>(simdpp::make_uint(INS_E_BT <<
                                                                                      (N_BT_BITS * (v % BT_PER_CELL)))),
@@ -152,6 +139,7 @@ struct Backtrack
          long const e
          ) const
   {
+    assert(i < static_cast<long>(matrix.size()));
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_BT;
   }
@@ -179,6 +167,7 @@ struct Backtrack
                 long const e /*element index*/
                 ) const
   {
+    assert(i < static_cast<long>(matrix.size()));
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & DEL_E_BT;
   }
@@ -190,6 +179,7 @@ struct Backtrack
                 long const e /*element index*/
                 ) const
   {
+    assert(i < static_cast<long>(matrix.size()));
     simdpp::store_u(&tmp_vec[0], matrix[i][v / BT_PER_CELL]);
     return (tmp_vec[e] >> (N_BT_BITS * (v % BT_PER_CELL))) & INS_E_BT;
   }
@@ -207,7 +197,7 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar);
 
 
 } // namespace SIMDPP_ARCH_NAMESPACE
-} //namespace paw
+} // namespace paw
 
 
 #if defined(IMPLEMENT_PAW)

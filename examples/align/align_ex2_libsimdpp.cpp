@@ -78,24 +78,35 @@ main(int, char **)
   //query = query.substr(0, 25);
 
   auto t0 = Ttime::now();
-  paw::arch_null::global_alignment(database, query, opts);
+  //paw::arch_null::global_alignment(database, query, opts);
   auto t1 = Ttime::now();
-  std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
-  std::cout << "score = " << opts.get_alignment_results()->score << "\n";
+  //std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
+  //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
+
+  //t0 = Ttime::now();
+  //opts = paw::AlignmentOptions<uint16_t>();
+  //paw::arch_popcnt_avx2::global_alignment(database, query, opts);
+  //t1 = Ttime::now();
+  //std::cout << "avx2 " << Tduration(t1 - t0).count() << " ms\n";
+  //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
   t0 = Ttime::now();
-  paw::arch_sse2::global_alignment(database, query, opts);
-  t1 = Ttime::now();
-  std::cout << "sse2 " << Tduration(t1 - t0).count() << " ms\n";
-  std::cout << "score = " << opts.get_alignment_results()->score << "\n";
-
-  t0 = Ttime::now();
+  opts = paw::AlignmentOptions<uint16_t>();
   paw::arch_sse4p1::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
   t0 = Ttime::now();
+  opts = paw::AlignmentOptions<uint16_t>();
+  paw::arch_popcnt_avx::global_alignment(database, query, opts);
+  t1 = Ttime::now();
+  std::cout << "avx " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << "score = " << opts.get_alignment_results()->score << "\n";
+
+
+  t0 = Ttime::now();
+  opts = paw::AlignmentOptions<uint16_t>();
   paw::global_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "best " << Tduration(t1 - t0).count() << " ms\n";
