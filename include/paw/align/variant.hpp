@@ -21,10 +21,10 @@ public:
 public:
   using Tseqs = std::vector<std::string>;
 
-  uint32_t pos;   // Position of the variant
+  long pos;   // Position of the variant
   Tseqs seqs;   // Allele sequences of the variant. The first sequence is the reference allele.
 
-  Variant(uint32_t _pos = -1, Tseqs const & _seqs = Tseqs());
+  Variant(long _pos = -1, Tseqs const & _seqs = Tseqs());
 
   /// Read only methods
   bool has_sequences() const;
@@ -40,6 +40,7 @@ public:
   ///
 
   /// Class modifiers
+  void trim_sequences();
   void add_base_to_front(std::string const & reference);
   void add_call(uint16_t const call);
   void clear();
@@ -57,12 +58,14 @@ bool operator==(Variant const & a, Variant const & b);
 
 #if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
+#include <paw/align/sequence_utils.hpp>
+
 
 namespace paw
 {
 
 
-Variant::Variant(uint32_t _pos, Variant::Tseqs const & _seqs)
+Variant::Variant(long _pos, Variant::Tseqs const & _seqs)
   : pos(_pos)
   , seqs(_seqs)
 {}
@@ -164,6 +167,14 @@ void
 Variant::add_call(uint16_t const call)
 {
   calls.push_back(call);
+}
+
+
+void
+Variant::trim_sequences()
+{
+  remove_common_suffix(seqs);
+  remove_common_prefix(pos, seqs, false); // keep one match
 }
 
 

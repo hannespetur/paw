@@ -194,7 +194,7 @@ Skyr::find_all_edits(bool const is_normalize)
 {
   std::size_t iteration = 0;
   Tscores scores(seqs.size(), std::numeric_limits<long>::min());
-  using Tuint = uint8_t;
+  using Tuint = uint16_t;
   AlignmentOptions<Tuint> opts;
   opts.get_aligned_strings = true;
 
@@ -451,6 +451,7 @@ Skyr::split_variants(long const T)
         Variant new_var;
         new_var.pos = s;
         new_var.seqs.push_back(original_seq.substr(s, var_reach - s)); //
+        new_var.add_call(0);
         new_variants.push_back(std::move(new_var));
         s = vars[v + 1].pos;
       }
@@ -459,6 +460,7 @@ Skyr::split_variants(long const T)
     Variant new_var;
     new_var.pos = s;
     new_var.seqs.push_back(original_seq.substr(s));
+    new_var.add_call(0);
     new_variants.push_back(std::move(new_var));
   }
 
@@ -498,13 +500,18 @@ Skyr::split_variants(long const T)
       {
         assert(new_var_index < static_cast<long>(new_variants.size()));
         std::string new_seq = original_seq.substr(s, var_reach + shift - s);
-        auto & new_seqs = new_variants[new_var_index].seqs;
+        paw::Variant & new_var = new_variants[new_var_index];
+        auto & new_seqs = new_var.seqs;
 
-        // Only add sequence if we did not see it before
-        if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
         {
-          // new sequence
-          new_variants[new_var_index].seqs.push_back(std::move(new_seq));
+          // Only add sequence if we did not see it before
+          auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
+          new_var.add_call(std::distance(new_seqs.begin(), find_it));
+
+          if (find_it == new_seqs.end())
+          {
+            new_var.seqs.push_back(std::move(new_seq)); // new sequence
+          }
         }
 
         ++new_var_index;
@@ -514,14 +521,23 @@ Skyr::split_variants(long const T)
 
     std::string new_seq = original_seq.substr(s);
     assert(new_var_index < static_cast<long>(new_variants.size()));
-    auto & new_seqs = new_variants[new_var_index].seqs;
+    paw::Variant & new_var = new_variants[new_var_index];
+    auto & new_seqs = new_var.seqs;
 
-    if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
     {
-      // new sequence
-      new_variants[new_var_index].seqs.push_back(std::move(new_seq));
+      // Only add sequence if we did not see it before
+      auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
+      new_var.add_call(std::distance(new_seqs.begin(), find_it));
+
+      if (find_it == new_seqs.end())
+      {
+        new_var.seqs.push_back(std::move(new_seq)); // new sequence
+      }
     }
   }
+
+  for (auto & new_var : new_variants)
+    new_var.trim_sequences();
 
   return new_variants;
 }
