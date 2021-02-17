@@ -21,7 +21,8 @@ private:
   std::vector<std::string> sample_names;
 
 public:
-  std::string reference;
+  std::string reference{};
+  std::string chrom{};
 
   Vcf(std::string const & fn);
   void add_variant(Variant const & var);
@@ -64,9 +65,11 @@ Vcf::add_variant(Variant const & var)
 void
 Vcf::write_header(std::stringstream & ss)
 {
-  ss << "##fileformat=VCFv4.3\n";
+  ss << "##fileformat=VCFv4.2\n";
 
-  if (sample_names.size() > 0)
+  if (chrom.size() > 0)
+    ss << "##contig=<ID=" << chrom << ">\n";
+  else if (sample_names.size() > 0)
     ss << "##contig=<ID=N" << sample_names[0] << ">\n";
   else
     ss << "##contig=<ID=chr1>\n";
@@ -86,7 +89,9 @@ Vcf::write_record(std::stringstream & ss, Variant const & var)
 {
   assert(sample_names.size() == var.calls.size());
 
-  if (sample_names.size() > 0)
+  if (chrom.size() > 0)
+    ss << chrom;
+  else if (sample_names.size() > 0)
     ss << "N" << sample_names[0];
   else
     ss << "chr1";
