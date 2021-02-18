@@ -37,6 +37,7 @@ public:
 
 private:
   long find_most_similar_haplotype(Tscores const & scores) const;
+  std::vector<long> find_most_similar_haplotypes(Tscores const & scores) const;
 };
 
 
@@ -138,6 +139,55 @@ Skyr::Skyr(std::vector<std::vector<char> > const & _seqs)
 }
 
 
+std::vector<long>
+Skyr::find_most_similar_haplotypes(Tscores const & scores) const
+{
+  long max_score = std::numeric_limits<long>::min(); // High is better than low
+  long max_events = std::numeric_limits<long>::max(); // Many is worse than few
+  long max_events_seen = std::numeric_limits<long>::min(); // Few is better then many
+  std::vector<long> max_i{};
+
+  for (long i = 1; i < static_cast<long>(edits.size()); ++i)
+  {
+    auto const & hap_edits = edits[i];
+    auto const & score = scores[i];
+    assert(i < static_cast<long>(is_done.size()));
+    assert(i < static_cast<long>(scores.size()));
+
+    if (is_done[i] != 0)
+      continue;
+
+    long event_seen_count = 0;
+
+    for (auto const & e : hap_edits)
+      event_seen_count += all_edits.count(e);
+
+    long const num_events = hap_edits.size();
+    bool const is_equal_or_more = score > max_score ||
+                                  (score == max_score && num_events < max_events) ||
+                                  (score == max_score && num_events == max_events &&
+                                   event_seen_count >= max_events_seen);
+
+    bool const is_more = is_equal_or_more && event_seen_count > max_events_seen;
+
+    if (is_more)
+    {
+      max_score = score;
+      max_events = num_events;
+      max_events_seen = event_seen_count;
+      max_i.clear();
+      max_i.push_back(i);
+    }
+    else if (is_equal_or_more)
+    {
+      max_i.push_back(i);
+    }
+  }
+
+  return max_i;
+}
+
+
 long
 Skyr::find_most_similar_haplotype(Tscores const & scores) const
 {
@@ -192,7 +242,7 @@ Skyr::find_most_similar_haplotype(Tscores const & scores) const
 void
 Skyr::find_all_edits(bool const is_normalize)
 {
-  std::size_t iteration = 0;
+  //std::size_t iteration{0};
   Tscores scores(seqs.size(), std::numeric_limits<long>::min());
   using Tuint = uint16_t;
   AlignmentOptions<Tuint> opts;
@@ -200,7 +250,7 @@ Skyr::find_all_edits(bool const is_normalize)
 
   while (std::find(is_done.begin() + 1, is_done.end(), 0) != is_done.end())
   {
-    ++iteration;
+    //++iteration;
     all_edits.clear();
 
     for (long i = 1; i < static_cast<long>(seqs.size()); ++i)
@@ -227,30 +277,35 @@ Skyr::find_all_edits(bool const is_normalize)
       all_edits.insert(edits[i].begin(), edits[i].end());
     }
 
-    long max_i = find_most_similar_haplotype(scores);
+    std::vector<long> most_similar = find_most_similar_haplotypes(scores);
 
-    while (max_i != -1)
+    while (most_similar.size() > 0)
     {
-      assert(max_i < static_cast<long>(seqs.size()));
-      is_done[max_i] = 1;
-      bool is_novel_snp = false;
+      bool is_novel_snp{false};
 
-      for (Event2 const & e : edits[max_i])
+      for (auto const max_i : most_similar)
       {
-        if (e.is_snp() && opts.free_edits.count(e) == 0)
+        assert(max_i < static_cast<long>(seqs.size()));
+        is_done[max_i] = 1;
+
+        for (Event2 const & e : edits[max_i])
         {
-          is_novel_snp = true;
-          opts.free_edits.insert(e);
-          //opts.get_alignment_cache()->set_free_snp(e.pos, e.alt[0]);
+          if (e.is_snp() && opts.free_edits.count(e) == 0)
+          {
+            is_novel_snp = true;
+            opts.free_edits.insert(e);
+          }
         }
       }
 
       if (is_novel_snp)
-        break; // We added a novel SNP, time to remap.
+        break;   // We added a novel SNP, time to remap.
       else
-        max_i = find_most_similar_haplotype(scores);
+        most_similar = find_most_similar_haplotypes(scores);
     }
   }
+
+  //std::cerr << "Skyr found variants in " << iteration << " iterations.";
 }
 
 
