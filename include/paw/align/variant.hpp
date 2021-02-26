@@ -17,6 +17,7 @@ class Variant
 public:
   std::map<Event2, uint32_t /*allele index*/> event_to_allele;
   std::vector<uint16_t> calls;
+  std::map<std::string, std::string> infos;
 
 public:
   using Tseqs = std::vector<std::string>;
@@ -41,7 +42,7 @@ public:
 
   /// Class modifiers
   void trim_sequences();
-  void add_base_to_front(std::string const & reference);
+  void add_base_to_front(std::string const & reference, std::string const & pad_base = "");
   void add_call(uint16_t const call);
   void clear();
   void add_event(Event2 const & e);
@@ -121,7 +122,7 @@ long
 Variant::get_max_reach() const
 {
   if (seqs.size() < 2)
-    return 0;
+    return pos;
 
   if (is_deletion())
     return pos + seqs[0].size();
@@ -179,15 +180,24 @@ Variant::trim_sequences()
 
 
 void
-Variant::add_base_to_front(std::string const & reference)
+Variant::add_base_to_front(std::string const & reference, std::string const & pad_base)
 {
-  --pos;
-
   for (auto & seq : seqs)
   {
     if (seq != "*")
-      seq = reference[pos] + seq;
+    {
+      if (pos > 0)
+      {
+        seq = reference[pos - 1] + seq;
+      }
+      else
+      {
+        seq = pad_base.size() == 1 ? (pad_base + seq) : ('N' + seq);
+      }
+    }
   }
+
+  --pos;
 }
 
 

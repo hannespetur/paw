@@ -118,6 +118,12 @@ Fasta::load(std::string const & fn)
   std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
 #endif // PAW_BOOST_FOUND
 
+  if (!in)
+  {
+    std::cerr << "[paw::align::fasta] ERROR: Could not open " << fn;
+    std::exit(1);
+  }
+
   std::stringstream ss; // sequence stream
   //FastaRecord rec = {"", ""}; // Empty FASTA record
   std::string id;

@@ -32,7 +32,7 @@ public:
   void find_variants_from_edits();
   void populate_variants_with_calls(bool use_asterisks = true);
   Variant merge_variants(long start_v, long end_v);
-  std::vector<Variant> split_variants(long const T);
+  std::vector<Variant> split_variants(long const T, std::string const & pad_base = "");
 
 
 private:
@@ -481,7 +481,7 @@ Skyr::merge_variants(long v1, long v2)
 
 
 std::vector<Variant>
-Skyr::split_variants(long const T)
+Skyr::split_variants(long const T, std::string const & pad_base)
 {
   std::vector<Variant> new_variants;
 
@@ -491,7 +491,7 @@ Skyr::split_variants(long const T)
   // Process reference
   {
     long var_reach = -1;//vars[0].get_max_reach();
-    long s = 0; // string index
+    long ref_s = 0; // string index
     std::string original_seq = seqs[0];
 
     for (long v = 0; v < static_cast<long>(vars.size()); ++v)
@@ -501,20 +501,26 @@ Skyr::split_variants(long const T)
       var_reach = std::max(var_reach, var.get_max_reach());
 
       // Check if there are more than T base till the next variant
-      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      if (v + 1l < static_cast<long>(vars.size()))
       {
-        Variant new_var;
-        new_var.pos = s;
-        new_var.seqs.push_back(original_seq.substr(s, var_reach - s)); //
-        new_var.add_call(0);
-        new_variants.push_back(std::move(new_var));
-        s = vars[v + 1].pos;
+        if (((var_reach + T) <= vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 60 && (var_reach + (T / 2)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 80 && (var_reach + (T / 8)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 100 && var_reach < vars[v + 1].pos))
+        {
+          Variant new_var;
+          new_var.pos = ref_s;
+          new_var.seqs.push_back(original_seq.substr(ref_s, var_reach - ref_s)); //
+          new_var.add_call(0);
+          new_variants.push_back(std::move(new_var));
+          ref_s = vars[v + 1].pos;
+        }
       }
     }
 
     Variant new_var;
-    new_var.pos = s;
-    new_var.seqs.push_back(original_seq.substr(s));
+    new_var.pos = ref_s;
+    new_var.seqs.push_back(original_seq.substr(ref_s));
     new_var.add_call(0);
     new_variants.push_back(std::move(new_var));
   }
@@ -526,6 +532,7 @@ Skyr::split_variants(long const T)
     long del_reach = -1;//vars[0].get_max_del_reach();
     long var_reach = -1;//vars[0].get_max_reach();
     long shift = 0;
+    long ref_s = 0;
     long s = 0; // string index
     long new_var_index = 0;
     std::string original_seq = seqs[0]; // Reconstructed sequence
@@ -551,27 +558,39 @@ Skyr::split_variants(long const T)
       }
 
       // Check if there are more than T base till the next variant
-      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      if (v + 1l < static_cast<long>(vars.size()))
       {
-        assert(new_var_index < static_cast<long>(new_variants.size()));
-        std::string new_seq = original_seq.substr(s, var_reach + shift - s);
-        paw::Variant & new_var = new_variants[new_var_index];
-        auto & new_seqs = new_var.seqs;
-
+        if (((var_reach + T) <= vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 60 && (var_reach + (T / 2)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 80 && (var_reach + (T / 8)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 100 && var_reach < vars[v + 1].pos))
         {
-          // Only add sequence if we did not see it before
-          auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
-          new_var.add_call(std::distance(new_seqs.begin(), find_it));
+          assert(new_var_index < static_cast<long>(new_variants.size()));
+          std::string new_seq = original_seq.substr(s, var_reach + shift - s);
+          paw::Variant & new_var = new_variants[new_var_index];
+          auto & new_seqs = new_var.seqs;
 
-          if (find_it == new_seqs.end())
           {
-            new_var.seqs.push_back(std::move(new_seq)); // new sequence
-          }
-        }
+            // Only add sequence if we did not see it before
+            auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
+            new_var.add_call(std::distance(new_seqs.begin(), find_it));
 
-        ++new_var_index;
-        s = vars[v + 1].pos + shift;
+            if (find_it == new_seqs.end())
+            {
+              new_var.seqs.push_back(std::move(new_seq)); // new sequence
+            }
+          }
+
+          ++new_var_index;
+          s = vars[v + 1].pos + shift;
+          ref_s = vars[v + 1].pos;
+        }
       }
+
+      //if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      //{
+      //
+      //}
     }
 
     std::string new_seq = original_seq.substr(s);
@@ -592,7 +611,10 @@ Skyr::split_variants(long const T)
   }
 
   for (auto & new_var : new_variants)
+  {
+    new_var.add_base_to_front(seqs[0], pad_base);
     new_var.trim_sequences();
+  }
 
   return new_variants;
 }

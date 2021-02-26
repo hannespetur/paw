@@ -94,7 +94,6 @@ remove_common_suffix(std::vector<std::string> & seqs)
     return;
 
   auto & ref = seqs[0];
-  char const last_ref = ref.back();
 
   while (ref.size() > 1)
   {
@@ -103,7 +102,7 @@ remove_common_suffix(std::vector<std::string> & seqs)
       auto const & alt = seqs[a];
       assert(alt.size() > 0);
 
-      if (alt.size() <= 1 || alt[alt.size() - 1] != last_ref)
+      if (alt.size() <= 1 || alt[alt.size() - 1] != ref[ref.size() - 1])
         return;
     }
 
