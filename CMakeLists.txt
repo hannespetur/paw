@@ -53,19 +53,19 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-###
-# OPTIONAL DEPENDENCIES
-###
-# Find Boost
-find_package(Boost COMPONENTS filesystem system iostreams)
-
-if (Boost_FOUND)
-  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
-  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
-
-  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
-  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
-endif()
+####
+## OPTIONAL DEPENDENCIES
+####
+## Find Boost
+#find_package(Boost COMPONENTS filesystem system iostreams)
+#
+#if (Boost_FOUND)
+#  message(STATUS "Including boost directory: ${Boost_INCLUDE_DIRS}")
+#  list(APPEND PAW_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+#
+#  message(STATUS "Linking boost libraries: ${Boost_LIBRARIES}")
+#  list(APPEND PAW_LINK_LIBRARIES ${Boost_LIBRARIES})
+#endif()
 
 
 # Pass information of paw to the source
