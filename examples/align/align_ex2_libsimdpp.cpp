@@ -6,14 +6,6 @@
 #include <vector>
 #include <fstream> // std::ifstream
 
-#if PAW_BOOST_FOUND
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
-namespace io = boost::iostreams;
-#endif // PAW_BOOST_FOUND
-
 
 namespace
 {
@@ -21,19 +13,7 @@ namespace
 std::string
 get_sequence_from_fa(std::string const & fn)
 {
-#if PAW_BOOST_FOUND
-  std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
-  io::filtering_istream in;
-
-  // If filename ends with ".gz", assume we should decompress with gzip
-  if (fn.size() >= 3 && fn.substr(fn.size() - 3, 3) == ".gz")
-    in.push(io::gzip_decompressor()); // gzip file
-
-  // Read file
-  in.push(file);
-#else
   std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
-#endif // PAW_BOOST_FOUND
 
   std::stringstream ss;
   std::string str;
