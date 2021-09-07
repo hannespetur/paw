@@ -139,5 +139,18 @@ SIMDPP_INSTANTIATE_DISPATCHER(
      AlignmentOptions<uint16_t>&o))
   )
 
+#if defined __has_include
+#  if __has_include (<string_view>)
+SIMDPP_INSTANTIATE_DISPATCHER(
+  (template void pairwise_alignment<std::string_view>(
+     std::string_view const & s1, std::string_view const & s2,
+     AlignmentOptions<uint8_t>&o)),
+  (template void pairwise_alignment<std::string_view, uint16_t>(
+     std::string_view const & s1, std::string_view const & s2,
+     AlignmentOptions<uint16_t>&o))
+  )
+#  endif
+#endif
+
 
 } // namespace paw
