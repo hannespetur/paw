@@ -27,6 +27,7 @@ public:
   bool continuous_alignment{false}; /// When set, always continue with the same alignment as long as the query is the same
   std::set<Event2> free_edits; // free SNP events
   bool get_aligned_strings{false};
+  bool get_cigar_string{false};
   bool is_clip{false};
 
 private:
@@ -72,34 +73,31 @@ public:
 
 
   AlignmentOptions(AlignmentOptions const & ao)
+    : left_column_free(ao.left_column_free)
+    , right_column_free(ao.right_column_free)
+    , continuous_alignment(ao.continuous_alignment)
+    , match(ao.match)
+    , mismatch(ao.mismatch)
+    , gap_open(ao.gap_open)
+    , gap_extend(ao.gap_extend)
+    , clip(ao.clip)
+    , ar(new AlignmentResults<Tuint>())
   {
-    left_column_free = ao.left_column_free;
-    right_column_free = ao.right_column_free;
-    continuous_alignment = ao.continuous_alignment;
-
-    match = ao.match;
-    mismatch = ao.mismatch;
-    gap_open = ao.gap_open;
-    gap_extend = ao.gap_extend;
-    clip = ao.clip;
-
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
   }
 
 
   AlignmentOptions(AlignmentOptions && ao) noexcept
+    : left_column_free(ao.left_column_free)
+    , right_column_free(ao.right_column_free)
+    , continuous_alignment(ao.continuous_alignment)
+    , match(ao.match)
+    , mismatch(ao.mismatch)
+    , gap_open(ao.gap_open)
+    , gap_extend(ao.gap_extend)
+    , clip(ao.clip)
+    , ar(std::forward<std::unique_ptr<AlignmentResults<Tuint> > >(ao.ar))
   {
-    left_column_free = ao.left_column_free;
-    right_column_free = ao.right_column_free;
-    continuous_alignment = ao.continuous_alignment;
-
-    match = ao.match;
-    mismatch = ao.mismatch;
-    gap_open = ao.gap_open;
-    gap_extend = ao.gap_extend;
-    clip = ao.clip;
-
-    ar = std::move(ao.ar);
+    //ar = std::move(ao.ar);
   }
 
 
@@ -254,13 +252,13 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string new_query(begin(seq), end(seq));
+  std::string_view new_query(seq.data(), seq.size());
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
   //bool const is_new_query = new_query != aln_cache.query;
 
   //if (is_new_query)
   {
-    aln_cache.set_query(std::move(new_query));
+    aln_cache.set_query(new_query);
     aln_cache.set_options(opt.get_match(),
                           opt.get_mismatch(),
                           opt.get_gap_open(),

@@ -6,6 +6,7 @@
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/align/alignment_cache.hpp>
+#include <paw/align/cigar.hpp>
 
 #include <simdpp/simd.h>
 
@@ -26,9 +27,13 @@ struct AlignmentResults
   long clip_begin{0};
   long clip_end{0};
   std::unique_ptr<std::pair<std::string, std::string> > aligned_strings_ptr;
+  std::unique_ptr<std::vector<paw::Cigar> > cigar_string_ptr;
 
 public:
-  template <typename Tseq>
+  inline void
+  get_cigar_string(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache);
+
+  template<typename Tseq>
   inline void
   get_aligned_strings(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
                       Tseq const & q,
@@ -37,7 +42,7 @@ public:
   std::pair<long, long> inline
   get_database_begin_end(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache) const;
 
-  template <typename Tseq>
+  template<typename Tseq>
   std::pair<long, long> inline
   apply_clipping(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
                  Tseq const & q,
@@ -55,7 +60,146 @@ public:
 
 
 template <typename Tuint>
-template <typename Tseq>
+inline void
+AlignmentResults<Tuint>::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache)
+{
+  long i = database_end;
+  long j = query_end;
+
+  cigar_string_ptr = std::make_unique<std::vector<paw::Cigar> >();
+  std::vector<Cigar> & cigar_string = *cigar_string_ptr;
+  Cigar new_cigar;
+
+  auto add_del = [&]()
+                 {
+                   assert(j > 0);
+
+                   if (new_cigar.operation == DELETION)
+                   {
+                     ++new_cigar.count;
+                   }
+                   else
+                   {
+                     if (new_cigar.operation != UNSET)
+                       cigar_string.push_back(new_cigar);
+
+                     new_cigar.operation = DELETION;
+                     new_cigar.count = 1;
+                   }
+
+                   --j;
+                 };
+
+  auto add_del_ext = [&]()
+                 {
+                   assert(j > 0);
+                   assert(new_cigar.operation == DELETION);
+
+                   ++new_cigar.count;
+                   --j;
+                 };
+
+  auto add_ins = [&]()
+                 {
+                   assert(i > 0);
+
+                   if (new_cigar.operation == INSERTION)
+                   {
+                     ++new_cigar.count;
+                   }
+                   else
+                   {
+                     if (new_cigar.operation != UNSET)
+                       cigar_string.push_back(new_cigar);
+
+                     new_cigar.operation = INSERTION;
+                     new_cigar.count = 1;
+                   }
+
+                   --i;
+                 };
+
+  auto add_ins_ext = [&]()
+                     {
+                       assert(i > 0);
+                       assert(new_cigar.operation == INSERTION);
+                       --i;
+                     };
+
+  auto add_sub = [&]()
+                 {
+                   assert(j > 0l);
+                   assert(i > 0l);
+
+                   if (new_cigar.operation == MATCH)
+                   {
+                     ++new_cigar.count;
+                   }
+                   else
+                   {
+                     if (new_cigar.operation != UNSET)
+                       cigar_string.push_back(new_cigar);
+
+                     new_cigar.operation = MATCH;
+                     new_cigar.count = 1;
+                   }
+
+                   --i;
+                   --j;
+                 };
+
+  while (i > 0 || j > 0)
+  {
+    if (j == 0)
+    {
+      while (i > 1)
+        add_ins_ext();
+
+      add_ins();
+      break;
+    }
+
+    assert(i >= 0);
+    assert(j >= 0);
+    long const v = j % aln_cache.mB.t;
+    long const e = j / aln_cache.mB.t;
+
+    if (i == 0)
+    {
+      assert(j > 0);
+      add_del();
+
+      while (j > 0)
+        add_del_ext();
+    }
+    else if (aln_cache.mB.is_del(i - 1, v, e))
+    {
+      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
+        add_del_ext();
+
+      assert(j > 0);
+      add_del();
+    }
+    else if (aln_cache.mB.is_ins(i - 1, v, e))
+    {
+      while (i > 1 && aln_cache.mB.is_ins_extend(i - 1, v, e))
+        add_ins_ext();
+
+      assert(i > 0);
+      add_ins();
+    }
+    else
+    {
+      add_sub();
+    }
+  }
+
+  if (new_cigar.operation != UNSET)
+    cigar_string.push_back(new_cigar);
+}
+
+template <typename Tuint>
+template<typename Tseq>
 inline void
 AlignmentResults<Tuint>::get_aligned_strings(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
                                              Tseq const & q,

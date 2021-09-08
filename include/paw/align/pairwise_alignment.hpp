@@ -356,6 +356,11 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   {
     aln_results.get_aligned_strings(aln_cache, seq1, seq2);
   }
+
+  if (opt.get_cigar_string)
+  {
+    aln_results.get_cigar_string(aln_cache);
+  }
 }
 
 

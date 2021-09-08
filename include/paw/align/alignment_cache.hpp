@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -18,7 +19,8 @@ struct AlignmentCache
   using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string query{""};
+  std::string_view query;
+
   Tuint x_gain {0};
   Tuint y_gain {0};
   long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
@@ -41,14 +43,13 @@ struct AlignmentCache
 
 
   inline void
-  set_query(std::string && new_query)
+  set_query(std::string_view const & new_query)
   {
-    query = std::move(new_query);
+    query = new_query;
     query_size = query.size();
     num_vectors = (query_size + T<Tuint>::pack::length) /
                   T<Tuint>::pack::length;
   }
-
 
   inline void
   set_options(Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)

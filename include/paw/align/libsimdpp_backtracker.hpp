@@ -225,6 +225,9 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar)
 
     case DELETION:
       std::cout << "D"; break;
+
+    default:
+      assert(false);
     }
   }
 

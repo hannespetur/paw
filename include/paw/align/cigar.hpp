@@ -10,14 +10,15 @@ enum CigarOperation
 {
   MATCH = 0,
   INSERTION,
-  DELETION
+  DELETION,
+  UNSET
 };
 
 
 struct Cigar
 {
-  std::size_t count;
-  CigarOperation operation;
+  uint32_t count{0};
+  CigarOperation operation{UNSET};
 };
 
 } // namespace paw
