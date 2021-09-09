@@ -1,7 +1,14 @@
 #pragma once
 
 #include <string>
-#include <string_view>
+
+// cppcheck-suppress preprocessorErrorDirective
+#if defined __has_include
+// cppcheck-suppress preprocessorErrorDirective
+#  if __has_include (<string_view>)
+#    include <string_view>
+#  endif
+#endif
 
 #include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -19,7 +26,7 @@ struct AlignmentCache
   using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string_view query;
+  std::string query;
 
   Tuint x_gain {0};
   Tuint y_gain {0};
@@ -43,9 +50,9 @@ struct AlignmentCache
 
 
   inline void
-  set_query(std::string_view const & new_query)
+  set_query(std::string && new_query)
   {
-    query = new_query;
+    query = std::forward<std::string>(new_query);
     query_size = query.size();
     num_vectors = (query_size + T<Tuint>::pack::length) /
                   T<Tuint>::pack::length;

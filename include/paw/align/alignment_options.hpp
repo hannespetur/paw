@@ -11,6 +11,7 @@
 #include <paw/align/alignment_results.hpp>
 //#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
+#include <paw/align/sequence_utils.hpp>
 
 
 namespace paw
@@ -25,10 +26,11 @@ public:
   bool left_column_free{false};
   bool right_column_free{false};
   bool continuous_alignment{false}; /// When set, always continue with the same alignment as long as the query is the same
-  std::set<Event2> free_edits; // free SNP events
   bool get_aligned_strings{false};
   bool get_cigar_string{false};
   bool is_clip{false};
+  bool is_query_reverse_complement{false};
+  std::set<Event2> free_edits; // free SNP events
 
 private:
   /// User options
@@ -63,6 +65,10 @@ public:
     : left_column_free(false)
     , right_column_free(false)
     , continuous_alignment(false)
+    , get_aligned_strings(false)
+    , get_cigar_string(false)
+    , is_clip(false)
+    , is_query_reverse_complement(false)
     , match(2)
     , mismatch(2)
     , gap_open(5)
@@ -232,8 +238,10 @@ public:
   get_gap_extend() const {return gap_extend;}
   inline Tuint
   get_clip() const {return clip;}
+
   //inline AlignmentCache<Tuint> *
   //get_alignment_cache() const {return ac.get();}
+
   inline AlignmentResults<Tuint> *
   get_alignment_results() const {return ar.get();}
   //inline bool get_is_traceback() const {return is_traceback;}
@@ -252,13 +260,24 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string_view new_query(seq.data(), seq.size());
+  std::string new_query;
+
+  if (!opt.is_query_reverse_complement)
+  {
+    new_query = std::string(seq.data(), seq.size()); // TODO this allocation is unneccesary
+  }
+  else
+  {
+    new_query.resize(seq.size(), '\0');
+    std::transform(seq.rbegin(), seq.rend(), new_query.begin(), paw::complement);
+  }
+
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
   //bool const is_new_query = new_query != aln_cache.query;
 
   //if (is_new_query)
   {
-    aln_cache.set_query(new_query);
+    aln_cache.set_query(std::move(new_query));
     aln_cache.set_options(opt.get_match(),
                           opt.get_mismatch(),
                           opt.get_gap_open(),
@@ -266,11 +285,11 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
   }
 
   // set free snps
-  //for (Event2 const & e : opt.free_edits)
-  //{
-  //  assert(e.is_snp());
-  //  aln_cache.set_free_snp(e.pos, e.alt[0]);
-  //}
+  for (Event2 const & e : opt.free_edits)
+  {
+    assert(e.is_snp());
+    aln_cache.set_free_snp(e.pos, e.alt[0]);
+  }
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +

@@ -1,11 +1,46 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 
 namespace paw
 {
+
+inline char
+complement(char c)
+{
+  switch (c)
+  {
+    case 'A':
+    case 'a':
+      return 'T';
+
+    case 'C':
+    case 'c':
+      return 'G';
+
+    case 'G':
+    case 'g':
+      return 'C';
+
+    case 'T':
+    case 't':
+      return 'A';
+
+    case 'N':
+    case 'n':
+      return 'N';
+
+    default:
+      std::cerr << "Unexpected base: " << c << std::endl;
+      return 'N';
+  }
+}
 
 inline std::string
 reverse_complement(std::string const & sequence)
@@ -13,35 +48,7 @@ reverse_complement(std::string const & sequence)
   std::ostringstream r;
 
   for (auto it = sequence.rbegin(); it != sequence.rend(); ++it)
-  {
-    switch (*it)
-    {
-    case 'A':
-    case 'a':
-      r << 'T'; break;
-
-    case 'C':
-    case 'c':
-      r << 'G'; break;
-
-    case 'G':
-    case 'g':
-      r << 'C'; break;
-
-    case 'T':
-    case 't':
-      r << 'A'; break;
-
-    case 'N':
-    case 'n':
-      r << 'N'; break;
-
-    default:
-      std::cerr << "Unexpected base: " << *it << std::endl;
-      std::exit(1);
-
-    }
-  }
+    r << complement(*it);
 
   return r.str();
 }
