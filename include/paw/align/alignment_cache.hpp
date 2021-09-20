@@ -104,9 +104,22 @@ struct AlignmentCache
         W.clear(); // Clear previous elements
         W.reserve(num_vectors);
 
-        for (long v = 0; v < num_vectors; ++v)
+        for (long v{0}; v < num_vectors; ++v)
         {
           std::vector<Tuint> seq(T<Tuint>::pack::length, match_val);
+          W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
+        }
+      }
+
+      // All is a mismatch with X
+      {
+        auto & W = W_profile[5];
+        W.clear(); // Clear previous elements
+        W.reserve(num_vectors);
+
+        for (long v{0}; v < num_vectors; ++v)
+        {
+          std::vector<Tuint> seq(T<Tuint>::pack::length, mismatch_val);
           W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
         }
       }
@@ -116,6 +129,7 @@ struct AlignmentCache
       assert(static_cast<std::size_t>(num_vectors) == W_profile[2].size());
       assert(static_cast<std::size_t>(num_vectors) == W_profile[3].size());
       assert(static_cast<std::size_t>(num_vectors) == W_profile[4].size());
+      assert(static_cast<std::size_t>(num_vectors) == W_profile[5].size());
     } /// Done calculating DNA W_profile
   }
 

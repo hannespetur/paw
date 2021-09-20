@@ -32,6 +32,7 @@ public:
   bool is_query_reverse_complement{false};
   std::set<Event2> free_edits; // free SNP events
 
+
 private:
   /// User options
   Tuint match = 2; /// Score of matches
@@ -48,10 +49,10 @@ private:
 
   /// Calculated values
   //std::shared_ptr<AlignmentCache<Tuint> > ac{new AlignmentCache<Tuint>()}; /// Shared cache between alignments
-  std::unique_ptr<AlignmentResults<Tuint> > ar{new AlignmentResults<Tuint>()}; /// Results of the alignment
 
 
 public:
+  std::unique_ptr<AlignmentResults> ar{new AlignmentResults()}; /// Results of the alignment
 
 #ifndef NDEBUG
   /// DEBUG MODE ONLY: Store the score matrix
@@ -74,10 +75,12 @@ public:
     , gap_open(5)
     , gap_extend(1)
     , clip(5)
-    , ar(new AlignmentResults<Tuint>())
+    , ar(new AlignmentResults())
   {}
 
 
+  AlignmentOptions(AlignmentOptions const & ao) = delete;
+  /*
   AlignmentOptions(AlignmentOptions const & ao)
     : left_column_free(ao.left_column_free)
     , right_column_free(ao.right_column_free)
@@ -87,9 +90,9 @@ public:
     , gap_open(ao.gap_open)
     , gap_extend(ao.gap_extend)
     , clip(ao.clip)
-    , ar(new AlignmentResults<Tuint>())
+    , ar(new AlignmentResults())
   {
-  }
+  }*/
 
 
   AlignmentOptions(AlignmentOptions && ao) noexcept
@@ -101,13 +104,15 @@ public:
     , gap_open(ao.gap_open)
     , gap_extend(ao.gap_extend)
     , clip(ao.clip)
-    , ar(std::forward<std::unique_ptr<AlignmentResults<Tuint> > >(ao.ar))
+    , ar(std::forward<std::unique_ptr<AlignmentResults> >(ao.ar))
   {
     //ar = std::move(ao.ar);
   }
 
 
-  AlignmentOptions<Tuint> &
+  AlignmentOptions & operator=(AlignmentOptions const & ao) = delete;
+  /*
+  AlignmentOptions &
   operator=(AlignmentOptions const & ao)
   {
     left_column_free = ao.left_column_free;
@@ -120,9 +125,10 @@ public:
     gap_extend = ao.gap_extend;
     clip = ao.clip;
 
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
+    ar = std::unique_ptr<AlignmentResults>(new AlignmentResults());
     return *this;
   }
+  */
 
 
   AlignmentOptions<Tuint> &
@@ -242,7 +248,7 @@ public:
   //inline AlignmentCache<Tuint> *
   //get_alignment_cache() const {return ac.get();}
 
-  inline AlignmentResults<Tuint> *
+  inline AlignmentResults *
   get_alignment_results() const {return ar.get();}
   //inline bool get_is_traceback() const {return is_traceback;}
 
@@ -284,12 +290,13 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
                           opt.get_gap_extend());
   }
 
-  // set free snps
-  for (Event2 const & e : opt.free_edits)
-  {
-    assert(e.is_snp());
-    aln_cache.set_free_snp(e.pos, e.alt[0]);
-  }
+  // TODO add more tests
+  //// set free snps
+  //for (Event2 const & e : opt.free_edits)
+  //{
+  //  assert(e.is_snp());
+  //  aln_cache.set_free_snp(e.pos, e.alt[0]);
+  //}
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +

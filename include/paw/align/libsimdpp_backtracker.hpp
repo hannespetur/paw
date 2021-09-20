@@ -217,13 +217,13 @@ operator<<(std::ostream & ss, std::vector<Cigar> const & cigar)
 
     switch (c.operation)
     {
-    case MATCH:
+    case CigarOperation::MATCH:
       std::cout << "M"; break;
 
-    case INSERTION:
+    case CigarOperation::INSERTION:
       std::cout << "I"; break;
 
-    case DELETION:
+    case CigarOperation::DELETION:
       std::cout << "D"; break;
 
     default:

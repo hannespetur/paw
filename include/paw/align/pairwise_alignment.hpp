@@ -145,7 +145,7 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(aln_cache, seq2);
 
   assert(opt.get_alignment_results());
-  AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  AlignmentResults & aln_results = *opt.get_alignment_results();
 
   long const m = aln_cache.query_size; // Local variable for the query size
   long const t = aln_cache.num_vectors; // Keep t as a local variable is it widely used
@@ -335,7 +335,7 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
 
   if (opt.is_clip)
   {
-    std::pair<long, long> const & clip = aln_results.apply_clipping(aln_cache,
+    std::pair<long, long> const & clip = aln_results.apply_clipping<Tuint>(aln_cache,
                                                                     seq1,
                                                                     seq2,
                                                                     opt.get_match(),
@@ -347,7 +347,7 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
     aln_results.clip_begin = clip.first;
     aln_results.clip_end = clip.second;
 
-    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end(aln_cache);
+    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
     aln_results.database_begin = db_begin_end.first;
     aln_results.database_end = db_begin_end.second;
   }
