@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-
 namespace paw
 {
 
@@ -26,10 +25,22 @@ inline char cigar2char(CigarOperation op)
   return "MIDNSHP=XBU"[static_cast<int>(op)];
 }
 
+inline char inv_cigar2char(CigarOperation op)
+{
+  return "MDINSHP=XBU"[static_cast<int>(op)];
+}
+
 struct Cigar
 {
   uint32_t count{0};
   CigarOperation operation{CigarOperation::UNSET};
+
+  Cigar() = default;
+
+  Cigar(uint32_t _count, CigarOperation op)
+    : count(_count)
+    , operation(op)
+    {}
 };
 
 } // namespace paw

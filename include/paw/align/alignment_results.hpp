@@ -96,11 +96,24 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
   cigar_string_ptr = std::make_unique<std::vector<paw::Cigar>>();
   std::vector<Cigar> & cigar_string = *cigar_string_ptr;
+
+  if (clip_end < query_end)
+  {
+    cigar_string.emplace_back(query_end - clip_end, CigarOperation::SOFT_CLIP);
+    //j = clip_end;
+  }
+
   Cigar new_cigar;
 
-  auto add_del = [](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_del = [this](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0);
+
+    if (j > this->clip_end)
+    {
+      --j;
+      return;
+    }
 
     if (new_cigar.operation == CigarOperation::DELETION)
     {
@@ -119,13 +132,18 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --j;
   };
 
-  auto add_del_ext = [](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_del_ext = [this](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0);
 
+    if (j > this->clip_end)
+    {
+      --j;
+      return;
+    }
+
     if (new_cigar.operation == CigarOperation::DELETION)
     {
-      //std::cout << "Del now: " << new_cigar.count << "\n";
       ++new_cigar.count;
     }
     else
@@ -137,11 +155,10 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
       new_cigar.count = 1;
     }
 
-    ++new_cigar.count;
     --j;
   };
 
-  auto add_ins = [](long & i, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_ins = [this](long & i, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(i > 0);
 
@@ -183,10 +200,16 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --i;
   };
 
-  auto add_sub = [](long & i, long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_sub = [this](long & i, long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0l);
     assert(i > 0l);
+
+    if (j > this->clip_end)
+    {
+      --j;
+      return;
+    }
 
     if (new_cigar.operation == CigarOperation::MATCH)
     {
@@ -205,7 +228,7 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --j;
   };
 
-  while (i > database_begin || j > 0)
+  while ((i > database_begin || j > clip_begin) && (clip_begin == 0 || j > clip_begin))
   {
     if (j == 0)
     {
@@ -223,27 +246,48 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
     if (i == database_begin)
     {
-      assert(j > 0);
+      assert(j > clip_begin);
       add_del(j, new_cigar, cigar_string);
 
-      while (j > 0)
+      while (j > clip_begin)
         add_del_ext(j, new_cigar, cigar_string);
     }
     else if (aln_cache.mB.is_del(i - 1, v, e))
     {
-      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
+      while (j > clip_begin + 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
         add_del_ext(j, new_cigar, cigar_string);
 
-      assert(j > 0);
+      assert(j > clip_begin);
       add_del(j, new_cigar, cigar_string);
     }
     else if (aln_cache.mB.is_ins(i - 1, v, e))
     {
-      while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
-        add_ins_ext(i, new_cigar, cigar_string);
+      if (j > clip_end)
+      {
+        while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
+          --i;
 
-      assert(i > database_begin);
-      add_ins(i, new_cigar, cigar_string);
+        assert(i > database_begin);
+        --i;
+      }
+      else
+      {
+        while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
+        {
+          if (j > clip_end)
+            --i;
+          else
+            add_ins_ext(i, new_cigar, cigar_string);
+        }
+
+        assert(i > database_begin);
+
+        if (j > clip_end)
+          --i;
+        else
+          add_ins(i, new_cigar, cigar_string);
+      }
+
     }
     else
     {
@@ -253,6 +297,9 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
   if (new_cigar.operation != CigarOperation::UNSET)
     cigar_string.push_back(new_cigar);
+
+  if (clip_begin > 0)
+    cigar_string.emplace_back(clip_begin, CigarOperation::SOFT_CLIP);
 }
 
 template <typename Tuint, typename Tseq>
