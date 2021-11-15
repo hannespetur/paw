@@ -140,6 +140,30 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
+  /*
+  if (opt.is_no_indel_check && opt.get_gap_open() > 0)
+  {
+    Tuint const threshold = (opt.get_match() + opt.get_mismatch()) / opt.get_gap_open();
+
+    auto it1 = seq1.cbegin();
+    auto it2 = seq2.cbegin();
+
+    Tuint mismatches{0};
+
+    while (it1 != seq1.cend() && it2 != seq2.cend() && mismatches <= threshold)
+    {
+      if (*it1 != *it2 && *it1 != 'X' && *it2 != 'X')
+        ++mismatches;
+
+      ++it1;
+      ++it2;
+    }
+
+    if (mismatches <= threshold)
+      return;
+  }
+  */
+
   AlignmentCache<Tuint> aln_cache;
   paw::SIMDPP_ARCH_NAMESPACE::set_query<Tuint, Tseq>(opt, aln_cache, seq1);
   paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(aln_cache, seq2);
@@ -166,16 +190,15 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   Tuint const gap_open_val_y = opt.get_gap_open_val_y(aln_cache); // Store once
   Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
 
-
   /// Start of outer loop
-  for (long i = 0; i < n; ++i)
+  for (long i{0}; i < n; ++i)
   {
     reduce_too_high_scores(aln_cache);
 
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
-      for (long v = 0; v < t; ++v)
+      for (long v{0}; v < t; ++v)
       {
         aln_cache.vF_up[v] = aln_cache.vF_up[v] +
                              static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
@@ -350,6 +373,11 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
     std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
     aln_results.database_begin = db_begin_end.first;
     aln_results.database_end = db_begin_end.second;
+  }
+  else
+  {
+    aln_results.clip_begin = aln_results.query_begin;
+    aln_results.clip_end = aln_results.query_end;
   }
 
   if (opt.get_aligned_strings)

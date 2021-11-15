@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <limits>
 
 #include <paw/align/alignment_cache.hpp>
 #include <paw/align/cigar.hpp>
@@ -16,7 +17,7 @@ namespace paw
 // it is (and should not be) in the SIMDPP_ARCH_NAMESPACE namespace
 struct AlignmentResults
 {
-  int32_t score{0};
+  int32_t score{std::numeric_limits<int32_t>::min()};
   int32_t query_begin{0};
   int32_t query_end{0};
   int32_t database_begin{0};
@@ -30,7 +31,7 @@ struct AlignmentResults
   {}
 
   AlignmentResults(AlignmentResults const & o) = delete;
-  AlignmentResults(AlignmentResults && o)
+  AlignmentResults(AlignmentResults && o) noexcept
     : score(o.score)
     , query_begin(o.query_begin)
     , query_end(o.query_end)
@@ -44,7 +45,7 @@ struct AlignmentResults
   }
 
   AlignmentResults& operator=(AlignmentResults const & o) = delete;
-  AlignmentResults& operator=(AlignmentResults && o)
+  AlignmentResults& operator=(AlignmentResults && o) noexcept
   {
     score = o.score;
     query_begin = o.query_begin;
@@ -100,8 +101,11 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
   if (clip_end < query_end)
   {
     cigar_string.emplace_back(query_end - clip_end, CigarOperation::SOFT_CLIP);
-    //j = clip_end;
+    j = clip_end;
   }
+
+  if (j <= clip_begin)
+    return;
 
   Cigar new_cigar;
 

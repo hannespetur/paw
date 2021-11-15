@@ -30,6 +30,7 @@ public:
   bool get_cigar_string{false};
   bool is_clip{false};
   bool is_query_reverse_complement{false};
+  // bool is_no_indel_check{false};
   std::set<Event2> free_edits; // free SNP events
 
 

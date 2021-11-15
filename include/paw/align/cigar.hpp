@@ -20,6 +20,49 @@ enum struct CigarOperation
   UNSET = 10
 };
 
+inline CigarOperation inv_cigar(CigarOperation op)
+{
+  switch(op)
+  {
+  case CigarOperation::DELETION:
+    return CigarOperation::INSERTION;
+  case CigarOperation::INSERTION:
+    return CigarOperation::DELETION;
+  default:
+    return op;
+  }
+}
+
+inline bool advances_ref(CigarOperation op)
+{
+  switch(op)
+  {
+  case CigarOperation::MATCH:
+  case CigarOperation::DELETION:
+  case CigarOperation::REF_SKIP:
+  case CigarOperation::EQUAL:
+  case CigarOperation::DIFFERENT:
+    return true;
+  default:
+    return false;
+  }
+}
+
+inline bool advances_query(CigarOperation op)
+{
+  switch(op)
+  {
+  case CigarOperation::MATCH:
+  case CigarOperation::INSERTION:
+  case CigarOperation::SOFT_CLIP:
+  case CigarOperation::EQUAL:
+  case CigarOperation::DIFFERENT:
+    return true;
+  default:
+    return false;
+  }
+}
+
 inline char cigar2char(CigarOperation op)
 {
   return "MIDNSHP=XBU"[static_cast<int>(op)];
