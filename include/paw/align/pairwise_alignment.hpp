@@ -356,8 +356,10 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
                       + static_cast<long>(aln_cache.reductions[m / t])
                       - m * aln_cache.x_gain;
 
-  if (opt.is_clip)
+  if (opt.is_clip && (opt.left_column_free || opt.right_column_free))
   {
+    int const clip_left = opt.left_column_free ? opt.get_clip() : -1;
+    int const clip_right = opt.get_clip();
     std::pair<long, long> const & clip = aln_results.apply_clipping<Tuint>(aln_cache,
                                                                     seq1,
                                                                     seq2,
@@ -365,7 +367,8 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
                                                                     opt.get_mismatch(),
                                                                     opt.get_gap_open(),
                                                                     opt.get_gap_extend(),
-                                                                    opt.get_clip());
+                                                                    clip_left,
+                                                                    clip_right);
 
     aln_results.clip_begin = clip.first;
     aln_results.clip_end = clip.second;
@@ -378,6 +381,10 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   {
     aln_results.clip_begin = aln_results.query_begin;
     aln_results.clip_end = aln_results.query_end;
+
+    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
+    aln_results.database_begin = db_begin_end.first;
+    aln_results.database_end = db_begin_end.second;
   }
 
   if (opt.get_aligned_strings)

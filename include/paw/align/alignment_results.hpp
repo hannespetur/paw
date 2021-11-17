@@ -81,7 +81,8 @@ public:
                                               Tuint mismatch,
                                               Tuint gap_open,
                                               Tuint gap_extend,
-                                              Tuint clip);
+                                              int clip_left,
+                                              int clip_right);
 
   inline void clear();
 
@@ -97,27 +98,11 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
   cigar_string_ptr = std::make_unique<std::vector<paw::Cigar>>();
   std::vector<Cigar> & cigar_string = *cigar_string_ptr;
-
-  if (clip_end < query_end)
-  {
-    cigar_string.emplace_back(query_end - clip_end, CigarOperation::SOFT_CLIP);
-    j = clip_end;
-  }
-
-  if (j <= clip_begin)
-    return;
-
   Cigar new_cigar;
 
-  auto add_del = [this](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_del = [](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0);
-
-    if (j > this->clip_end)
-    {
-      --j;
-      return;
-    }
 
     if (new_cigar.operation == CigarOperation::DELETION)
     {
@@ -136,18 +121,13 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --j;
   };
 
-  auto add_del_ext = [this](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_del_ext = [](long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0);
 
-    if (j > this->clip_end)
-    {
-      --j;
-      return;
-    }
-
     if (new_cigar.operation == CigarOperation::DELETION)
     {
+      //std::cout << "Del now: " << new_cigar.count << "\n";
       ++new_cigar.count;
     }
     else
@@ -162,7 +142,7 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --j;
   };
 
-  auto add_ins = [this](long & i, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_ins = [](long & i, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(i > 0);
 
@@ -204,16 +184,10 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --i;
   };
 
-  auto add_sub = [this](long & i, long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
+  auto add_sub = [](long & i, long & j, Cigar & new_cigar, std::vector<Cigar> & cigar_string)
   {
     assert(j > 0l);
     assert(i > 0l);
-
-    if (j > this->clip_end)
-    {
-      --j;
-      return;
-    }
 
     if (new_cigar.operation == CigarOperation::MATCH)
     {
@@ -232,7 +206,7 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
     --j;
   };
 
-  while ((i > database_begin || j > clip_begin) && (clip_begin == 0 || j > clip_begin))
+  while (i > database_begin || j > 0)
   {
     if (j == 0)
     {
@@ -250,48 +224,27 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
     if (i == database_begin)
     {
-      assert(j > clip_begin);
+      assert(j > 0);
       add_del(j, new_cigar, cigar_string);
 
-      while (j > clip_begin)
+      while (j > 0)
         add_del_ext(j, new_cigar, cigar_string);
     }
     else if (aln_cache.mB.is_del(i - 1, v, e))
     {
-      while (j > clip_begin + 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
+      while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
         add_del_ext(j, new_cigar, cigar_string);
 
-      assert(j > clip_begin);
+      assert(j > 0);
       add_del(j, new_cigar, cigar_string);
     }
     else if (aln_cache.mB.is_ins(i - 1, v, e))
     {
-      if (j > clip_end)
-      {
-        while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
-          --i;
+      while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
+        add_ins_ext(i, new_cigar, cigar_string);
 
-        assert(i > database_begin);
-        --i;
-      }
-      else
-      {
-        while (i > (database_begin + 1) && aln_cache.mB.is_ins_extend(i - 1, v, e))
-        {
-          if (j > clip_end)
-            --i;
-          else
-            add_ins_ext(i, new_cigar, cigar_string);
-        }
-
-        assert(i > database_begin);
-
-        if (j > clip_end)
-          --i;
-        else
-          add_ins(i, new_cigar, cigar_string);
-      }
-
+      assert(i > database_begin);
+      add_ins(i, new_cigar, cigar_string);
     }
     else
     {
@@ -301,10 +254,8 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 
   if (new_cigar.operation != CigarOperation::UNSET)
     cigar_string.push_back(new_cigar);
-
-  if (clip_begin > 0)
-    cigar_string.emplace_back(clip_begin, CigarOperation::SOFT_CLIP);
 }
+
 
 template <typename Tuint, typename Tseq>
 inline void AlignmentResults::get_aligned_strings(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
@@ -506,7 +457,8 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
   Tuint mismatch,
   Tuint gap_open,
   Tuint gap_extend,
-  Tuint clip)
+  int clip_left,
+  int clip_right)
 {
   //#ifndef NDEBUG
   //long const old_score = score;
@@ -516,6 +468,7 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
   long tmp_score{0l};
   std::pair<long, long> res = {0, query_end};
 
+  if (clip_left >= 0 && clip_right >= 0)
   {
     long i = database_end;
     long j = query_end;
@@ -579,15 +532,15 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
 
         if (q[j] == d[i] || q[j] == 'N' || d[i] == 'N')
         {
-          // Check clip of end
-          if (tmp_score < 0 - static_cast<long>(clip))
+          // match, check clip of end
+          if (tmp_score < 0 - static_cast<long>(clip_right))
           {
             res.second = j + 1;
-            score -= static_cast<long>(clip) + tmp_score;
+            score -= static_cast<long>(clip_right) + tmp_score;
             //std::cout << "BETTER END CLIP " << tmp_score << " > " << old_score << " " << i << "," << j << "\n";
 
             // adjust best_begin_clip based on this new end clip
-            best_begin_clip_improvement += static_cast<long>(clip) + tmp_score;
+            best_begin_clip_improvement += static_cast<long>(clip_right) + tmp_score;
 
             if (best_begin_clip_improvement <= 0)
             {
@@ -598,16 +551,16 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
               res.first = 0;
             }
 
-            tmp_score = -static_cast<long>(clip);
+            tmp_score = -static_cast<long>(clip_right);
           }
 
           // giff match
           tmp_score += static_cast<long>(match);
 
           // Check clip of begin
-          if (tmp_score - static_cast<long>(clip) > score)
+          if (tmp_score - static_cast<long>(clip_left) > score)
           {
-            long const diff = tmp_score - static_cast<long>(clip) - score;
+            long const diff = tmp_score - static_cast<long>(clip_left) - score;
 
             if (diff > best_begin_clip_improvement)
             {
@@ -625,6 +578,90 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
         }
       }
     }
+  }
+  else if (clip_left < 0 && clip_right >= 0)
+  {
+    long i = database_end;
+    long j = query_end;
+
+    assert(j == static_cast<long>(q.size()));
+    assert(i == static_cast<long>(d.size()));
+
+    while (i > 0 || j > 0)
+    {
+      if (j == 0)
+        break;
+
+      assert(i >= 0);
+      assert(j >= 0);
+      long const v = j % aln_cache.mB.t;
+      long const e = j / aln_cache.mB.t;
+
+      if (i == 0)
+      {
+        assert(j > 0);
+        --j;
+
+        while (j > 0)
+          --j;
+      }
+      else if (aln_cache.mB.is_del(i - 1, v, e))
+      {
+        while (j > 1 && aln_cache.mB.is_del_extend(i - 1, j % aln_cache.mB.t, j / aln_cache.mB.t))
+        {
+          tmp_score -= static_cast<long>(gap_extend);
+          --j;
+        }
+
+        assert(j > 0);
+        tmp_score -= static_cast<long>(gap_open);
+        --j;
+      }
+      else if (aln_cache.mB.is_ins(i - 1, v, e))
+      {
+        while (i > 1 && aln_cache.mB.is_ins_extend(i - 1, v, e))
+        {
+          if (j < query_end)
+            tmp_score -= static_cast<long>(gap_extend);
+
+          --i;
+        }
+        assert(i > 0);
+        --i;
+
+        if (j < query_end)
+          tmp_score -= static_cast<long>(gap_open);
+      }
+      else
+      {
+        --i;
+        --j;
+
+        if (q[j] == d[i] || q[j] == 'N' || d[i] == 'N')
+        {
+          // match, check clip of end
+          if (tmp_score < 0 - static_cast<long>(clip_right))
+          {
+            res.second = j + 1;
+            score -= static_cast<long>(clip_right) + tmp_score;
+            tmp_score = -static_cast<long>(clip_right);
+          }
+
+          // giff match
+          tmp_score += static_cast<long>(match);
+        }
+        else
+        {
+          tmp_score -= static_cast<long>(mismatch);
+        }
+      }
+    }
+  }
+  else
+  {
+    // not yet implemented
+    std::cerr << "ERROR: clip_right < 0 has not been implemented." << std::endl;
+    std::exit(1);
   }
 
   //std::cout << "new_score, old_score, tmp_score = " << score << " " << old_score << " " << tmp_score << "\n";
