@@ -12,6 +12,7 @@
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/align/pairwise_alignment.hpp>
+#include <paw/align/pairwise_ext_alignment.hpp>
 #include <paw/internal/config.hpp>
 
 
@@ -121,6 +122,15 @@ SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
                          )
                        )
 
+SIMDPP_MAKE_DISPATCHER((template <typename Tseq, typename Tuint>)
+                         (< Tseq, Tuint >)
+                         (void)
+                         (pairwise_ext_alignment)
+                         ((Tseq const &) x, (Tseq const &) y, (
+                           AlignmentOptions<Tuint>&)z
+                         )
+                       )
+
 SIMDPP_INSTANTIATE_DISPATCHER(
   (template void pairwise_alignment<std::string, uint8_t>(
      std::string const & s1, std::string const & s2,
@@ -139,6 +149,15 @@ SIMDPP_INSTANTIATE_DISPATCHER(
      AlignmentOptions<uint16_t>&o))
   )
 
+SIMDPP_INSTANTIATE_DISPATCHER(
+  (template void pairwise_ext_alignment<std::string, uint8_t>(
+     std::string const & s1, std::string const & s2,
+     AlignmentOptions<uint8_t>&o)),
+  (template void pairwise_ext_alignment<std::string, uint16_t>(
+     std::string const & s1, std::string const & s2,
+     AlignmentOptions<uint16_t>&o))
+  )
+
 #if defined __has_include
 #  if __has_include (<string_view>)
 SIMDPP_INSTANTIATE_DISPATCHER(
@@ -146,6 +165,15 @@ SIMDPP_INSTANTIATE_DISPATCHER(
      std::string_view const & s1, std::string_view const & s2,
      AlignmentOptions<uint8_t>&o)),
   (template void pairwise_alignment<std::string_view, uint16_t>(
+     std::string_view const & s1, std::string_view const & s2,
+     AlignmentOptions<uint16_t>&o))
+  )
+
+SIMDPP_INSTANTIATE_DISPATCHER(
+  (template void pairwise_ext_alignment<std::string_view>(
+     std::string_view const & s1, std::string_view const & s2,
+     AlignmentOptions<uint8_t>&o)),
+  (template void pairwise_ext_alignment<std::string_view, uint16_t>(
      std::string_view const & s1, std::string_view const & s2,
      AlignmentOptions<uint16_t>&o))
   )

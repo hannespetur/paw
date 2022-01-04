@@ -62,11 +62,11 @@ struct AlignmentResults
   ~AlignmentResults() noexcept = default;
 
 public:
-  template <typename Tuint>
-  inline void get_cigar_string(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache);
+  template <typename Tcache>
+  inline void get_cigar_string(Tcache & aln_cache);
 
-  template <typename Tuint, typename Tseq>
-  inline void get_aligned_strings(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+  template <typename Tcache, typename Tseq>
+  inline void get_aligned_strings(Tcache & aln_cache,
                                   Tseq const & q,
                                   Tseq const & d);
 
@@ -90,8 +90,8 @@ public:
   inline void reset(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> * cache);
 };
 
-template <typename Tuint>
-inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache)
+template <typename Tcache>
+inline void AlignmentResults::get_cigar_string(Tcache & aln_cache)
 {
   long i = database_end;
   long j = query_end;
@@ -257,8 +257,8 @@ inline void AlignmentResults::get_cigar_string(paw::SIMDPP_ARCH_NAMESPACE::Align
 }
 
 
-template <typename Tuint, typename Tseq>
-inline void AlignmentResults::get_aligned_strings(paw::SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> & aln_cache,
+template <typename Tcache, typename Tseq>
+inline void AlignmentResults::get_aligned_strings(Tcache & aln_cache,
                                                          Tseq const & /*q*/,
                                                          Tseq const & d)
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <paw/align/alignment_cache.hpp>
+#include <paw/align/alignment_ext_cache.hpp>
 #include <paw/align/alignment_options.hpp>
 #include <paw/align/alignment_results.hpp>
 #include <paw/align/libsimdpp_backtracker.hpp>
@@ -19,11 +19,9 @@
 namespace paw
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -34,11 +32,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_null
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -47,11 +43,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_sse2
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -60,11 +54,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_sse3
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -73,11 +65,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_sse4p1
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -86,11 +76,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_sse4p1_popcnt
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -99,11 +87,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_popcnt_avx
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -112,11 +98,9 @@ pairwise_alignment(Tseq const & seq1,
 namespace arch_popcnt_avx2
 {
 
-std::string get_current_arch();
-
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1,
+pairwise_ext_alignment(Tseq const & seq1,
                    Tseq const & seq2,
                    AlignmentOptions<Tuint> & opts);
 
@@ -132,26 +116,30 @@ namespace SIMDPP_ARCH_NAMESPACE
 
 template <typename Tseq, typename Tuint>
 void
-pairwise_alignment(Tseq const & seq1, // seq1 is query
-                   Tseq const & seq2, // seq2 is database
-                   AlignmentOptions<Tuint> & opt)
+pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
+                       Tseq const & seq2, // seq2 is database
+                       AlignmentOptions<Tuint> & opt)
 {
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
-  AlignmentCache<Tuint> aln_cache;
-  paw::SIMDPP_ARCH_NAMESPACE::set_query<Tuint, Tseq>(opt, aln_cache, seq1);
-  paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(aln_cache, seq2);
+  AlignmentExtCache<Tuint> aln_cache; // The ExtCache forces x_gain == 0
+  paw::SIMDPP_ARCH_NAMESPACE::set_query_ext<Tuint, Tseq>(opt, aln_cache, seq1);
+  paw::SIMDPP_ARCH_NAMESPACE::set_database_ext<Tuint, Tseq>(aln_cache, seq2);
 
   assert(opt.get_alignment_results());
   AlignmentResults & aln_results = *opt.get_alignment_results();
 
   long const m = aln_cache.query_size; // Local variable for the query size
-  long const t = aln_cache.num_vectors; // Keep t as a local variable is it widely used
-  long const right_v = m % t; // Vector that contains the rightmost element
-  long const right_e = m / t; // The right-most element (in vector 'right_v')
+  long const t = aln_cache.num_vectors; // Keep t as a local variable as it is widely used
   long const n = std::distance(seq2.begin(), seq2.end());
+  int max_score{std::numeric_limits<int>::min()};
+  int max_score_i{-1};
+  int max_score_v{-1};
+  int max_score_e{-1};
+  int const right_v = m % t; // Vector that contains the rightmost element
+  int const right_e = m / t; // The right-most element (in vector 'right_v')
 
   Tvec_pack vH(static_cast<std::size_t>(t), simdpp::make_int(
                  2 * aln_cache.gap_open_val + std::numeric_limits<Tuint>::min()));
@@ -162,14 +150,15 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   store_scores(opt, aln_cache, 0, vE);
 #endif // NDEBUG
 
-  Tpack const gap_open_pack_x = simdpp::make_int(opt.get_gap_open_val_x(aln_cache));
+  Tpack const gap_open_pack_x = simdpp::make_int(opt.get_gap_open());
   Tuint const gap_open_val_y = opt.get_gap_open_val_y(aln_cache); // Store once
   Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
 
   /// Start of outer loop
   for (long i{0}; i < n; ++i)
   {
-    reduce_too_high_scores(aln_cache);
+    // aln_cache.reduce_every_element(aln_cache.y_gain);
+    // reduce_too_high_scores(aln_cache); // TODO make a similar function that must reduce every element
 
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
@@ -192,37 +181,11 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
                                                     gap_open_val_y)
                                  );
 
-      vH[0] = shift_one_right<Tuint>(aln_cache.vH_up[t - 1] + vW[t - 1],
-                                     left,
-                                     aln_cache.reductions);
+      vH[0] = shift_one_right<Tuint>(aln_cache.vH_up[t - 1] + vW[t - 1], left);
     }
 
     // Check if any insertion have highest values
     vF[0] = aln_cache.vH_up[0] - gap_open_pack_y;
-
-    if (opt.left_column_free)
-    {
-      Tarr_uint vF0;
-      vF0.fill(std::numeric_limits<Tuint>::min());
-      simdpp::store_u(&vF0[0], vF[0]);
-      vF0[0] = simdpp::extract<0>(aln_cache.vH_up[0]) + aln_cache.y_gain;
-      vF[0] = simdpp::load(&vF0[0]);
-    }
-
-    // In case right_v is 0
-    if (opt.right_column_free && right_v == 0)
-    {
-      Tarr_uint vH_up_0;
-      vH_up_0.fill(std::numeric_limits<Tuint>::min());
-      simdpp::store_u(&vH_up_0[0], aln_cache.vH_up[0]);
-
-      Tarr_uint vF0;
-      vF0.fill(std::numeric_limits<Tuint>::min());
-      simdpp::store_u(&vF0[0], vF[0]);
-
-      vF0[right_e] = vH_up_0[right_e] + aln_cache.y_gain;
-      vF[0] = simdpp::load(&vF0[0]);
-    }
 
     aln_cache.mB.set_ins_extend(i, 0, max_greater<Tuint>(vF[0], aln_cache.vF_up[0]));
     aln_cache.mB.set_ins(i, 0, max_greater<Tuint>(vH[0], vF[0]));
@@ -235,29 +198,13 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
       vH[v] = aln_cache.vH_up[v - 1] + vW[v - 1];
       vF[v] = aln_cache.vH_up[v] - gap_open_pack_y;
 
-      // In case right_v is 0
-      if (opt.right_column_free && right_v == v)
-      {
-        Tarr_uint vH_up_v;
-        vH_up_v.fill(std::numeric_limits<Tuint>::min());
-        simdpp::store_u(&vH_up_v[0], aln_cache.vH_up[v]);
-
-        Tarr_uint vF0;
-        vF0.fill(std::numeric_limits<Tuint>::min());
-        simdpp::store_u(&vF0[0], vF[v]);
-
-        vF0[right_e] = vH_up_v[right_e] + aln_cache.y_gain;
-        vF[v] = simdpp::load(&vF0[0]);
-      }
-
       aln_cache.mB.set_ins_extend(i, v, max_greater<Tuint>(vF[v], aln_cache.vF_up[v]));
       aln_cache.mB.set_ins(i, v, max_greater<Tuint>(vH[v], vF[v]));
     } /// Done calculating vectors v=1,...,t-1
 
     {
       /// Deletions pass 1
-      vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x,
-                                     std::numeric_limits<Tuint>::min(), aln_cache.reductions);
+      vE[0] = shift_one_right<Tuint>(vH[t - 1] - gap_open_pack_x, std::numeric_limits<Tuint>::min());
 
       for (long v = 1; v < t; ++v)
       {
@@ -272,16 +219,13 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
       simdpp::store_u(&vE0[0], vE[0]);
 
       // Check for deletions in vector 0
-      Tpack vE0r_pack = shift_one_right<Tuint>(vE[t - 1],
-                                               std::numeric_limits<Tuint>::min(),
-                                               aln_cache.reductions);
+      Tpack vE0r_pack = shift_one_right<Tuint>(vE[t - 1], std::numeric_limits<Tuint>::min());
       simdpp::store_u(&vE0r[0], vE0r_pack);
       bool is_improved = false;
 
       for (long e = 1; e < static_cast<long>(vE0r.size()); ++e)
       {
-        long val = static_cast<long>(vE0r[e - 1]) + aln_cache.reductions[e - 1] -
-                   aln_cache.reductions[e];
+        long val = static_cast<long>(vE0r[e - 1]);
 
         if (val > static_cast<long>(vE0r[e]))
           vE0r[e] = val;
@@ -321,57 +265,106 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
   #ifndef NDEBUG
     store_scores(opt, aln_cache, i + 1l, vE);
   #endif
+
+    // get the max scores
+    if ((i + 1) < n)
+    {
+      int current_max_vector{right_v};
+      int current_max_score = simdpp::reduce_max(aln_cache.vH_up[0]) - opt.get_clip(); // reduce by clip
+
+      // first check the last query element
+      {
+        std::vector<Tuint> arr_right(S / sizeof(Tuint));
+        simdpp::store_u(&arr_right[0], aln_cache.vH_up[right_v]);
+        int score_right = arr_right[right_e];
+
+        if (score_right >= current_max_score)
+        {
+          current_max_score = score_right; // no clip reduction
+          /* current_max_vector = right_v; */ // commented because it is already set
+        }
+      }
+
+      for (long v{0}; v < t; ++v)
+      {
+        if (v == right_v)
+          continue;
+
+        auto score = simdpp::reduce_max(aln_cache.vH_up[v]) - opt.get_clip();
+
+        if (score > current_max_score)
+        {
+          current_max_score = score;
+          current_max_vector = v;
+        }
+      }
+
+      int const reduction = (i + 1) * aln_cache.y_gain - aln_cache.reduction;
+      int const corrected_max_score = current_max_score - reduction;
+
+      if (corrected_max_score >= max_score)
+      {
+        // get which element in the current_max_vector had the maximum score
+        std::vector<Tuint> arr(S / sizeof(Tuint));
+        simdpp::store_u(&arr[0], aln_cache.vH_up[current_max_vector]);
+        auto find_max_it = std::find(arr.begin(), arr.end(), static_cast<Tuint>(current_max_score + opt.get_clip()));
+
+        if (find_max_it == arr.end())
+        {
+          // happens only if right_ve is best alignment
+          assert(current_max_vector == right_v);
+
+          max_score_v = right_v; // set which vector contains the maximum score
+          max_score_e = right_e; // set which element has the maximum score
+        }
+        else
+        {
+          max_score_v = current_max_vector; // set which vector contains the maximum score
+          max_score_e = std::distance(arr.begin(), find_max_it); // set which element has the maximum score
+        }
+
+        max_score = corrected_max_score; // set a new max_score to the current one
+        max_score_i = i; // set which row contains the maximum score
+      }
+      else
+      {
+        // check if it is impossible to get a better score
+        int const potential_score = corrected_max_score + opt.get_match() * (n - 1 - i);
+
+        if (potential_score < max_score)
+          break;
+      }
+    }
+    else
+    {
+
+    }
   } /// End of outer loop
 
-  std::vector<Tuint> arr(S / sizeof(Tuint));
-  simdpp::store_u(&arr[0], aln_cache.vH_up[m % t]);
-  aln_results.query_end = m;
-  aln_results.database_end = n;
-  aln_cache.reduce_every_element(-n * aln_cache.y_gain);
-  aln_results.score = static_cast<long>(arr[m / t])
-                      + static_cast<long>(aln_cache.reductions[m / t])
-                      - m * aln_cache.x_gain;
-
-  if (opt.is_clip && (opt.left_column_free || opt.right_column_free))
+  if (max_score_i > 0 && max_score_e > 0)
   {
-    int const clip_left = opt.left_column_free ? opt.get_clip() : -1;
-    int const clip_right = opt.get_clip();
-    std::pair<long, long> const & clip = aln_results.apply_clipping<Tuint>(aln_cache,
-                                                                    seq1,
-                                                                    seq2,
-                                                                    opt.get_match(),
-                                                                    opt.get_mismatch(),
-                                                                    opt.get_gap_open(),
-                                                                    opt.get_gap_extend(),
-                                                                    clip_left,
-                                                                    clip_right);
-
-    aln_results.clip_begin = clip.first;
-    aln_results.clip_end = clip.second;
-
-    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
-    aln_results.database_begin = db_begin_end.first;
-    aln_results.database_end = db_begin_end.second;
+    aln_results.query_end = t * max_score_e + max_score_v;
+    aln_results.database_end = max_score_i + 1;
+    aln_results.score = max_score;
   }
   else
   {
-    aln_results.clip_begin = aln_results.query_begin;
-    aln_results.clip_end = aln_results.query_end;
-
-    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
-    aln_results.database_begin = db_begin_end.first;
-    aln_results.database_end = db_begin_end.second;
+    std::vector<Tuint> arr(S / sizeof(Tuint));
+    simdpp::store_u(&arr[0], aln_cache.vH_up[m % t]);
+    aln_results.query_end = m;
+    aln_results.database_end = n;
+    aln_results.score = static_cast<long>(arr[m / t])
+                      + static_cast<long>(aln_cache.reduction);
   }
+
+  aln_results.clip_begin = aln_results.query_begin;
+  aln_results.clip_end = aln_results.query_end;
 
   if (opt.get_aligned_strings)
-  {
     aln_results.get_aligned_strings(aln_cache, seq1, seq2);
-  }
 
   if (opt.get_cigar_string)
-  {
     aln_results.get_cigar_string(aln_cache);
-  }
 }
 
 

@@ -8,6 +8,7 @@
 #include <simdpp/simd.h>
 
 #include <paw/align/alignment_cache.hpp>
+#include <paw/align/alignment_ext_cache.hpp>
 #include <paw/align/alignment_results.hpp>
 //#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
@@ -228,8 +229,9 @@ public:
   }
 
 
+  template<typename Tcache>
   inline Tuint
-  get_gap_open_val_y(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> const & aln_cache) const
+  get_gap_open_val_y(Tcache const & aln_cache) const
   {
     return gap_open - aln_cache.y_gain;
   }
@@ -330,7 +332,63 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
 
 template <typename Tuint, typename Tseq>
 void
+set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cache, Tseq const & seq)
+{
+  using Tpack = typename T<Tuint>::pack;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+
+  std::string new_query;
+
+  if (!opt.is_query_reverse_complement)
+  {
+    new_query = std::string(seq.data(), seq.size()); // TODO this allocation is unneccesary
+  }
+  else
+  {
+    new_query.resize(seq.size(), '\0');
+    std::transform(seq.rbegin(), seq.rend(), new_query.begin(), paw::complement);
+  }
+
+  Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
+
+    aln_cache.set_query(std::move(new_query));
+    aln_cache.set_options(opt.get_match(),
+                          opt.get_mismatch(),
+                          opt.get_gap_open(),
+                          opt.get_gap_extend());
+
+  aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
+                              static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +
+                                                                  std::numeric_limits<Tuint>::min()))
+                              );
+
+  // init vH up
+  {
+    long const gap_open_val = aln_cache.gap_open_val;
+    std::vector<Tuint> new_vH0(T<Tuint>::pack::length,
+                               2 * gap_open_val + std::numeric_limits<Tuint>::min());
+
+    assert(aln_cache.vH_up.size() > 0);
+    new_vH0[0] = gap_open_val * 3 + std::numeric_limits<Tuint>::min();
+    aln_cache.vH_up[0] = simdpp::load_u(&new_vH0[0]);
+
+  }
+
+  aln_cache.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
+  aln_cache.reduction = static_cast<long>(-std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
+}
+
+
+template <typename Tuint, typename Tseq>
+void
 set_database(AlignmentCache<Tuint> & aln_cache, Tseq const & seq)
+{
+  aln_cache.mB = Backtrack<Tuint>(std::distance(begin(seq), end(seq)), aln_cache.num_vectors);
+}
+
+template <typename Tuint, typename Tseq>
+void
+set_database_ext(AlignmentExtCache<Tuint> & aln_cache, Tseq const & seq)
 {
   aln_cache.mB = Backtrack<Tuint>(std::distance(begin(seq), end(seq)), aln_cache.num_vectors);
 }

@@ -60,11 +60,30 @@ shift_one_right(typename T<Tuint>::pack pack,
   std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
-  Tuint const min_value = std::numeric_limits<Tuint>::min();
+  Tuint constexpr min_value = std::numeric_limits<Tuint>::min();
 
   for (long e{1}; e < static_cast<long>(T<Tuint>::pack::length); ++e)
   {
     long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
+    vec[e] = val >= min_value ? val : min_value;
+  }
+
+  return simdpp::load_u(&vec[0]);
+}
+
+template <typename Tuint>
+inline typename T<Tuint>::pack
+shift_one_right(typename T<Tuint>::pack pack,
+                typename T<Tuint>::uint const left)
+{
+  std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
+  vec[0] = left;
+  simdpp::store_u(&vec[1], pack);
+  Tuint constexpr min_value = std::numeric_limits<Tuint>::min();
+
+  for (long e{1}; e < static_cast<long>(T<Tuint>::pack::length); ++e)
+  {
+    long const val = static_cast<long>(vec[e]);
     vec[e] = val >= min_value ? val : min_value;
   }
 

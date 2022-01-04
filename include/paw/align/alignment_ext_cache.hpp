@@ -20,7 +20,7 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tuint>
-struct AlignmentCache
+struct AlignmentExtCache
 {
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
   using Tarr_uint = typename T<Tuint>::arr_uint;
@@ -28,7 +28,6 @@ struct AlignmentCache
 
   std::string query;
 
-  Tuint x_gain {0};
   Tuint y_gain {0};
   long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
   long num_vectors {0}; // Number of SIMD vectors per row
@@ -38,16 +37,14 @@ struct AlignmentCache
   Tuint max_score_val {0};
   Tvec_pack vH_up{};
   Tvec_pack vF_up{};
+  long reduction{0};
   Backtrack<Tuint> mB{};
   Tarr_vec_pack W_profile;
-  std::array<long, S / sizeof(Tuint)> reductions;
 
-  AlignmentCache()
+
+  AlignmentExtCache()
   {
-    //W_profile.fill(0);
-    reductions.fill(0);
   }
-
 
   inline void
   set_query(std::string && new_query)
@@ -61,11 +58,10 @@ struct AlignmentCache
   inline void
   set_options(Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)
   {
-    x_gain = gap_extend;
-    y_gain = std::max(gap_extend, static_cast<Tuint>(mismatch - x_gain));
-    gap_open_val = std::max(gap_open - x_gain, gap_open - y_gain);
-    match_val = x_gain + y_gain + match;
-    mismatch_val = x_gain + y_gain - mismatch;
+    y_gain = std::max(gap_extend, static_cast<Tuint>(mismatch));
+    gap_open_val = gap_open;
+    match_val = y_gain + match;
+    mismatch_val = y_gain - mismatch;
     max_score_val = std::numeric_limits<Tuint>::max() - match_val - gap_open_val;
 
     /// Calculate DNA W_profile
@@ -80,7 +76,7 @@ struct AlignmentCache
         W.reserve(num_vectors);
 
         {
-          for (long v = 0; v < num_vectors; ++v)
+          for (long v{0}; v < num_vectors; ++v)
           {
             std::vector<Tuint> seq(T<Tuint>::pack::length, mismatch_val);
 
@@ -137,11 +133,10 @@ struct AlignmentCache
   inline void
   reduce_every_element(long val)
   {
-    for (auto & reduction : reductions)
-      reduction += val;
+    reduction += val;
   }
 
-
+/*
   inline void
   set_free_snps(std::set<Event2> const & events)
   {
@@ -168,7 +163,7 @@ struct AlignmentCache
     vW[e] = match_val + 1;
     W[v] = simdpp::load_u(&vW[0]);
   }
-
+*/
 
 };
 
