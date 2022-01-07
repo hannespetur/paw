@@ -346,7 +346,6 @@ set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cach
     assert(aln_cache.vH_up.size() > 0);
     new_vH0[0] = gap_open_val * 3 + std::numeric_limits<Tuint>::min();
     aln_cache.vH_up[0] = simdpp::load_u(&new_vH0[0]);
-
   }
 
   aln_cache.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
@@ -357,7 +356,7 @@ set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cach
   assert(aln_cache.query_size == static_cast<int>(seq.size()));
   int constexpr pack_length = T<Tuint>::pack::length;
   int const gap_extend = opt.get_gap_extend();
-  //aln_cache.reduction -= aln_cache.query_size * gap_extend;
+  aln_cache.reduction -= aln_cache.query_size * gap_extend;
 
   for (int v{0}; v < aln_cache.num_vectors; ++v)
   {
@@ -404,8 +403,8 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
   using Tmask = typename T<Tuint>::mask;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
-  //AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
-  //AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  // AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
+  // AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
   long const num_vectors = aln_cache.num_vectors;
 
   if (simdpp::reduce_max(aln_cache.vH_up[num_vectors - 1]) >= aln_cache.max_score_val)
@@ -421,7 +420,7 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
     assert(vF0.size() == new_reductions.size());
     bool any_reductions = false;
 
-    for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
+    for (int e{1}; e < static_cast<int>(vF0.size()); ++e)
     {
       long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * aln_cache.gap_open_val);
 

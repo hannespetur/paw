@@ -10,6 +10,7 @@
 #include <paw/align/libsimdpp_backtracker.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
 #include <paw/align/pairwise_alignment.hpp>
+#include <paw/align/pairwise_ext_alignment.hpp>
 #include <paw/align/sequence_utils.hpp>
 #include <paw/align/skyr.hpp>
 #include <paw/align/variant.hpp>

@@ -131,9 +131,9 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
   assert(opt.get_alignment_results());
   AlignmentResults & aln_results = *opt.get_alignment_results();
 
-  long const m = aln_cache.query_size; // Local variable for the query size
-  long const t = aln_cache.num_vectors; // Keep t as a local variable as it is widely used
-  long const n = std::distance(seq2.begin(), seq2.end());
+  int const m = aln_cache.query_size; // Local variable for the query size
+  int const t = aln_cache.num_vectors; // Keep t as a local variable as it is widely used
+  int const n = std::distance(seq2.begin(), seq2.end());
   int max_score{std::numeric_limits<int>::min()};
   int max_score_i{-1};
   int max_score_v{-1};
@@ -281,7 +281,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       int current_max_score = static_cast<int>(simdpp::reduce_max(aln_cache.vH_up[right_v] + aln_cache.vX[right_v])) -
         static_cast<int>(opt.get_clip());
 
-      int score_right = std::numeric_limits<int>::min();
+      int score_right;
 
       // first check the last query element
       {

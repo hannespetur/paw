@@ -358,9 +358,9 @@ pairwise_alignment(Tseq const & seq1, // seq1 is query
     aln_results.clip_begin = aln_results.query_begin;
     aln_results.clip_end = aln_results.query_end;
 
-    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
-    aln_results.database_begin = db_begin_end.first;
-    aln_results.database_end = db_begin_end.second;
+    //std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
+    //aln_results.database_begin = db_begin_end.first;
+    //aln_results.database_end = db_begin_end.second;
   }
 
   if (opt.get_aligned_strings)

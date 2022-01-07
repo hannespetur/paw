@@ -19,6 +19,9 @@ target_link_libraries(align_ex6 shared)
 add_executable(align_ex7 align_ex7_ref_align.cpp)
 target_link_libraries(align_ex7 shared)
 
+add_executable(align_ex8 align_ex8_ext_tests.cpp)
+target_link_libraries(align_ex8 shared)
+
 
 # Search for clang-tidy
 find_program(

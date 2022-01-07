@@ -72,7 +72,7 @@ main(int, char **)
 
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
-  paw::arch_sse4p1::pairwise_alignment(database, query, opts);
+  paw::arch_sse4p1_popcnt::pairwise_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << opts.get_alignment_results()->score << "\n";
