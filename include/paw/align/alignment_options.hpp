@@ -30,7 +30,7 @@ public:
   bool get_aligned_strings{false};
   bool get_cigar_string{false};
   bool is_clip{false};
-  bool is_query_reverse_complement{false};
+  // bool is_query_reverse_complement{false};
   // bool is_no_indel_check{false};
   std::set<Event2> free_edits; // free SNP events
 
@@ -71,7 +71,7 @@ public:
     , get_aligned_strings(false)
     , get_cigar_string(false)
     , is_clip(false)
-    , is_query_reverse_complement(false)
+//    , is_query_reverse_complement(false)
     , match(2)
     , mismatch(2)
     , gap_open(5)
@@ -269,29 +269,14 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string new_query;
-
-  if (!opt.is_query_reverse_complement)
-  {
-    new_query = std::string(seq.data(), seq.size()); // TODO this allocation is unneccesary
-  }
-  else
-  {
-    new_query.resize(seq.size(), '\0');
-    std::transform(seq.rbegin(), seq.rend(), new_query.begin(), paw::complement);
-  }
-
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
-  //bool const is_new_query = new_query != aln_cache.query;
 
-  //if (is_new_query)
-  {
-    aln_cache.set_query(std::move(new_query));
-    aln_cache.set_options(opt.get_match(),
-                          opt.get_mismatch(),
-                          opt.get_gap_open(),
-                          opt.get_gap_extend());
-  }
+  aln_cache.set_query(seq);
+  aln_cache.set_options(seq,
+                        opt.get_match(),
+                        opt.get_mismatch(),
+                        opt.get_gap_open(),
+                        opt.get_gap_extend());
 
   // TODO add more tests
   //// set free snps
@@ -334,35 +319,25 @@ template <typename Tuint, typename Tseq>
 void
 set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cache, Tseq const & seq)
 {
+  using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string new_query;
-
-  if (!opt.is_query_reverse_complement)
-  {
-    new_query = std::string(seq.data(), seq.size()); // TODO this allocation is unneccesary
-  }
-  else
-  {
-    new_query.resize(seq.size(), '\0');
-    std::transform(seq.rbegin(), seq.rend(), new_query.begin(), paw::complement);
-  }
-
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
 
-    aln_cache.set_query(std::move(new_query));
-    aln_cache.set_options(opt.get_match(),
-                          opt.get_mismatch(),
-                          opt.get_gap_open(),
-                          opt.get_gap_extend());
+  aln_cache.set_query(seq);
+  aln_cache.set_options(seq,
+                        opt.get_match(),
+                        opt.get_mismatch(),
+                        opt.get_gap_open(),
+                        opt.get_gap_extend());
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +
                                                                   std::numeric_limits<Tuint>::min()))
                               );
 
-  // init vH up
+  // init vH_up[0]
   {
     long const gap_open_val = aln_cache.gap_open_val;
     std::vector<Tuint> new_vH0(T<Tuint>::pack::length,
@@ -376,6 +351,33 @@ set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cach
 
   aln_cache.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
   aln_cache.reduction = static_cast<long>(-std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
+
+  // Tvec_pack vGain;
+  // vGain.reserve(aln_cache.num_vectors);
+  assert(aln_cache.query_size == static_cast<int>(seq.size()));
+  int constexpr pack_length = T<Tuint>::pack::length;
+  int const gap_extend = opt.get_gap_extend();
+  //aln_cache.reduction -= aln_cache.query_size * gap_extend;
+
+  for (int v{0}; v < aln_cache.num_vectors; ++v)
+  {
+    Tarr_uint vX_arr;
+
+    for (int e{0}; e < pack_length; ++e)
+    {
+      int i = e * aln_cache.num_vectors + v;
+      int gain = gap_extend * (aln_cache.query_size - i);
+
+      if (gain < 0)
+        gain = 0;
+
+      std::cerr << gain << ",";
+      vX_arr[e] = gain;
+    }
+
+    std::cerr << '\n';
+    aln_cache.vX.push_back(simdpp::load_u(&vX_arr[0]));
+  }
 }
 
 

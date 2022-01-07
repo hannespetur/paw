@@ -26,17 +26,17 @@ struct AlignmentExtCache
   using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string query;
-
+  Tuint x_gain {0};
   Tuint y_gain {0};
-  long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
-  long num_vectors {0}; // Number of SIMD vectors per row
+  int query_size {0}; // Size of query sequence, sometimes also noted as 'm'
+  int num_vectors {0}; // Number of SIMD vectors per row
   Tuint match_val {0};
   Tuint mismatch_val {0};
   Tuint gap_open_val {0};
   Tuint max_score_val {0};
   Tvec_pack vH_up{};
   Tvec_pack vF_up{};
+  Tvec_pack vX{}; // specifies the x_gain offsets
   long reduction{0};
   Backtrack<Tuint> mB{};
   Tarr_vec_pack W_profile;
@@ -46,22 +46,24 @@ struct AlignmentExtCache
   {
   }
 
+  template<typename Tseq>
   inline void
-  set_query(std::string && new_query)
+  set_query(Tseq const & new_query)
   {
-    query = std::forward<std::string>(new_query);
-    query_size = query.size();
+    query_size = new_query.size();
     num_vectors = (query_size + T<Tuint>::pack::length) /
                   T<Tuint>::pack::length;
   }
 
+  template<typename Tseq>
   inline void
-  set_options(Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)
+  set_options(Tseq const & query, Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)
   {
-    y_gain = std::max(gap_extend, static_cast<Tuint>(mismatch));
-    gap_open_val = gap_open;
-    match_val = y_gain + match;
-    mismatch_val = y_gain - mismatch;
+    x_gain = gap_extend;
+    y_gain = std::max(gap_extend, static_cast<Tuint>(mismatch - x_gain));
+    gap_open_val = std::max(gap_open - x_gain, gap_open - y_gain);
+    match_val = x_gain + y_gain + match;
+    mismatch_val = x_gain + y_gain - mismatch;
     max_score_val = std::numeric_limits<Tuint>::max() - match_val - gap_open_val;
 
     /// Calculate DNA W_profile

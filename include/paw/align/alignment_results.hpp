@@ -259,13 +259,12 @@ inline void AlignmentResults::get_cigar_string(Tcache & aln_cache)
 
 template <typename Tcache, typename Tseq>
 inline void AlignmentResults::get_aligned_strings(Tcache & aln_cache,
-                                                         Tseq const & /*q*/,
+                                                         Tseq const & q,
                                                          Tseq const & d)
 {
   long i = database_end;
   long j = query_end;
 
-  auto const & q = aln_cache.query;
   assert(j <= static_cast<long>(q.size()));
   assert(i <= static_cast<long>(d.size()));
 

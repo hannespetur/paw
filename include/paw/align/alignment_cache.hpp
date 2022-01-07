@@ -26,8 +26,6 @@ struct AlignmentCache
   using Tarr_uint = typename T<Tuint>::arr_uint;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string query;
-
   Tuint x_gain {0};
   Tuint y_gain {0};
   long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
@@ -49,17 +47,18 @@ struct AlignmentCache
   }
 
 
+  template<typename Tseq>
   inline void
-  set_query(std::string && new_query)
+  set_query(Tseq const & new_query)
   {
-    query = std::forward<std::string>(new_query);
-    query_size = query.size();
+    query_size = new_query.size();
     num_vectors = (query_size + T<Tuint>::pack::length) /
                   T<Tuint>::pack::length;
   }
 
+  template<typename Tseq>
   inline void
-  set_options(Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)
+  set_options(Tseq const & query, Tuint match, Tuint mismatch, Tuint gap_open, Tuint gap_extend)
   {
     x_gain = gap_extend;
     y_gain = std::max(gap_extend, static_cast<Tuint>(mismatch - x_gain));
@@ -86,7 +85,7 @@ struct AlignmentCache
 
             for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
             {
-              assert(j < static_cast<long>(query.size()));
+              assert(j < query_size);
               char const query_dna_base = *(begin(query) + j);
 
               if (dna_base == query_dna_base || query_dna_base == 'N')
@@ -153,10 +152,9 @@ struct AlignmentCache
   inline void
   set_free_snp(long pos, char alt)
   {
-    assert(pos < static_cast<long>(query.size()));
+    assert(pos < query_size);
     //std::cerr << "Adding free SNP pos,alt = " << pos << ',' << alt << '\n';
     auto & W = W_profile[magic_function(alt)];
-    assert(pos < static_cast<long>(query.size()));
 
     long const v = pos % num_vectors;
     long const e = pos / num_vectors;
