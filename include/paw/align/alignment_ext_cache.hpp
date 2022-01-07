@@ -138,6 +138,12 @@ struct AlignmentExtCache
     reduction += val;
   }
 
+  inline long
+  get_reduction(int /*e*/) const
+  {
+    return reduction;
+  }
+
 /*
   inline void
   set_free_snps(std::set<Event2> const & events)

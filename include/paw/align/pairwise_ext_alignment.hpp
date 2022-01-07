@@ -356,21 +356,47 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
     }
   } /// End of outer loop
 
-  //if (max_score_i >= 0 && max_score_e >= 0)
+  std::vector<Tuint> arr(S / sizeof(Tuint));
+  simdpp::store_u(&arr[0], aln_cache.vH_up[m % t]);
+
+  /*
+#ifndef NDEBUG
+  if (aln_cache.num_vectors == 1)
+  {
+    std::cerr << "last index: " << (m/t) << '\n';
+    std::cerr << "row: ";
+
+    for (int e{0}; e <= aln_cache.query_size; ++e)
+    {
+      std::cerr << static_cast<int>(arr[e]) << ",";
+    }
+
+    std::cerr << '\n';
+  }
+#endif // NDEBUG
+  */
+
+  aln_results.query_end = m;
+  aln_results.database_end = n;
+  aln_results.score = static_cast<long>(arr[m / t])
+                    + static_cast<long>(aln_cache.reduction)
+//                    - m * static_cast<long>(aln_cache.x_gain)
+                    - n * static_cast<long>(aln_cache.y_gain);
+
+  /*
+  std::cerr << static_cast<int>(arr[m/t]) << " - " //
+            << -aln_cache.reduction << " - " //
+//            << (m * static_cast<long>(aln_cache.x_gain)) << " - "
+            << (n * static_cast<long>(aln_cache.y_gain)) << " = "
+            << aln_results.score << '\n';
+  */
+
+  if (max_score > static_cast<int>(aln_results.score))
   {
     aln_results.query_end = t * max_score_e + max_score_v;
     aln_results.database_end = max_score_i + 1;
     aln_results.score = max_score;
   }
-  //else
-  //{
-  //  std::vector<Tuint> arr(S / sizeof(Tuint));
-  //  simdpp::store_u(&arr[0], aln_cache.vH_up[m % t]);
-  //  aln_results.query_end = m;
-  //  aln_results.database_end = n;
-  //  aln_results.score = static_cast<long>(arr[m / t])
-  //                    + static_cast<long>(aln_cache.reduction);
-  //}
 
   aln_results.clip_begin = aln_results.query_begin;
   aln_results.clip_end = aln_results.query_end;

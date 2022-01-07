@@ -351,8 +351,6 @@ set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cach
   aln_cache.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
   aln_cache.reduction = static_cast<long>(-std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
 
-  // Tvec_pack vGain;
-  // vGain.reserve(aln_cache.num_vectors);
   assert(aln_cache.query_size == static_cast<int>(seq.size()));
   int constexpr pack_length = T<Tuint>::pack::length;
   int const gap_extend = opt.get_gap_extend();
@@ -370,11 +368,11 @@ set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cach
       if (gain < 0)
         gain = 0;
 
-      std::cerr << gain << ",";
+      //std::cerr << gain << ",";
       vX_arr[e] = gain;
     }
 
-    std::cerr << '\n';
+    //std::cerr << '\n';
     aln_cache.vX.push_back(simdpp::load_u(&vX_arr[0]));
   }
 }
@@ -479,9 +477,9 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
 }
 
 
-template <typename Tuint>
+template <typename Tuint, typename Tcache>
 std::vector<long> inline
-get_score_row(AlignmentCache<Tuint> const & aln_cache,
+get_score_row(Tcache const & aln_cache,
               long const i,
               typename T<Tuint>::vec_pack const & vX)
 {
@@ -509,7 +507,7 @@ get_score_row(AlignmentCache<Tuint> const & aln_cache,
     assert(v < static_cast<long>(mat.size()));
     assert(e < static_cast<long>(mat[v].size()));
 
-    long const adjustment = aln_cache.reductions[e] - aln_cache.y_gain * i - aln_cache.x_gain * j;
+    long const adjustment = aln_cache.get_reduction(e) - aln_cache.y_gain * i - aln_cache.x_gain * j;
     scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
   }
 
@@ -611,16 +609,16 @@ merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<Alignment
 
 #ifndef NDEBUG
 
-template <typename Tuint>
+template <typename Tuint, typename Tcache>
 inline void
 store_scores(AlignmentOptions<Tuint> & opt,
-             AlignmentCache<Tuint> const & aln_cache,
+             Tcache const & aln_cache,
              long const i,
              typename T<Tuint>::vec_pack const & vE)
 {
-  opt.score_matrix.push_back(get_score_row(aln_cache, i, aln_cache.vH_up));
-  opt.vE_scores.push_back(get_score_row(aln_cache, i, vE));
-  opt.vF_scores.push_back(get_score_row(aln_cache, i, aln_cache.vF_up));
+  opt.score_matrix.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, aln_cache.vH_up));
+  opt.vE_scores.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, vE));
+  opt.vF_scores.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, aln_cache.vF_up));
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }

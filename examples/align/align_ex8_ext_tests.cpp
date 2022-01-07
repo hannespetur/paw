@@ -12,10 +12,10 @@ struct Test
   std::string seq1{};
   std::string seq2{};
   long expected_score = 0;
-  long match = 1;
-  long mismatch = 4;
-  long gap_open = 6;
-  long gap_extend = 1;
+  long match{1};
+  long mismatch{4};
+  long gap_open{6};
+  long gap_extend{1};
 
   Test() = default;
   ~Test() = default;
@@ -23,9 +23,9 @@ struct Test
   Test(std::string const & _seq1,
        std::string const & _seq2,
        long _expected_score = 0,
-       long score_match = 2,
-       long score_mismatch = 2,
-       long score_gap_open = 5,
+       long score_match = 1,
+       long score_mismatch = 4,
+       long score_gap_open = 6,
        long score_gap_extend = 1)
     : seq1(_seq1)
     , seq2(_seq2)
@@ -100,31 +100,6 @@ calculate_score_from_aligned_strings(paw::AlignmentOptions<Tuint> const & opts,
 
       is_del = false;
       is_ins = false;
-    }
-  }
-
-
-  if (opts.left_column_free)
-  {
-    // Add score for every deletion in the beginning
-    for (auto it = a_strings.first.begin(); it != a_strings.first.end() && *it == '-'; ++it)
-    {
-      if (it == a_strings.first.begin())
-        score += (long)opts.get_gap_open();
-      else
-        score += (long)opts.get_gap_extend();
-    }
-  }
-
-  if (opts.right_column_free)
-  {
-    // Add score for every deletion in the end
-    for (auto it = a_strings.first.rbegin(); it != a_strings.first.rend() && *it == '-'; ++it)
-    {
-      if (it == a_strings.first.rbegin())
-        score += (long)opts.get_gap_open();
-      else
-        score += (long)opts.get_gap_extend();
     }
   }
 
@@ -204,7 +179,9 @@ main(int argc, char ** argv)
   std::vector<Test> tests =
   {
     {"G", "G", 1 /*exp. score*/}, // test 0
-//     {"GGG", "GGG", 3 /*exp. score*/}, // test 0.5
+    {"GG", "GG", 2 /*exp. score*/}, // test 1
+    {"GG", "GA", -3}, // test 2
+    {"GGG", "GAA", -4} // test 3
 //     {"GGGG", "GGG", 1}, // test 1
 //     {"GGGGG", "GGG", 3}, // test 2
 //     {"GGG", "GGGG", 1}, // test 3
@@ -256,35 +233,22 @@ main(int argc, char ** argv)
 
   std::string const current_archs = paw::get_current_arch();
   std::cout << "Current archs are: " << current_archs << "\n";
-  std::cout << "== pairwise_alignment ==\n";
+  std::cout << "== pairwise_ext_alignment ==\n";
   long num_passed_tests{0};
   long num_tests = tests_to_run.size();
 
   auto test_if_expected_score =
-    [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i, bool is_swapped) -> bool
+    [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i) -> bool
     {
       bool are_all_tests_ok = true;
       opts.set_match(test.match).set_mismatch(test.mismatch);
       opts.set_gap_open(test.gap_open).set_gap_extend(test.gap_extend);
       opts.get_aligned_strings = true;
 
-      if (is_swapped)
-      {
-        std::swap(opts.left_column_free, opts.right_column_free);
-        paw::pairwise_ext_alignment(test.seq2, test.seq1, opts);
-      }
-      else
-      {
-        paw::pairwise_ext_alignment(test.seq1, test.seq2, opts);
-      }
+      paw::pairwise_ext_alignment(test.seq1, test.seq2, opts);
 
       paw::AlignmentResults const & ar = *opts.get_alignment_results();
       std::string test_suffix;
-
-      if (is_swapped)
-        test_suffix = " (swapped)";
-      else
-        test_suffix = " (not swapped)";
 
       if (ar.score != test.expected_score)
       {
@@ -297,6 +261,9 @@ main(int argc, char ** argv)
       std::pair<std::string, std::string> const & aligned_strings = *ar.aligned_strings_ptr;
       long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
 
+      if (ar.database_end != static_cast<int>(test.seq2.size()))
+        score_aligned_strings -= opts.get_clip();
+
       if (score_aligned_strings != test.expected_score)
       {
         std::cout << "\nINCORRECT. Traceback error, score from aligned strings does not match in test "
@@ -304,9 +271,12 @@ main(int argc, char ** argv)
                   << ". Got score " << score_aligned_strings
                   << " but I expected " << test.expected_score << "\n" << std::endl;
 
+        std::cout << aligned_strings.first << '\n' << aligned_strings.second << '\n';
+
         are_all_tests_ok = false;
       }
 
+      /*
 #ifndef NDEBUG
       assert(opts.score_matrix.size() > 0);
       assert(opts.score_matrix[0].size() > 0);
@@ -318,14 +288,10 @@ main(int argc, char ** argv)
                   << ".  Got score " << opts.score_matrix.back().back()
                   << " but I expected " << test.expected_score << "\n" << std::endl;
 
-        print_matrix(opts.score_matrix);
         are_all_tests_ok = false;
       }
 #endif
-
-      // Fix options in case we swapped left_column_free and right_column_free
-      if (is_swapped)
-        std::swap(opts.left_column_free, opts.right_column_free);
+*/
 
       return are_all_tests_ok;
     };
@@ -335,9 +301,8 @@ main(int argc, char ** argv)
     assert(i < static_cast<long>(tests.size()));
 
     auto const & test = tests[i];
-    bool is_swapped = !noswap_only && swap_only;
     paw::AlignmentOptions<uint8_t> opts;
-    bool are_all_tests_ok = test_if_expected_score(opts, test, i, is_swapped);
+    bool are_all_tests_ok = test_if_expected_score(opts, test, i);
 
     if (!swap_only && !noswap_only && opts.left_column_free == false && opts.right_column_free == false)
     {
@@ -359,9 +324,9 @@ main(int argc, char ** argv)
       assert(vF_matrix[0].size() == opts.vF_scores.size());
 #endif // NDEBUG
 
-      assert(!is_swapped); // Do align with swapped sequence
-      are_all_tests_ok &= test_if_expected_score(opts, test, i, !is_swapped);
+      are_all_tests_ok &= test_if_expected_score(opts, test, i);
 
+      /*
 #ifndef NDEBUG
       if (score_matrix != opts.score_matrix)
       {
@@ -421,6 +386,7 @@ main(int argc, char ** argv)
         }
       }
 #endif // NDEBUG
+      */
     }
 
     if (are_all_tests_ok)
