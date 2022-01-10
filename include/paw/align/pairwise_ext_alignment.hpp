@@ -163,10 +163,10 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
   /// Start of outer loop
   for (long i{0}; i < n; ++i)
   {
-    // aln_cache.reduce_every_element(aln_cache.y_gain);
+    //aln_cache.reduce_every_element(aln_cache.y_gain);
     // reduce_too_high_scores(aln_cache); // TODO make a similar function that must reduce every element
 
-    // We need to increase fix vF_up if y_gain is more than gap_extend cost
+    // We need to fix vF_up if y_gain is more than gap_extend cost
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
       for (long v{0}; v < t; ++v)
@@ -174,6 +174,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
         aln_cache.vF_up[v] = aln_cache.vF_up[v] +
                              static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
                                                                   opt.get_gap_extend()));
+
       }
     }
 
@@ -286,7 +287,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       // first check the last query element
       {
         std::vector<Tuint> arr_right(S / sizeof(Tuint));
-        simdpp::store_u(&arr_right[0], aln_cache.vH_up[right_v]);
+        simdpp::store_u(&arr_right[0], aln_cache.vH_up[right_v] + aln_cache.vX[right_v]);
         score_right = arr_right[right_e];
         //std::cerr << " score_right=" << score_right << '\n';
 
@@ -299,8 +300,8 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
 
       for (long v{0}; v < t; ++v)
       {
-        //if (v == right_v)
-        //  continue;
+        if (v == right_v)
+          continue;
 
         auto score = static_cast<int>(simdpp::reduce_max(aln_cache.vH_up[v] + aln_cache.vX[v])) - static_cast<int>(opt.get_clip());
 
@@ -317,7 +318,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       if (corrected_max_score >= max_score)
       {
         // get which element in the current_max_vector had the maximum score
-        //std::cerr << " new max corrected score=" << corrected_max_score << " from score=" << current_max_score << '\n';
+        // std::cerr << " new max corrected score=" << corrected_max_score << " from score=" << current_max_score << '\n';
         std::vector<Tuint> arr(S / sizeof(Tuint));
         simdpp::store_u(&arr[0], aln_cache.vH_up[current_max_vector] + aln_cache.vX[current_max_vector]);
         auto find_max_it = std::find(arr.begin(), arr.end(), static_cast<Tuint>(current_max_score + opt.get_clip()));
@@ -343,21 +344,36 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       else
       {
         // check if it is impossible to get a better score
-        int const potential_score = corrected_max_score + opt.get_match() * (n - 1 - i);
+        int const potential_score = corrected_max_score + opt.get_match() * (n - 1 - i) + opt.get_clip();
 
         if (potential_score < max_score)
         {
-          //std::cerr << " potential new score too low=" << potential_score << " < " << max_score << '\n';
-          //std::cerr << " max_score_i,v,e=" << max_score_i << ", " << max_score_v << ", " << max_score_e << '\n';
-          //std::cerr << " t=" << t << '\n';
+          // std::cerr << " potential new score too low=" << potential_score << " < " << max_score << '\n';
+          // std::cerr << " max_score_i,v,e=" << max_score_i << ", " << max_score_v << ", " << max_score_e << '\n';
+          // std::cerr << " t=" << t << '\n';
           break;
+        }
+      }
+
+      // check if the score is too high
+      if ((current_max_score + opt.get_clip()) >= aln_cache.max_score_val)
+      {
+        // std::cerr << "Triggered a reduction of values" << std::endl;
+        // reduce all scores by gap_open_val + match_val
+        Tpack const reduce_pack = simdpp::make_int(aln_cache.gap_open_val + aln_cache.match_val);
+        aln_cache.reduction += aln_cache.gap_open_val + aln_cache.match_val;
+
+        for (long v = 0; v < t; ++v)
+        {
+          aln_cache.vH_up[v] = aln_cache.vH_up[v] - reduce_pack;
+          aln_cache.vF_up[v] = aln_cache.vF_up[v] - reduce_pack;
         }
       }
     }
   } /// End of outer loop
 
   std::vector<Tuint> arr(S / sizeof(Tuint));
-  simdpp::store_u(&arr[0], aln_cache.vH_up[m % t]);
+  simdpp::store_u(&arr[0], aln_cache.vH_up[m % t] + aln_cache.vX[m % t]);
 
   /*
 #ifndef NDEBUG
@@ -379,20 +395,24 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
   aln_results.query_end = m;
   aln_results.database_end = n;
   aln_results.score = static_cast<long>(arr[m / t])
-                    + static_cast<long>(aln_cache.reduction)
+    + static_cast<long>(aln_cache.reduction)
 //                    - m * static_cast<long>(aln_cache.x_gain)
                     - n * static_cast<long>(aln_cache.y_gain);
 
   /*
-  std::cerr << static_cast<int>(arr[m/t]) << " - " //
-            << -aln_cache.reduction << " - " //
+#ifndef NDEBUG
+  std::cerr << static_cast<int>(arr[m/t]) << " + " //
+            << aln_cache.reduction << " - " //
 //            << (m * static_cast<long>(aln_cache.x_gain)) << " - "
             << (n * static_cast<long>(aln_cache.y_gain)) << " = "
             << aln_results.score << '\n';
+#endif // NDEBUG
   */
 
   if (max_score > static_cast<int>(aln_results.score))
   {
+    //std::cerr << "clip at: " << max_score_i + 1
+    //          << " with score=" << max_score << " > " << aln_results.score << std::endl;
     aln_results.query_end = t * max_score_e + max_score_v;
     aln_results.database_end = max_score_i + 1;
     aln_results.score = max_score;

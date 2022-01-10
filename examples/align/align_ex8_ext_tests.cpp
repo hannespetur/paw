@@ -147,16 +147,13 @@ print_matrix(std::vector<std::vector<long> > const & sm)
 int
 main(int argc, char ** argv)
 {
+  using Tuint = uint8_t;
   std::vector<int> tests_to_run;
-  bool noswap_only = false;
-  bool swap_only = false;
 
   try
   {
     paw::Parser parser(argc, argv);
     parser.set_name("Alignment example 3 - Tests.");
-    parser.parse_option(noswap_only, '1', "noswap", "Set to only run tests with sequences not swapped.");
-    parser.parse_option(swap_only, '2', "swap", "Set to run only tests with sequences swapped.");
     parser.parse_remaining_positional_arguments(tests_to_run,
                                                 "list of tests to run...",
                                                 "List of all tests to run (all if not specified)."
@@ -169,19 +166,39 @@ main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
-  if (noswap_only && swap_only)
-  {
-    // Do both
-    noswap_only = false;
-    swap_only = false;
-  }
-
   std::vector<Test> tests =
   {
-    {"G", "G", 1 /*exp. score*/}, // test 0
-    {"GG", "GG", 2 /*exp. score*/}, // test 1
-    {"GG", "GA", -3}, // test 2
-    {"GGG", "GAA", -4} // test 3
+    {"G", "G", 1, 1, 4, 6, 1}, // test 0
+    {"GG", "GG", 2, 1, 4, 6, 1}, // test 1
+    {"GG", "GA", -3, 1, 4, 6, 1}, // test 2
+    {"GGG", "GAA", -4, 1, 4, 6, 1}, // test 3
+    {"GGAGG", "GGGGG", 0, 1, 4, 6, 1}, // test 4
+    {"GGAAA", "GGGGG", -3, 1, 4, 6, 1}, // test 5
+    {"GGAAA", "GGGGGGGGGGGGGGG", -3, 1, 4, 6, 1}, // test 6
+    {"GGAAA", "GGGGGGGGGGGGGGGA", -3, 1, 4, 6, 1}, // test 7
+    {"GGAAA", "GGAAA", 5, 1, 4, 6, 1}, // test 8
+    {"GGAAA", "GGGAAA", 3, 1, 2, 2, 1}, // test 9
+    {"GGAAA", "GGGAAA", 3, 1, 4, 2, 1}, // test 10
+    {"GGAAA", "GGGAAA", 2, 1, 4, 3, 1}, // test 11
+    {"GGAAA", "GGGAAA", 2, 1, 5, 3, 1}, // test 12
+    {"GGAAA", "GGGAAA", 2, 1, 6, 3, 1}, // test 13
+    {"GGAAA", "GGGAAA", 2, 1, 7, 3, 1}, // test 14
+    {"GGAAA", "GGGAAA", 1, 1, 3, 4, 1}, // test 15
+    {"GGAAA", "GGGAAA", 0, 1, 4, 5, 1}, // test 16
+    {"GGAAA", "GGGAAA", 1, 1, 3, 5, 1}, // test 17
+    {"GGAAA", "GGGAAAAAAAAAAAAA", 1, 1, 3, 5, 1}, // test 18
+    {"GGAAA", "GGGAAAAAAAAAAAAA", 0, 1, 4, 6, 1}, // test 19
+    {"GGCCCCCCCCCCCCC", "GGGAAAAAAAAAAAAAAAAA", -3, 1, 4, 6, 1}, // test 19
+    {"GGCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "GGCCACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 25, 1, 4, 6, 1}, // test 20
+    {"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 60, 1, 4, 6, 1}, // test 21
+    {"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 60, 1, 8, 12, 1}, // test 22
+    {"GGAAA", "GGGAAAAAAAAAAAAA", 4, 2, 4, 6, 1}, // test 23
+    {"GGAAA", "GGGAAAAAAAAAAAAA", 2, 1, 2, 6, 1}, // test 24
+    {"GGGAAA", "GGAAA", 0, 1, 4, 5, 1}, // test 25
+    {"GGGAAA", "GGAAA", 0, 1, 3, 5, 1}, // test 26
+    {"GGGAAA", "GGAAACCCCCCC", -1, 1, 4, 6, 1}, // test 27
+    {"GGAAA", "GGGAAACCCCCCC", 0, 1, 4, 6, 1}, // test 28
+
 //     {"GGGG", "GGG", 1}, // test 1
 //     {"GGGGG", "GGG", 3}, // test 2
 //     {"GGG", "GGGG", 1}, // test 3
@@ -238,7 +255,7 @@ main(int argc, char ** argv)
   long num_tests = tests_to_run.size();
 
   auto test_if_expected_score =
-    [&](paw::AlignmentOptions<uint8_t> & opts, Test const & test, long i) -> bool
+    [&](paw::AlignmentOptions<Tuint> & opts, Test const & test, long i) -> bool
     {
       bool are_all_tests_ok = true;
       opts.set_match(test.match).set_mismatch(test.mismatch);
@@ -261,7 +278,7 @@ main(int argc, char ** argv)
       std::pair<std::string, std::string> const & aligned_strings = *ar.aligned_strings_ptr;
       long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
 
-      if (ar.database_end != static_cast<int>(test.seq2.size()))
+      if (ar.query_end != static_cast<int>(test.seq1.size()))
         score_aligned_strings -= opts.get_clip();
 
       if (score_aligned_strings != test.expected_score)
@@ -301,28 +318,8 @@ main(int argc, char ** argv)
     assert(i < static_cast<long>(tests.size()));
 
     auto const & test = tests[i];
-    paw::AlignmentOptions<uint8_t> opts;
+    paw::AlignmentOptions<Tuint> opts;
     bool are_all_tests_ok = test_if_expected_score(opts, test, i);
-
-    if (!swap_only && !noswap_only && opts.left_column_free == false && opts.right_column_free == false)
-    {
-#ifndef NDEBUG
-      std::vector<std::vector<long> > score_matrix = transpose(opts.score_matrix);
-      std::vector<std::vector<long> > vE_matrix = transpose(opts.vE_scores);
-      std::vector<std::vector<long> > vF_matrix = transpose(opts.vF_scores);
-
-      // Tests for the transpose function
-      assert(score_matrix.size() == opts.score_matrix[0].size());
-      assert(score_matrix[0].size() == opts.score_matrix.size());
-      assert(score_matrix[0][0] == opts.score_matrix[0][0]);
-      assert(score_matrix[0][1] == opts.score_matrix[1][0]);
-      assert(score_matrix[1][0] == opts.score_matrix[0][1]);
-      assert(score_matrix[1][1] == opts.score_matrix[1][1]);
-      assert(vE_matrix.size() == opts.vE_scores[0].size());
-      assert(vE_matrix[0].size() == opts.vE_scores.size());
-      assert(vF_matrix.size() == opts.vF_scores[0].size());
-      assert(vF_matrix[0].size() == opts.vF_scores.size());
-#endif // NDEBUG
 
       are_all_tests_ok &= test_if_expected_score(opts, test, i);
 
@@ -387,7 +384,6 @@ main(int argc, char ** argv)
       }
 #endif // NDEBUG
       */
-    }
 
     if (are_all_tests_ok)
       ++num_passed_tests;
