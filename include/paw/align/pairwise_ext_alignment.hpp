@@ -361,12 +361,13 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
         // std::cerr << "Triggered a reduction of values" << std::endl;
         // reduce all scores by gap_open_val + match_val
         Tpack const reduce_pack = simdpp::make_int(aln_cache.gap_open_val + aln_cache.match_val);
+        Tpack const reduce_pack_2x = simdpp::make_int(2 * (aln_cache.gap_open_val + aln_cache.match_val));
         aln_cache.reduction += aln_cache.gap_open_val + aln_cache.match_val;
 
-        for (long v = 0; v < t; ++v)
+        for (int v{0}; v < t; ++v)
         {
-          aln_cache.vH_up[v] = aln_cache.vH_up[v] - reduce_pack;
-          aln_cache.vF_up[v] = aln_cache.vF_up[v] - reduce_pack;
+          aln_cache.vH_up[v] = simdpp::max(aln_cache.vH_up[v], reduce_pack_2x) - reduce_pack;
+          aln_cache.vF_up[v] = simdpp::max(aln_cache.vH_up[v], reduce_pack_2x) - reduce_pack;
         }
       }
     }
