@@ -368,7 +368,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       // check if the score is too high
       if ((current_max_score + opt.get_clip()) >= aln_cache.max_score_val)
       {
-        std::cerr << "Triggered a reduction of values" << std::endl;
+        // std::cerr << "Triggered a reduction of values" << std::endl;
         // reduce all scores by gap_open_val + match_val
         Tpack const reduce_pack = simdpp::make_int(aln_cache.gap_open_val + aln_cache.match_val);
         Tpack const reduce_pack_2x = simdpp::make_int(2 * (aln_cache.gap_open_val + aln_cache.match_val));
@@ -422,9 +422,10 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
 
   if (max_score > static_cast<int>(aln_results.score))
   {
-    std::cerr << "clip at: " << max_score_i + 1
-              << " with score=" << max_score << " > " << aln_results.score
-              << " query_end=" << t * max_score_e + max_score_v << std::endl;
+    //std::cerr << "clip at: " << max_score_i + 1
+    //          << " with score=" << max_score << " > " << aln_results.score
+    //          << " query_end=" << t * max_score_e + max_score_v << std::endl;
+
     aln_results.query_end = t * max_score_e + max_score_v;
     aln_results.database_end = max_score_i + 1;
     aln_results.score = max_score;
