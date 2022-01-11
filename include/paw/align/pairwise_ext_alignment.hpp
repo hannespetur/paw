@@ -322,6 +322,8 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
         std::vector<Tuint> arr(S / sizeof(Tuint));
         simdpp::store_u(&arr[0], aln_cache.vH_up[current_max_vector] + aln_cache.vX[current_max_vector]);
         auto find_max_it = std::find(arr.begin(), arr.end(), static_cast<Tuint>(current_max_score + opt.get_clip()));
+        int max_v;
+        int max_e;
 
         if (find_max_it == arr.end())
         {
@@ -329,17 +331,25 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
           assert(current_max_vector == right_v);
           assert(current_max_score == score_right);
 
-          max_score_v = right_v; // set which vector contains the maximum score
-          max_score_e = right_e; // set which element has the maximum score
+          max_v = right_v; // set which vector contains the maximum score
+          max_e = right_e; // set which element has the maximum score
         }
         else
         {
-          max_score_v = current_max_vector; // set which vector contains the maximum score
-          max_score_e = std::distance(arr.begin(), find_max_it); // set which element has the maximum score
+          max_v = current_max_vector; // set which vector contains the maximum score
+          max_e = std::distance(arr.begin(), find_max_it); // set which element has the maximum score
         }
 
-        max_score = corrected_max_score; // set a new max_score to the current one
-        max_score_i = i; // set which row contains the maximum score
+        int query_end = t * max_e + max_v;
+
+        // only register a new max score if the query_end is valid
+        if (query_end <= static_cast<int>(seq1.size()))
+        {
+          max_score = corrected_max_score; // set a new max_score to the current one
+          max_score_i = i; // set which row contains the maximum score
+          max_score_e = max_e;
+          max_score_v = max_v;
+        }
       }
       else
       {
@@ -358,7 +368,7 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
       // check if the score is too high
       if ((current_max_score + opt.get_clip()) >= aln_cache.max_score_val)
       {
-        // std::cerr << "Triggered a reduction of values" << std::endl;
+        std::cerr << "Triggered a reduction of values" << std::endl;
         // reduce all scores by gap_open_val + match_val
         Tpack const reduce_pack = simdpp::make_int(aln_cache.gap_open_val + aln_cache.match_val);
         Tpack const reduce_pack_2x = simdpp::make_int(2 * (aln_cache.gap_open_val + aln_cache.match_val));
@@ -412,8 +422,9 @@ pairwise_ext_alignment(Tseq const & seq1, // seq1 is query
 
   if (max_score > static_cast<int>(aln_results.score))
   {
-    //std::cerr << "clip at: " << max_score_i + 1
-    //          << " with score=" << max_score << " > " << aln_results.score << std::endl;
+    std::cerr << "clip at: " << max_score_i + 1
+              << " with score=" << max_score << " > " << aln_results.score
+              << " query_end=" << t * max_score_e + max_score_v << std::endl;
     aln_results.query_end = t * max_score_e + max_score_v;
     aln_results.database_end = max_score_i + 1;
     aln_results.score = max_score;
