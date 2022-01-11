@@ -50,13 +50,6 @@ jobs:
             cxx_flags: "-std=c++20"
             build_type: Release
 
-          - name: "Clang10 Debug C++20"
-            pkg: "clang-10"
-            cxx: "clang++-10"
-            cc: "clang-10"
-            cxx_flags: "-std=c++20"
-            build_type: Debug
-
           - name: "Clang12 Release C++20"
             pkg: "clang-12"
             cxx: "clang++-12"
