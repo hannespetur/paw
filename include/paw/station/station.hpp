@@ -160,6 +160,26 @@ Station::add_work_with_thread_id(TWork && work, Args ... args)
   }
 }
 
+template <typename TWork, typename ... Args>
+  void inline
+Station::add_to_thread_with_thread_id(std::size_t const thread_id, TWork && work, Args ... args)
+{
+  std::size_t const thread_count = options.num_threads;
+  std::size_t const low_thread_id = thread_id % thread_count;
+
+  if (low_thread_id == thread_count - 1)
+  {
+    work(thread_count - 1, args ...);
+    ++main_thread_work_count;
+  }
+  else
+  {
+    queues[low_thread_id]->add_work_to_queue(std::bind(std::forward<TWork>(work),
+                                                       low_thread_id,
+                                                       args ...));
+  }
+}
+
 
 template <typename TWork, typename ... Args>
 void inline
