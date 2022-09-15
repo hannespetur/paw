@@ -109,7 +109,7 @@ else()
 endif()
 
 ## Setup other compiler flags
-set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors -m64 -march=x86-64 -mtune=generic")
+set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors -march=native -mtune=generic")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -DNDEBUG")
