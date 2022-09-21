@@ -125,3 +125,30 @@ jobs:
           make test
           ./bin/align_ex3
           ./bin/align_ex8
+  
+  build-aarch64:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Build
+      uses: uraimo/run-on-arch-action@v2
+      with:
+        arch: aarch64
+        distro: ubuntu20.04
+        githubToken: ${{ github.token }}
+        dockerRunArgs: |
+          --volume "${PWD}:/paw"
+        install: |
+          apt-get update -q -y
+          apt-get install -q -y gcc g++ make cmake libboost-all-dev
+        run: |
+          cd /paw
+          mkdir build
+          cd build
+          echo "Running 'cmake ..'"
+          cmake ..
+          echo "Running 'make shared'"
+          make shared 
