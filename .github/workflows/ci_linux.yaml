@@ -143,7 +143,7 @@ jobs:
           --volume "${PWD}:/paw"
         install: |
           apt-get update -q -y
-          apt-get install -q -y gcc g++ make cmake libboost-all-dev
+          apt-get install -q -y gcc g++ make cmake libboost-all-dev file
         run: |
           set -x
           cd /paw
@@ -151,3 +151,4 @@ jobs:
           cd build
           cmake .. -DCMAKE_CXX_FLAGS_ARCH="-march=native"
           make shared 
+          file lib/libpaw.so | grep aarch64
