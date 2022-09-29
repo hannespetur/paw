@@ -145,10 +145,9 @@ jobs:
           apt-get update -q -y
           apt-get install -q -y gcc g++ make cmake libboost-all-dev
         run: |
+          set -x
           cd /paw
           mkdir build
           cd build
-          echo "Running 'cmake ..'"
-          cmake ..
-          echo "Running 'make shared'"
+          cmake .. -DCMAKE_CXX_FLAGS_ARCH="-march=native"
           make shared 
