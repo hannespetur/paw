@@ -1,6 +1,6 @@
 name: CI on Linux
 
-on: [pull_request]
+on: [push, pull_request]
 
 env:
   TZ: Atlantic/Reykjavik
