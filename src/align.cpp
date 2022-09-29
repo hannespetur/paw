@@ -94,7 +94,17 @@ get_current_arch()
 
   if (static_cast<bool>(current_arch & simdpp::Arch::X86_AVX512VL))
   {
-    ss << sep << "AVX512VL";
+    ss << sep << "AVX512VL"; sep = ",";
+  }
+
+  if (static_cast<bool>(current_arch & simdpp::Arch::ARM_NEON))
+  {
+    ss << sep << "ARM_NEON"; sep = ",";
+  }
+
+  if (static_cast<bool>(current_arch & simdpp::Arch::ARM_NEON_FLT_SP))
+  {
+    ss << sep << "ARM_NEON_FLT_SP"; sep = ",";
   }
 
   return ss.str();
