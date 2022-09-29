@@ -108,8 +108,12 @@ else()
   message(FATAL_ERROR "Your compiler version does not seem to support C++11. Aborting.")
 endif()
 
+if (NOT DEFINED CMAKE_CXX_FLAGS_ARCH)
+  set (CMAKE_CXX_FLAGS_ARCH "-m64 -march=x86-64")
+endif()
+
 ## Setup other compiler flags
-set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors -march=native -mtune=generic")
+set(CMAKE_CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS_COMMON} -Wall -Wextra -Wfatal-errors ${CMAKE_CXX_FLAGS_ARCH} -mtune=generic")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -pedantic -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DPAW_BUILD ${CMAKE_CXX_FLAGS_COMMON} -DNDEBUG")
