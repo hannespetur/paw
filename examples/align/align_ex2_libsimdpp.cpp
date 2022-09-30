@@ -74,10 +74,10 @@ main(int, char **)
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
 
-#ifdef __x86_64__
+#if __i386__ || __amd64__ || __x86_64__
     paw::arch_sse2::pairwise_alignment(database, query, opts);
     std::string arch = "sse2 ";
-#elif __aarch64__
+#elif __arm__ || __aarch64__
     paw::arch_neon::pairwise_alignment(database, query, opts);
     std::string arch = "neon ";
 #endif
