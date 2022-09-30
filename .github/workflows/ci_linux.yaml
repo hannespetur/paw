@@ -127,6 +127,7 @@ jobs:
           ./bin/align_ex8
   
   build-aarch64:
+    name: ARM64 GCC9 Release
     runs-on: ubuntu-latest
 
     steps:
