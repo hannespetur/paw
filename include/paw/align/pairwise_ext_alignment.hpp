@@ -40,6 +40,17 @@ pairwise_ext_alignment(Tseq const & seq1,
 
 }
 
+namespace arch_neon
+{
+
+template <typename Tseq, typename Tuint>
+void
+pairwise_ext_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
+
+}
+
 namespace arch_sse2
 {
 

@@ -150,5 +150,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_CXX_FLAGS_ARCH="-march=native"
-          make shared 
+          make -j2
           file lib/libpaw.so | grep aarch64
+          file bin/align_ex2 | grep aarch64
+          ./bin/align_ex2

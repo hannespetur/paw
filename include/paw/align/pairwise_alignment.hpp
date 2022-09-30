@@ -44,6 +44,19 @@ pairwise_alignment(Tseq const & seq1,
 
 }
 
+namespace arch_neon
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
+
+}
+
 namespace arch_sse2
 {
 
