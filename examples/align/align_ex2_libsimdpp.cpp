@@ -70,11 +70,20 @@ main(int, char **)
   //std::cout << "avx2 " << Tduration(t1 - t0).count() << " ms\n";
   //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
+
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
-  paw::arch_sse2::pairwise_alignment(database, query, opts);
+
+#ifdef __x86_64__
+    paw::arch_sse2::pairwise_alignment(database, query, opts);
+    std::string arch = "sse2 ";
+#elif __aarch64__
+    paw::arch_neon::pairwise_alignment(database, query, opts);
+    std::string arch = "neon ";
+#endif
+
   t1 = Ttime::now();
-  std::cout << "sse2 " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << arch << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
 

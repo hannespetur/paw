@@ -6391,6 +6391,10 @@ namespace Catch {
 
 #include <signal.h>
 
+// SIGSTKSZ is no more a const defined in signal.h. Workaround it!
+// see https://lists.gnu.org/archive/html/bug-m4/2021-03/msg00000.html
+#define SIGSTKSZ 8192
+
 namespace Catch {
 
     struct SignalDefs {
