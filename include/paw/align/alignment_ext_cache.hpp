@@ -87,7 +87,7 @@ struct AlignmentExtCache
               assert(j < static_cast<long>(query.size()));
               char const query_dna_base = *(begin(query) + j);
 
-              if (dna_base == query_dna_base || query_dna_base == 'N')
+              if (dna_base == query_dna_base)
                 seq[e] = match_val;
             }
 
@@ -96,7 +96,7 @@ struct AlignmentExtCache
         }
       }
 
-      // All is a match with N
+      // All is a mismatch with N
       {
         auto & W = W_profile[4];
         W.clear(); // Clear previous elements
@@ -104,7 +104,7 @@ struct AlignmentExtCache
 
         for (long v{0}; v < num_vectors; ++v)
         {
-          std::vector<Tuint> seq(T<Tuint>::pack::length, match_val);
+          std::vector<Tuint> seq(T<Tuint>::pack::length, mismatch_val);
           W.push_back(static_cast<typename T<Tuint>::pack>(simdpp::load_u(&seq[0])));
         }
       }

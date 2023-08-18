@@ -529,7 +529,7 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
         --i;
         --j;
 
-        if (q[j] == d[i] || q[j] == 'N' || d[i] == 'N')
+        if (q[j] == d[i])
         {
           // match, check clip of end
           if (tmp_score < 0 - static_cast<long>(clip_right))
@@ -636,7 +636,7 @@ inline std::pair<long, long> AlignmentResults::apply_clipping(
         --i;
         --j;
 
-        if (q[j] == d[i] || q[j] == 'N' || d[i] == 'N')
+        if (q[j] == d[i])
         {
           // match, check clip of end
           if (tmp_score < 0 - static_cast<long>(clip_right))
