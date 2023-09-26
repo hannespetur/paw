@@ -90,6 +90,12 @@ public:
    */
   void finalize(bool const allow_no_arguments = true);
 
+  /** Get a reference to the raw arguments used in the parser.
+   * \returns Vector of raw arguments.
+   * \exception None.
+   */
+  std::vector<std::string> const &
+  get_raw_args_reference() const;
 
   /** Get a reference to the multimap containing all the flags the user passed.
    * \returns Multimap with flags.
@@ -831,6 +837,13 @@ Parser::check_for_invalid_options()
       throw paw::exception::invalid_option(it->first, this->generate_help_message());
     }
   }
+}
+
+
+std::vector<std::string> const &
+Parser::get_raw_args_reference() const
+{
+  return raw_args;
 }
 
 
