@@ -247,6 +247,7 @@ Skyr::find_all_edits(bool const is_normalize)
   using Tuint = uint16_t;
   AlignmentOptions<Tuint> opts;
   opts.get_aligned_strings = true;
+  opts.set_match(1).set_mismatch(4).set_gap_open(7).set_gap_extend(1);
 
   while (std::find(is_done.begin() + 1, is_done.end(), 0) != is_done.end())
   {
