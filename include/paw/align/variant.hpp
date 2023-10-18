@@ -31,6 +31,7 @@ public:
   bool has_sequences() const;
   bool is_deletion() const;
   bool is_insertion() const;
+  bool is_indel() const;
   bool is_snp() const;
   long get_max_del_reach() const;
   long get_max_reach() const;
@@ -90,6 +91,12 @@ bool
 Variant::is_insertion() const
 {
   return has_sequences() && seqs[0].size() == 0;
+}
+
+bool
+Variant::is_indel() const
+{
+  return is_deletion() || is_insertion();
 }
 
 

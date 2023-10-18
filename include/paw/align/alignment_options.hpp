@@ -280,11 +280,11 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
 
   // TODO add more tests
   //// set free snps
-  //for (Event2 const & e : opt.free_edits)
-  //{
-  //  assert(e.is_snp());
-  //  aln_cache.set_free_snp(e.pos, e.alt[0]);
-  //}
+  for (Event2 const & e : opt.free_edits)
+  {
+    assert(e.is_snp());
+    aln_cache.set_free_snp(e.pos, e.alt[0]);
+  }
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +

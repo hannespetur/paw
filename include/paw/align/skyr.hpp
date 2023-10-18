@@ -335,33 +335,31 @@ Skyr::find_variants_from_edits()
 
     if (e.pos == new_var.pos)
     {
-      if (e.is_insertion() && new_var.is_insertion())
+      if (e.is_indel() && new_var.is_indel())
       {
-        // Case 1: insertions at the same position.
-        new_var.add_event(e);
-      }
-      else if (e.is_deletion() && new_var.is_deletion())
-      {
-        // Case 2: Deletions at the same position.
+        // Case 1: indel at the same position.
         assert(e.ref.size() > new_var.seqs[0].size());
-        /// Extend all sequences.
-        auto begin_extend = e.ref.cbegin() + new_var.seqs[0].size();
 
-        for (auto & s : new_var.seqs)
-          s.append(begin_extend, e.ref.cend());
-        ///
+        // Extend all variant sequences if needed
+        {
+          auto const begin_extend = std::next(e.ref.cbegin(), new_var.seqs[0].size());
+          auto const end_extend = e.ref.cend();
+
+          for (auto & s : new_var.seqs)
+            s.append(begin_extend, end_extend);
+        }
 
         new_var.add_event(e);
       }
       else if (e.is_snp() && new_var.is_snp())
       {
-        // Case 3: both are SNPs at the same position.
+        // Case 2: both are SNPs at the same position.
         new_var.add_event(e);
       }
       else
       {
         // Otherwise, they are two different events.
-        vars.push_back(std::move(new_var));
+        vars.push_back(std::move(new_var)); // push old variant
         new_var = {static_cast<uint32_t>(e.pos), {e.ref} };
         new_var.add_event(e);
       }
@@ -369,7 +367,7 @@ Skyr::find_variants_from_edits()
     else
     {
       // Otherwise, they are two different events.
-      vars.push_back(std::move(new_var));
+      vars.push_back(std::move(new_var)); // push old variant
       new_var = {static_cast<uint32_t>(e.pos), {e.ref} };
       new_var.add_event(e);
     }
