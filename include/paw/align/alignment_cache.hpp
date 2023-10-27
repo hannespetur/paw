@@ -46,7 +46,6 @@ struct AlignmentCache
     reductions.fill(0);
   }
 
-
   template<typename Tseq>
   inline void
   set_query(Tseq const & new_query)
@@ -132,7 +131,6 @@ struct AlignmentCache
     } /// Done calculating DNA W_profile
   }
 
-
   inline void
   reduce_every_element(long val)
   {
@@ -153,7 +151,6 @@ struct AlignmentCache
     for (auto const & e : events)
       set_free_snp(e.pos, e.alt[0]);
   }
-
 
   inline void
   set_free_snp(long pos, char alt)
