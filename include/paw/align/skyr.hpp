@@ -16,16 +16,13 @@ namespace paw
 class Skyr
 {
 public:
-  using Tscores = std::vector<int64_t>;   // Container for alignment scores
-
   std::vector<std::string> seqs;
-  //std::set<Event2> free_edits;   // Alignment edits that have been made free
   std::vector<std::set<Event2> > edits;   // Edits found for each alignment
   std::multiset<Event2> all_edits;
   std::vector<Variant> vars;
 
-  Skyr(std::vector<std::string> const & _seqs);
-  Skyr(std::vector<std::vector<char> > const & _seqs);
+  explicit Skyr(std::vector<std::string> const & _seqs);
+  explicit Skyr(std::vector<std::vector<char> > const & _seqs);
 
   void find_all_edits(bool const is_normalize);
   void find_variants_from_edits();
@@ -150,7 +147,13 @@ Skyr::find_all_edits(bool const is_normalize)
 
     assert(ar->aligned_strings_ptr);
     auto const & aligned_strings = *(ar->aligned_strings_ptr);
+
+    // std::cout << aligned_strings.first << '\n' << aligned_strings.second << '\n';
     edits[i] = get_edit_script(aligned_strings, is_normalize, false);
+    // for (auto it = edits[i].begin(); it != edits[i].end(); ++it)
+    // {
+    //   std::cout << it->pos << " " << it->ref << " " << it->alt << '\n';
+    // }
     all_edits.insert(edits[i].begin(), edits[i].end());
   }
 }
