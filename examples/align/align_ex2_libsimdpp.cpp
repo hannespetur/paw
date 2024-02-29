@@ -6,14 +6,6 @@
 #include <vector>
 #include <fstream> // std::ifstream
 
-#if PAW_BOOST_FOUND
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
-namespace io = boost::iostreams;
-#endif // PAW_BOOST_FOUND
-
 
 namespace
 {
@@ -21,19 +13,7 @@ namespace
 std::string
 get_sequence_from_fa(std::string const & fn)
 {
-#if PAW_BOOST_FOUND
-  std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
-  io::filtering_istream in;
-
-  // If filename ends with ".gz", assume we should decompress with gzip
-  if (fn.size() >= 3 && fn.substr(fn.size() - 3, 3) == ".gz")
-    in.push(io::gzip_decompressor()); // gzip file
-
-  // Read file
-  in.push(file);
-#else
   std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
-#endif // PAW_BOOST_FOUND
 
   std::stringstream ss;
   std::string str;
@@ -78,36 +58,38 @@ main(int, char **)
   //query = query.substr(0, 25);
 
   auto t0 = Ttime::now();
-  //paw::arch_null::global_alignment(database, query, opts);
+  //paw::arch_null::pairwise_alignment(database, query, opts);
   auto t1 = Ttime::now();
   //std::cout << "null " << Tduration(t1 - t0).count() << " ms\n";
   //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
   //t0 = Ttime::now();
   //opts = paw::AlignmentOptions<uint16_t>();
-  //paw::arch_popcnt_avx2::global_alignment(database, query, opts);
+  //paw::arch_popcnt_avx2::pairwise_alignment(database, query, opts);
   //t1 = Ttime::now();
   //std::cout << "avx2 " << Tduration(t1 - t0).count() << " ms\n";
   //std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
+
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
-  paw::arch_sse4p1::global_alignment(database, query, opts);
+
+#if __i386__ || __amd64__ || __x86_64__
+    paw::arch_sse2::pairwise_alignment(database, query, opts);
+    std::string arch = "sse2 ";
+#elif __arm__ || __aarch64__
+    paw::arch_neon::pairwise_alignment(database, query, opts);
+    std::string arch = "neon ";
+#endif
+
   t1 = Ttime::now();
-  std::cout << "sse4_1 " << Tduration(t1 - t0).count() << " ms\n";
+  std::cout << arch << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << opts.get_alignment_results()->score << "\n";
 
-  t0 = Ttime::now();
-  opts = paw::AlignmentOptions<uint16_t>();
-  paw::arch_popcnt_avx::global_alignment(database, query, opts);
-  t1 = Ttime::now();
-  std::cout << "avx " << Tduration(t1 - t0).count() << " ms\n";
-  std::cout << "score = " << opts.get_alignment_results()->score << "\n";
-
 
   t0 = Ttime::now();
   opts = paw::AlignmentOptions<uint16_t>();
-  paw::global_alignment(database, query, opts);
+  paw::pairwise_alignment(database, query, opts);
   t1 = Ttime::now();
   std::cout << "best " << Tduration(t1 - t0).count() << " ms\n";
   std::cout << "score = " << opts.get_alignment_results()->score << "\n";

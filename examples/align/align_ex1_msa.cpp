@@ -41,8 +41,8 @@ main(int argc, char ** argv)
   /// Parse program arguments
   bool backtracking = true;
   std::string fasta_filename;
-  std::string fasta_output = "-";
-  std::string vcf_output = "-";
+  std::string fasta_output;
+  std::string vcf_output;
   long SPLIT_THRESHOLD = 5;
 
   try
@@ -86,12 +86,13 @@ main(int argc, char ** argv)
     return EXIT_SUCCESS;
   }
 
-  //auto t0 = Ttime::now();
+  std::cerr << "Found " << fasta.seqs.size() << " sequences\n";
 
-  for (long s = 0; s < static_cast<long>(fasta.seqs.size()); ++s)
-  {
-    std::cerr << s << ": " << fasta.seqs[s] << "\n";
-  }
+  //auto t0 = Ttime::now();
+  //for (long s = 0; s < static_cast<long>(fasta.seqs.size()); ++s)
+  //{
+  //  std::cerr << s << ": " << fasta.seqs[s] << "\n";
+  //}
 
   // Align the sequence using the SKYR algorithm
   paw::Skyr skyr(fasta.seqs);
@@ -99,9 +100,9 @@ main(int argc, char ** argv)
   skyr.find_all_edits(is_normalize);
   skyr.find_variants_from_edits();
 
-  //bool constexpr use_asterisks = true;
+  //bool constexpr use_asterisks = false;
   //skyr.populate_variants_with_calls(use_asterisks);
-  //
+
   //std::cerr << "skyr vars and their calls:\n";
   //
   //for (auto const & var : skyr.vars)
@@ -117,15 +118,15 @@ main(int argc, char ** argv)
   auto vars = skyr.split_variants(SPLIT_THRESHOLD);
 
   std::cerr << "splitted vars:\n";
+
   for (auto const & var : vars)
     var.print_seqs(std::cerr);
 
   //auto t1 = Ttime::now();
   //std::cout << Tduration(t1 - t0).count() << " ms\n";
+  //fasta_out.store(fasta_output);
 
-  /*fasta_out.store(fasta_output);
-
-  if (fasta.ids.size() > 0)
+  if (fasta.ids.size() > 0 && vcf_output.size() > 0)
   {
     paw::Vcf vcf_out(vcf_output);
     vcf_out.reference = "N" + fasta.seqs[0];
@@ -134,7 +135,7 @@ main(int argc, char ** argv)
       vcf_out.add_sample_name(sn.substr(1));
 
     // Shift all positions by 1 for the extra 'N'
-    for (auto & var : skyr.vars)
+    for (auto & var : vars)
     {
       ++var.pos;
 
@@ -146,7 +147,6 @@ main(int argc, char ** argv)
 
     vcf_out.write();
   }
-  */
 
   return EXIT_SUCCESS;
 }

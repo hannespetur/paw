@@ -167,7 +167,7 @@ main(int argc, char ** argv)
     all_opts.resize(g.get_vertices().size(), opts);
 
     // Do a pairwise alignment on the first node
-    paw::global_alignment(query, g.get_sequence(0), all_opts[0]);
+    paw::pairwise_alignment(query, g.get_sequence(0), all_opts[0]);
   }
 
   // Set query
@@ -183,7 +183,7 @@ main(int argc, char ** argv)
 
     // Set the previous alignment results
     *opts.get_alignment_results() = *all_opts[0].get_alignment_results();
-    paw::global_alignment(query, g.get_sequence(i), opts);
+    paw::pairwise_alignment(query, g.get_sequence(i), opts);
     std::cout << "Score " << i << " " << opts.get_alignment_results()->score << "\n";
   }
 
@@ -202,13 +202,13 @@ main(int argc, char ** argv)
 #endif // NDEBUG
 
   paw::SIMDPP_ARCH_NAMESPACE::merge_score_matrices<uint8_t>(all_opts[3], opts_vec_ptr);
-  paw::global_alignment(query, g.get_sequence(3), all_opts[3]);
+  paw::pairwise_alignment(query, g.get_sequence(3), all_opts[3]);
 
 
   //std::cout << "Num test graphs = " << graphs.size() << "\n";
 
   //assert(3 < all_opts.size());
-  //paw::global_alignment(query, g.get_sequence(3), all_opts[3]);
+  //paw::pairwise_alignment(query, g.get_sequence(3), all_opts[3]);
   std::cout << "Final score: " << all_opts[3].get_alignment_results()->score << "\n";
 
   return EXIT_SUCCESS;

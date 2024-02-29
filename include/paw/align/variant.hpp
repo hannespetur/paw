@@ -17,19 +17,21 @@ class Variant
 public:
   std::map<Event2, uint32_t /*allele index*/> event_to_allele;
   std::vector<uint16_t> calls;
+  std::map<std::string, std::string> infos;
 
 public:
   using Tseqs = std::vector<std::string>;
 
-  uint32_t pos;   // Position of the variant
+  long pos;   // Position of the variant
   Tseqs seqs;   // Allele sequences of the variant. The first sequence is the reference allele.
 
-  Variant(uint32_t _pos = -1, Tseqs const & _seqs = Tseqs());
+  Variant(long _pos = -1, Tseqs const & _seqs = Tseqs());
 
   /// Read only methods
   bool has_sequences() const;
   bool is_deletion() const;
   bool is_insertion() const;
+  bool is_indel() const;
   bool is_snp() const;
   long get_max_del_reach() const;
   long get_max_reach() const;
@@ -40,7 +42,8 @@ public:
   ///
 
   /// Class modifiers
-  void add_base_to_front(std::string const & reference);
+  void trim_sequences();
+  void add_base_to_front(std::string const & reference, std::string const & pad_base = "");
   void add_call(uint16_t const call);
   void clear();
   void add_event(Event2 const & e);
@@ -57,12 +60,14 @@ bool operator==(Variant const & a, Variant const & b);
 
 #if defined(IMPLEMENT_PAW) || defined(__JETBRAINS_IDE__)
 
+#include <paw/align/sequence_utils.hpp>
+
 
 namespace paw
 {
 
 
-Variant::Variant(uint32_t _pos, Variant::Tseqs const & _seqs)
+Variant::Variant(long _pos, Variant::Tseqs const & _seqs)
   : pos(_pos)
   , seqs(_seqs)
 {}
@@ -86,6 +91,12 @@ bool
 Variant::is_insertion() const
 {
   return has_sequences() && seqs[0].size() == 0;
+}
+
+bool
+Variant::is_indel() const
+{
+  return is_deletion() || is_insertion();
 }
 
 
@@ -118,7 +129,7 @@ long
 Variant::get_max_reach() const
 {
   if (seqs.size() < 2)
-    return 0;
+    return pos;
 
   if (is_deletion())
     return pos + seqs[0].size();
@@ -168,15 +179,32 @@ Variant::add_call(uint16_t const call)
 
 
 void
-Variant::add_base_to_front(std::string const & reference)
+Variant::trim_sequences()
 {
-  --pos;
+  remove_common_suffix(seqs);
+  remove_common_prefix(pos, seqs, false); // keep one match
+}
 
+
+void
+Variant::add_base_to_front(std::string const & reference, std::string const & pad_base)
+{
   for (auto & seq : seqs)
   {
     if (seq != "*")
-      seq = reference[pos] + seq;
+    {
+      if (pos > 0)
+      {
+        seq = reference[pos - 1] + seq;
+      }
+      else
+      {
+        seq = pad_base.size() == 1 ? (pad_base + seq) : ('N' + seq);
+      }
+    }
   }
+
+  --pos;
 }
 
 

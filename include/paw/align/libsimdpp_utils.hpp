@@ -37,7 +37,7 @@ struct T<uint8_t>
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
-  using arr_vec_pack = std::array<vec_pack, 5>;
+  using arr_vec_pack = std::array<vec_pack, 6>;
 };
 
 template <>
@@ -48,7 +48,7 @@ struct T<uint16_t>
   using uint = pack::element_type;
   using vec_pack = std::vector<pack>;
   using arr_uint = std::array<uint, S / sizeof(uint)>;
-  using arr_vec_pack = std::array<vec_pack, 5>;
+  using arr_vec_pack = std::array<vec_pack, 6>;
 };
 
 template <typename Tuint>
@@ -60,11 +60,30 @@ shift_one_right(typename T<Tuint>::pack pack,
   std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
   vec[0] = left;
   simdpp::store_u(&vec[1], pack);
-  Tuint const min_value = std::numeric_limits<Tuint>::min();
+  Tuint constexpr min_value = std::numeric_limits<Tuint>::min();
 
-  for (long e = 1; e < static_cast<long>(T<Tuint>::pack::length); ++e)
+  for (long e{1}; e < static_cast<long>(T<Tuint>::pack::length); ++e)
   {
     long const val = static_cast<long>(vec[e]) + reductions[e - 1] - reductions[e];
+    vec[e] = val >= min_value ? val : min_value;
+  }
+
+  return simdpp::load_u(&vec[0]);
+}
+
+template <typename Tuint>
+inline typename T<Tuint>::pack
+shift_one_right(typename T<Tuint>::pack pack,
+                typename T<Tuint>::uint const left)
+{
+  std::array<typename T<Tuint>::uint, T<Tuint>::pack::length + 1> vec;
+  vec[0] = left;
+  simdpp::store_u(&vec[1], pack);
+  Tuint constexpr min_value = std::numeric_limits<Tuint>::min();
+
+  for (long e{1}; e < static_cast<long>(T<Tuint>::pack::length); ++e)
+  {
+    long const val = static_cast<long>(vec[e]);
     vec[e] = val >= min_value ? val : min_value;
   }
 
@@ -77,12 +96,28 @@ magic_function(char const c)
 {
   switch (c)
   {
-  case 'n':
-  case 'N':
-    return 4;
+  case 'a':
+  case 'A':
+    return 0;
+
+  case 'c':
+  case 'C':
+    return 1;
+
+  case 'G':
+  case 'g':
+    return 2;
+
+  case 't':
+  case 'T':
+    return 3;
+
+  case 'x':
+  case 'X':
+    return 5; // All mismatches
 
   default:
-    return 0x03 & ((c >> 2) ^ (c >> 1));
+    return 4; // All matches
   }
 }
 

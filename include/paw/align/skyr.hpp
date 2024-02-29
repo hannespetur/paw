@@ -5,7 +5,7 @@
 #include <string> // std::string
 #include <vector> // std::vector<T>
 
-#include <paw/align/global_alignment.hpp>
+#include <paw/align/pairwise_alignment.hpp>
 #include <paw/align/event.hpp>
 #include <paw/align/variant.hpp>
 
@@ -16,27 +16,19 @@ namespace paw
 class Skyr
 {
 public:
-  using Tscores = std::vector<int64_t>;   // Container for alignment scores
-
   std::vector<std::string> seqs;
-  //std::set<Event2> free_edits;   // Alignment edits that have been made free
   std::vector<std::set<Event2> > edits;   // Edits found for each alignment
   std::multiset<Event2> all_edits;
   std::vector<Variant> vars;
-  std::vector<uint8_t> is_done;
 
-  Skyr(std::vector<std::string> const & _seqs);
-  Skyr(std::vector<std::vector<char> > const & _seqs);
+  explicit Skyr(std::vector<std::string> const & _seqs);
+  explicit Skyr(std::vector<std::vector<char> > const & _seqs);
 
   void find_all_edits(bool const is_normalize);
   void find_variants_from_edits();
   void populate_variants_with_calls(bool use_asterisks = true);
   Variant merge_variants(long start_v, long end_v);
-  std::vector<Variant> split_variants(long const T);
-
-
-private:
-  long find_most_similar_haplotype(Tscores const & scores) const;
+  std::vector<Variant> split_variants(long const T, std::string const & pad_base = "");
 };
 
 
@@ -123,13 +115,11 @@ namespace paw
 Skyr::Skyr(std::vector<std::string> const & _seqs)
   : seqs(_seqs)
   , edits(_seqs.size())
-  , is_done(_seqs.size(), 0)
 {}
 
 
 Skyr::Skyr(std::vector<std::vector<char> > const & _seqs)
   : edits(_seqs.size())
-  , is_done(_seqs.size(), 0)
 {
   seqs.reserve(_seqs.size());
 
@@ -138,118 +128,33 @@ Skyr::Skyr(std::vector<std::vector<char> > const & _seqs)
 }
 
 
-long
-Skyr::find_most_similar_haplotype(Tscores const & scores) const
-{
-  long max_score = std::numeric_limits<long>::min(); // High is better than low
-  long max_events = std::numeric_limits<long>::max(); // Many is worse than few
-  long max_events_seen = std::numeric_limits<long>::min(); // Few is better then many
-  long max_i = -1;
-
-  for (long i = 1; i < static_cast<long>(edits.size()); ++i)
-  {
-    auto const & hap_edits = edits[i];
-    auto const & score = scores[i];
-    assert(i < static_cast<long>(is_done.size()));
-    assert(i < static_cast<long>(scores.size()));
-
-    if (is_done[i] != 0)
-      continue;
-
-    long event_seen_count = 0;
-
-    for (auto const & e : hap_edits)
-      event_seen_count += all_edits.count(e);
-
-    long const num_events = hap_edits.size();
-
-
-    bool const is_more_similar = score > max_score ||
-                                 (score == max_score && num_events < max_events) ||
-                                 (score == max_score && num_events == max_events &&
-                                  event_seen_count > max_events_seen);
-    /*
-    // Alternative comparison
-    bool const is_more_similar = num_events < max_events ||
-                                 (num_events == max_events && event_seen_count > max_events_seen) ||
-                                 (num_events == max_events && event_seen_count == max_events_seen &&
-                                 score > max_score);
-    */
-
-    if (is_more_similar)
-    {
-      max_score = score;
-      max_events = num_events;
-      max_events_seen = event_seen_count;
-      max_i = i;
-    }
-  }
-
-  return max_i;
-}
-
-
 void
 Skyr::find_all_edits(bool const is_normalize)
 {
-  std::size_t iteration = 0;
-  Tscores scores(seqs.size(), std::numeric_limits<long>::min());
-  using Tuint = uint8_t;
+  using Tuint = uint16_t;
   AlignmentOptions<Tuint> opts;
   opts.get_aligned_strings = true;
+  opts.set_match(1).set_mismatch(4).set_gap_open(7).set_gap_extend(1);
+  all_edits.clear();
 
-  while (std::find(is_done.begin() + 1, is_done.end(), 0) != is_done.end())
+  for (int i{1}; i < static_cast<int>(seqs.size()); ++i)
   {
-    ++iteration;
-    all_edits.clear();
+    assert(i < static_cast<int>(edits.size()));
 
-    for (long i = 1; i < static_cast<long>(seqs.size()); ++i)
-    {
-      assert(i < static_cast<long>(is_done.size()));
-      assert(i < static_cast<long>(edits.size()));
+    paw::pairwise_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
+    auto ar = opts.get_alignment_results();
+    assert(ar);
 
-      if (is_done[i] == 1)
-      {
-        all_edits.insert(edits[i].begin(), edits[i].end());
-        continue;
-      }
+    assert(ar->aligned_strings_ptr);
+    auto const & aligned_strings = *(ar->aligned_strings_ptr);
 
-      //std::cerr << "Current arch = " << paw::get_current_arch() << "\n";
-      paw::global_alignment<std::string, Tuint>(seqs[0], seqs[i], opts);
-      auto ar = opts.get_alignment_results();
-      assert(ar);
-      scores[i] = ar->score;
-
-      assert(ar->aligned_strings_ptr);
-      auto const & aligned_strings = *(ar->aligned_strings_ptr);
-      //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n";
-      edits[i] = get_edit_script(aligned_strings, is_normalize, false);
-      all_edits.insert(edits[i].begin(), edits[i].end());
-    }
-
-    long max_i = find_most_similar_haplotype(scores);
-
-    while (max_i != -1)
-    {
-      assert(max_i < static_cast<long>(seqs.size()));
-      is_done[max_i] = 1;
-      bool is_novel_snp = false;
-
-      for (Event2 const & e : edits[max_i])
-      {
-        if (e.is_snp() && opts.free_edits.count(e) == 0)
-        {
-          is_novel_snp = true;
-          opts.free_edits.insert(e);
-          //opts.get_alignment_cache()->set_free_snp(e.pos, e.alt[0]);
-        }
-      }
-
-      if (is_novel_snp)
-        break; // We added a novel SNP, time to remap.
-      else
-        max_i = find_most_similar_haplotype(scores);
-    }
+    // std::cout << aligned_strings.first << '\n' << aligned_strings.second << '\n';
+    edits[i] = get_edit_script(aligned_strings, is_normalize, false);
+    // for (auto it = edits[i].begin(); it != edits[i].end(); ++it)
+    // {
+    //   std::cout << it->pos << " " << it->ref << " " << it->alt << '\n';
+    // }
+    all_edits.insert(edits[i].begin(), edits[i].end());
   }
 }
 
@@ -279,33 +184,31 @@ Skyr::find_variants_from_edits()
 
     if (e.pos == new_var.pos)
     {
-      if (e.is_insertion() && new_var.is_insertion())
+      if (e.is_indel() && new_var.is_indel())
       {
-        // Case 1: insertions at the same position.
-        new_var.add_event(e);
-      }
-      else if (e.is_deletion() && new_var.is_deletion())
-      {
-        // Case 2: Deletions at the same position.
+        // Case 1: indel at the same position.
         assert(e.ref.size() > new_var.seqs[0].size());
-        /// Extend all sequences.
-        auto begin_extend = e.ref.cbegin() + new_var.seqs[0].size();
 
-        for (auto & s : new_var.seqs)
-          s.append(begin_extend, e.ref.cend());
-        ///
+        // Extend all variant sequences if needed
+        {
+          auto const begin_extend = std::next(e.ref.cbegin(), new_var.seqs[0].size());
+          auto const end_extend = e.ref.cend();
+
+          for (auto & s : new_var.seqs)
+            s.append(begin_extend, end_extend);
+        }
 
         new_var.add_event(e);
       }
       else if (e.is_snp() && new_var.is_snp())
       {
-        // Case 3: both are SNPs at the same position.
+        // Case 2: both are SNPs at the same position.
         new_var.add_event(e);
       }
       else
       {
         // Otherwise, they are two different events.
-        vars.push_back(std::move(new_var));
+        vars.push_back(std::move(new_var)); // push old variant
         new_var = {static_cast<uint32_t>(e.pos), {e.ref} };
         new_var.add_event(e);
       }
@@ -313,7 +216,7 @@ Skyr::find_variants_from_edits()
     else
     {
       // Otherwise, they are two different events.
-      vars.push_back(std::move(new_var));
+      vars.push_back(std::move(new_var)); // push old variant
       new_var = {static_cast<uint32_t>(e.pos), {e.ref} };
       new_var.add_event(e);
     }
@@ -426,7 +329,7 @@ Skyr::merge_variants(long v1, long v2)
 
 
 std::vector<Variant>
-Skyr::split_variants(long const T)
+Skyr::split_variants(long const T, std::string const & pad_base)
 {
   std::vector<Variant> new_variants;
 
@@ -436,7 +339,7 @@ Skyr::split_variants(long const T)
   // Process reference
   {
     long var_reach = -1;//vars[0].get_max_reach();
-    long s = 0; // string index
+    long ref_s = 0; // string index
     std::string original_seq = seqs[0];
 
     for (long v = 0; v < static_cast<long>(vars.size()); ++v)
@@ -446,19 +349,27 @@ Skyr::split_variants(long const T)
       var_reach = std::max(var_reach, var.get_max_reach());
 
       // Check if there are more than T base till the next variant
-      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      if (v + 1l < static_cast<long>(vars.size()))
       {
-        Variant new_var;
-        new_var.pos = s;
-        new_var.seqs.push_back(original_seq.substr(s, var_reach - s)); //
-        new_variants.push_back(std::move(new_var));
-        s = vars[v + 1].pos;
+        if (((var_reach + T) <= vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 60 && (var_reach + (T / 2)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 80 && (var_reach + (T / 8)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 100 && var_reach < vars[v + 1].pos))
+        {
+          Variant new_var;
+          new_var.pos = ref_s;
+          new_var.seqs.push_back(original_seq.substr(ref_s, var_reach - ref_s)); //
+          new_var.add_call(0);
+          new_variants.push_back(std::move(new_var));
+          ref_s = vars[v + 1].pos;
+        }
       }
     }
 
     Variant new_var;
-    new_var.pos = s;
-    new_var.seqs.push_back(original_seq.substr(s));
+    new_var.pos = ref_s;
+    new_var.seqs.push_back(original_seq.substr(ref_s));
+    new_var.add_call(0);
     new_variants.push_back(std::move(new_var));
   }
 
@@ -469,6 +380,7 @@ Skyr::split_variants(long const T)
     long del_reach = -1;//vars[0].get_max_del_reach();
     long var_reach = -1;//vars[0].get_max_reach();
     long shift = 0;
+    long ref_s = 0;
     long s = 0; // string index
     long new_var_index = 0;
     std::string original_seq = seqs[0]; // Reconstructed sequence
@@ -494,33 +406,64 @@ Skyr::split_variants(long const T)
       }
 
       // Check if there are more than T base till the next variant
-      if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      if (v + 1l < static_cast<long>(vars.size()))
       {
-        assert(new_var_index < static_cast<long>(new_variants.size()));
-        std::string new_seq = original_seq.substr(s, var_reach + shift - s);
-        auto & new_seqs = new_variants[new_var_index].seqs;
-
-        // Only add sequence if we did not see it before
-        if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
+        if (((var_reach + T) <= vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 60 && (var_reach + (T / 2)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 80 && (var_reach + (T / 8)) < vars[v + 1].pos) ||
+            ((var_reach - ref_s) > 100 && var_reach < vars[v + 1].pos))
         {
-          // new sequence
-          new_variants[new_var_index].seqs.push_back(std::move(new_seq));
-        }
+          assert(new_var_index < static_cast<long>(new_variants.size()));
+          std::string new_seq = original_seq.substr(s, var_reach + shift - s);
+          paw::Variant & new_var = new_variants[new_var_index];
 
-        ++new_var_index;
-        s = vars[v + 1].pos + shift;
+          {
+            auto & new_seqs = new_var.seqs;
+
+            // Only add sequence if we did not see it before
+            auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
+            new_var.add_call(std::distance(new_seqs.begin(), find_it));
+
+            if (find_it == new_seqs.end())
+            {
+              new_var.seqs.push_back(std::move(new_seq)); // new sequence
+            }
+          }
+
+          ++new_var_index;
+          s = vars[v + 1].pos + shift;
+          ref_s = vars[v + 1].pos;
+        }
       }
+
+      //if (v + 1l < static_cast<long>(vars.size()) && var_reach + T <= vars[v + 1].pos)
+      //{
+      //
+      //}
     }
 
     std::string new_seq = original_seq.substr(s);
     assert(new_var_index < static_cast<long>(new_variants.size()));
-    auto & new_seqs = new_variants[new_var_index].seqs;
+    paw::Variant & new_var = new_variants[new_var_index];
 
-    if (std::find(new_seqs.begin(), new_seqs.end(), new_seq) == new_seqs.end())
     {
-      // new sequence
-      new_variants[new_var_index].seqs.push_back(std::move(new_seq));
+      auto & new_seqs = new_var.seqs;
+
+      // Only add sequence if we did not see it before
+      auto find_it = std::find(new_seqs.begin(), new_seqs.end(), new_seq);
+      new_var.add_call(std::distance(new_seqs.begin(), find_it));
+
+      if (find_it == new_seqs.end())
+      {
+        new_var.seqs.push_back(std::move(new_seq)); // new sequence
+      }
     }
+  }
+
+  for (auto & new_var : new_variants)
+  {
+    new_var.add_base_to_front(seqs[0], pad_base);
+    new_var.trim_sequences();
   }
 
   return new_variants;

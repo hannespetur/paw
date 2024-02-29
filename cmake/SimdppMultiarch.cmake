@@ -493,7 +493,7 @@ set(SIMDPP_X86_XOP_TEST_CODE
 
 list(APPEND SIMDPP_ARCHS_PRI "X86_AVX512F")
 if(SIMDPP_CLANG OR SIMDPP_GCC)
-    set(SIMDPP_X86_AVX512F_CXX_FLAGS "-mavx512f -O1")
+    set(SIMDPP_X86_AVX512F_CXX_FLAGS "-mavx512f -O3")
 elseif(SIMDPP_INTEL)
     set(SIMDPP_X86_AVX512F_CXX_FLAGS "-xCOMMON-AVX512")
 elseif(SIMDPP_MSVC_INTEL)
@@ -768,13 +768,13 @@ set(SIMDPP_ARM64_NEON_TEST_CODE
         char* p = data;
         p = prevent_optimization(p);
 
-        uint32x4_t one = vld1q_u32((uint32_t*)(*p));
+        uint32x4_t one = vld1q_u32((uint32_t*) p);
         one = vaddq_u32(one, one);
 
         // GCC 4.8 misses a subset of functions
         one = vdupq_laneq_u32(one, 1);
 
-        vst1q_u32((uint32_t*)(*p), one);
+        vst1q_u32((uint32_t*) p, one);
         p = prevent_optimization(p);
     }"
 )

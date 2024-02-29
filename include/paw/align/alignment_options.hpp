@@ -8,9 +8,11 @@
 #include <simdpp/simd.h>
 
 #include <paw/align/alignment_cache.hpp>
+#include <paw/align/alignment_ext_cache.hpp>
 #include <paw/align/alignment_results.hpp>
 //#include <paw/align/event.hpp>
 #include <paw/align/libsimdpp_utils.hpp>
+#include <paw/align/sequence_utils.hpp>
 
 
 namespace paw
@@ -25,8 +27,13 @@ public:
   bool left_column_free{false};
   bool right_column_free{false};
   bool continuous_alignment{false}; /// When set, always continue with the same alignment as long as the query is the same
-  std::set<Event2> free_edits; // free SNP events
   bool get_aligned_strings{false};
+  bool get_cigar_string{false};
+  bool is_clip{false};
+  // bool is_query_reverse_complement{false};
+  // bool is_no_indel_check{false};
+  std::set<Event2> free_edits; // free SNP events
+
 
 private:
   /// User options
@@ -44,10 +51,10 @@ private:
 
   /// Calculated values
   //std::shared_ptr<AlignmentCache<Tuint> > ac{new AlignmentCache<Tuint>()}; /// Shared cache between alignments
-  std::unique_ptr<AlignmentResults<Tuint> > ar{new AlignmentResults<Tuint>()}; /// Results of the alignment
 
 
 public:
+  std::unique_ptr<AlignmentResults> ar{new AlignmentResults()}; /// Results of the alignment
 
 #ifndef NDEBUG
   /// DEBUG MODE ONLY: Store the score matrix
@@ -61,48 +68,53 @@ public:
     : left_column_free(false)
     , right_column_free(false)
     , continuous_alignment(false)
+    , get_aligned_strings(false)
+    , get_cigar_string(false)
+    , is_clip(false)
+//    , is_query_reverse_complement(false)
     , match(2)
     , mismatch(2)
     , gap_open(5)
     , gap_extend(1)
     , clip(5)
-    , ar(new AlignmentResults<Tuint>())
+    , ar(new AlignmentResults())
   {}
 
 
+  AlignmentOptions(AlignmentOptions const & ao) = delete;
+  /*
   AlignmentOptions(AlignmentOptions const & ao)
+    : left_column_free(ao.left_column_free)
+    , right_column_free(ao.right_column_free)
+    , continuous_alignment(ao.continuous_alignment)
+    , match(ao.match)
+    , mismatch(ao.mismatch)
+    , gap_open(ao.gap_open)
+    , gap_extend(ao.gap_extend)
+    , clip(ao.clip)
+    , ar(new AlignmentResults())
   {
-    left_column_free = ao.left_column_free;
-    right_column_free = ao.right_column_free;
-    continuous_alignment = ao.continuous_alignment;
-
-    match = ao.match;
-    mismatch = ao.mismatch;
-    gap_open = ao.gap_open;
-    gap_extend = ao.gap_extend;
-    clip = ao.clip;
-
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
-  }
+  }*/
 
 
   AlignmentOptions(AlignmentOptions && ao) noexcept
+    : left_column_free(ao.left_column_free)
+    , right_column_free(ao.right_column_free)
+    , continuous_alignment(ao.continuous_alignment)
+    , match(ao.match)
+    , mismatch(ao.mismatch)
+    , gap_open(ao.gap_open)
+    , gap_extend(ao.gap_extend)
+    , clip(ao.clip)
+    , ar(std::forward<std::unique_ptr<AlignmentResults> >(ao.ar))
   {
-    left_column_free = ao.left_column_free;
-    right_column_free = ao.right_column_free;
-    continuous_alignment = ao.continuous_alignment;
-
-    match = ao.match;
-    mismatch = ao.mismatch;
-    gap_open = ao.gap_open;
-    gap_extend = ao.gap_extend;
-    clip = ao.clip;
-
-    ar = std::move(ao.ar);
+    //ar = std::move(ao.ar);
   }
 
 
-  AlignmentOptions<Tuint> &
+  AlignmentOptions & operator=(AlignmentOptions const & ao) = delete;
+  /*
+  AlignmentOptions &
   operator=(AlignmentOptions const & ao)
   {
     left_column_free = ao.left_column_free;
@@ -115,9 +127,10 @@ public:
     gap_extend = ao.gap_extend;
     clip = ao.clip;
 
-    ar = std::unique_ptr<AlignmentResults<Tuint> >(new AlignmentResults<Tuint>());
+    ar = std::unique_ptr<AlignmentResults>(new AlignmentResults());
     return *this;
   }
+  */
 
 
   AlignmentOptions<Tuint> &
@@ -216,8 +229,9 @@ public:
   }
 
 
+  template<typename Tcache>
   inline Tuint
-  get_gap_open_val_y(SIMDPP_ARCH_NAMESPACE::AlignmentCache<Tuint> const & aln_cache) const
+  get_gap_open_val_y(Tcache const & aln_cache) const
   {
     return gap_open - aln_cache.y_gain;
   }
@@ -233,9 +247,11 @@ public:
   get_gap_extend() const {return gap_extend;}
   inline Tuint
   get_clip() const {return clip;}
+
   //inline AlignmentCache<Tuint> *
   //get_alignment_cache() const {return ac.get();}
-  inline AlignmentResults<Tuint> *
+
+  inline AlignmentResults *
   get_alignment_results() const {return ar.get();}
   //inline bool get_is_traceback() const {return is_traceback;}
 
@@ -253,25 +269,22 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
 
-  std::string new_query(begin(seq), end(seq));
   Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
-  //bool const is_new_query = new_query != aln_cache.query;
 
-  //if (is_new_query)
-  {
-    aln_cache.set_query(std::move(new_query));
-    aln_cache.set_options(opt.get_match(),
-                          opt.get_mismatch(),
-                          opt.get_gap_open(),
-                          opt.get_gap_extend());
-  }
+  aln_cache.set_query(seq);
+  aln_cache.set_options(seq,
+                        opt.get_match(),
+                        opt.get_mismatch(),
+                        opt.get_gap_open(),
+                        opt.get_gap_extend());
 
-  // set free snps
-  //for (Event2 const & e : opt.free_edits)
-  //{
-  //  assert(e.is_snp());
-  //  aln_cache.set_free_snp(e.pos, e.alt[0]);
-  //}
+  // TODO add more tests
+  //// set free snps
+  // for (Event2 const & e : opt.free_edits)
+  // {
+  //   assert(e.is_snp());
+  //   aln_cache.set_free_snp(e.pos, e.alt[0]);
+  // }
 
   aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
                               static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +
@@ -304,7 +317,77 @@ set_query(AlignmentOptions<Tuint> & opt, AlignmentCache<Tuint> & aln_cache, Tseq
 
 template <typename Tuint, typename Tseq>
 void
+set_query_ext(AlignmentOptions<Tuint> & opt, AlignmentExtCache<Tuint> & aln_cache, Tseq const & seq)
+{
+  using Tarr_uint = typename T<Tuint>::arr_uint;
+  using Tpack = typename T<Tuint>::pack;
+  using Tvec_pack = typename T<Tuint>::vec_pack;
+
+  Tpack const min_value_pack = simdpp::make_int(std::numeric_limits<Tuint>::min());
+
+  aln_cache.set_query(seq);
+  aln_cache.set_options(seq,
+                        opt.get_match(),
+                        opt.get_mismatch(),
+                        opt.get_gap_open(),
+                        opt.get_gap_extend());
+
+  aln_cache.vH_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors),
+                              static_cast<Tpack>(simdpp::make_int(2 * aln_cache.gap_open_val +
+                                                                  std::numeric_limits<Tuint>::min()))
+                              );
+
+  // init vH_up[0]
+  {
+    long const gap_open_val = aln_cache.gap_open_val;
+    std::vector<Tuint> new_vH0(T<Tuint>::pack::length,
+                               2 * gap_open_val + std::numeric_limits<Tuint>::min());
+
+    assert(aln_cache.vH_up.size() > 0);
+    new_vH0[0] = gap_open_val * 3 + std::numeric_limits<Tuint>::min();
+    aln_cache.vH_up[0] = simdpp::load_u(&new_vH0[0]);
+  }
+
+  aln_cache.vF_up = Tvec_pack(static_cast<std::size_t>(aln_cache.num_vectors), min_value_pack);
+  aln_cache.reduction = static_cast<long>(-std::numeric_limits<Tuint>::min()) - aln_cache.gap_open_val * 3;
+
+  assert(aln_cache.query_size == static_cast<int>(seq.size()));
+  int constexpr pack_length = T<Tuint>::pack::length;
+  int const gap_extend = opt.get_gap_extend();
+  aln_cache.reduction -= aln_cache.query_size * gap_extend;
+
+  for (int v{0}; v < aln_cache.num_vectors; ++v)
+  {
+    Tarr_uint vX_arr;
+
+    for (int e{0}; e < pack_length; ++e)
+    {
+      int i = e * aln_cache.num_vectors + v;
+      int gain = gap_extend * (aln_cache.query_size - i);
+
+      if (gain < 0)
+        gain = 0;
+
+      //std::cerr << gain << ",";
+      vX_arr[e] = gain;
+    }
+
+    //std::cerr << '\n';
+    aln_cache.vX.push_back(simdpp::load_u(&vX_arr[0]));
+  }
+}
+
+
+template <typename Tuint, typename Tseq>
+void
 set_database(AlignmentCache<Tuint> & aln_cache, Tseq const & seq)
+{
+  aln_cache.mB = Backtrack<Tuint>(std::distance(begin(seq), end(seq)), aln_cache.num_vectors);
+}
+
+template <typename Tuint, typename Tseq>
+void
+set_database_ext(AlignmentExtCache<Tuint> & aln_cache, Tseq const & seq)
 {
   aln_cache.mB = Backtrack<Tuint>(std::distance(begin(seq), end(seq)), aln_cache.num_vectors);
 }
@@ -318,8 +401,8 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
   using Tmask = typename T<Tuint>::mask;
   using Tarr_uint = typename T<Tuint>::arr_uint;
 
-  //AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
-  //AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  // AlignmentCache<Tuint> const & aln_cache = *opt.get_alignment_cache();
+  // AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
   long const num_vectors = aln_cache.num_vectors;
 
   if (simdpp::reduce_max(aln_cache.vH_up[num_vectors - 1]) >= aln_cache.max_score_val)
@@ -335,7 +418,7 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
     assert(vF0.size() == new_reductions.size());
     bool any_reductions = false;
 
-    for (long e = 1; e < static_cast<long>(vF0.size()); ++e)
+    for (int e{1}; e < static_cast<int>(vF0.size()); ++e)
     {
       long new_reduction_val = static_cast<long>(vF0[e]) - static_cast<long>(2 * aln_cache.gap_open_val);
 
@@ -394,9 +477,9 @@ reduce_too_high_scores(AlignmentCache<Tuint> & aln_cache)
 }
 
 
-template <typename Tuint>
+template <typename Tuint, typename Tcache>
 std::vector<long> inline
-get_score_row(AlignmentCache<Tuint> const & aln_cache,
+get_score_row(Tcache const & aln_cache,
               long const i,
               typename T<Tuint>::vec_pack const & vX)
 {
@@ -424,7 +507,7 @@ get_score_row(AlignmentCache<Tuint> const & aln_cache,
     assert(v < static_cast<long>(mat.size()));
     assert(e < static_cast<long>(mat[v].size()));
 
-    long const adjustment = aln_cache.reductions[e] - aln_cache.y_gain * i - aln_cache.x_gain * j;
+    long const adjustment = aln_cache.get_reduction(e) - aln_cache.y_gain * i - aln_cache.x_gain * j;
     scores_row.push_back(static_cast<long>(mat[v][e] + adjustment));
   }
 
@@ -526,16 +609,16 @@ merge_score_matrices(AlignmentOptions<Tuint> & final_opts, std::vector<Alignment
 
 #ifndef NDEBUG
 
-template <typename Tuint>
+template <typename Tuint, typename Tcache>
 inline void
 store_scores(AlignmentOptions<Tuint> & opt,
-             AlignmentCache<Tuint> const & aln_cache,
+             Tcache const & aln_cache,
              long const i,
              typename T<Tuint>::vec_pack const & vE)
 {
-  opt.score_matrix.push_back(get_score_row(aln_cache, i, aln_cache.vH_up));
-  opt.vE_scores.push_back(get_score_row(aln_cache, i, vE));
-  opt.vF_scores.push_back(get_score_row(aln_cache, i, aln_cache.vF_up));
+  opt.score_matrix.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, aln_cache.vH_up));
+  opt.vE_scores.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, vE));
+  opt.vF_scores.push_back(get_score_row<Tuint, Tcache>(aln_cache, i, aln_cache.vF_up));
   assert(opt.score_matrix.size() == opt.score_matrix.size());
   assert(opt.vE_scores.size() == opt.vF_scores.size());
 }

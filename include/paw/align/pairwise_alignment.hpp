@@ -23,9 +23,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 
 /// See namespaces at:
@@ -38,9 +38,22 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
+
+}
+
+namespace arch_neon
+{
+
+std::string get_current_arch();
+
+template <typename Tseq, typename Tuint>
+void
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -51,9 +64,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -64,9 +77,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -77,9 +90,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -90,9 +103,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -103,9 +116,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -116,9 +129,9 @@ std::string get_current_arch();
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1,
-                 Tseq const & seq2,
-                 AlignmentOptions<Tuint> & opts);
+pairwise_alignment(Tseq const & seq1,
+                   Tseq const & seq2,
+                   AlignmentOptions<Tuint> & opts);
 
 }
 
@@ -132,9 +145,9 @@ namespace SIMDPP_ARCH_NAMESPACE
 
 template <typename Tseq, typename Tuint>
 void
-global_alignment(Tseq const & seq1, // seq1 is query
-                 Tseq const & seq2, // seq2 is database
-                 AlignmentOptions<Tuint> & opt)
+pairwise_alignment(Tseq const & seq1, // seq1 is query
+                   Tseq const & seq2, // seq2 is database
+                   AlignmentOptions<Tuint> & opt)
 {
   using Tpack = typename T<Tuint>::pack;
   using Tvec_pack = typename T<Tuint>::vec_pack;
@@ -145,7 +158,7 @@ global_alignment(Tseq const & seq1, // seq1 is query
   paw::SIMDPP_ARCH_NAMESPACE::set_database<Tuint, Tseq>(aln_cache, seq2);
 
   assert(opt.get_alignment_results());
-  AlignmentResults<Tuint> & aln_results = *opt.get_alignment_results();
+  AlignmentResults & aln_results = *opt.get_alignment_results();
 
   long const m = aln_cache.query_size; // Local variable for the query size
   long const t = aln_cache.num_vectors; // Keep t as a local variable is it widely used
@@ -166,16 +179,15 @@ global_alignment(Tseq const & seq1, // seq1 is query
   Tuint const gap_open_val_y = opt.get_gap_open_val_y(aln_cache); // Store once
   Tpack const gap_open_pack_y = simdpp::make_int(gap_open_val_y);
 
-
   /// Start of outer loop
-  for (long i = 0; i < n; ++i)
+  for (long i{0}; i < n; ++i)
   {
     reduce_too_high_scores(aln_cache);
 
     // We need to increase fix vF_up if y_gain is more than gap_extend cost
     if (i > 0 && aln_cache.y_gain > opt.get_gap_extend())
     {
-      for (long v = 0; v < t; ++v)
+      for (long v{0}; v < t; ++v)
       {
         aln_cache.vF_up[v] = aln_cache.vF_up[v] +
                              static_cast<Tpack>(simdpp::make_uint(aln_cache.y_gain -
@@ -333,9 +345,45 @@ global_alignment(Tseq const & seq1, // seq1 is query
                       + static_cast<long>(aln_cache.reductions[m / t])
                       - m * aln_cache.x_gain;
 
+  if (opt.is_clip && (opt.left_column_free || opt.right_column_free))
+  {
+    int const clip_left = opt.left_column_free ? opt.get_clip() : -1;
+    int const clip_right = opt.get_clip();
+    std::pair<long, long> const & clip = aln_results.apply_clipping<Tuint>(aln_cache,
+                                                                    seq1,
+                                                                    seq2,
+                                                                    opt.get_match(),
+                                                                    opt.get_mismatch(),
+                                                                    opt.get_gap_open(),
+                                                                    opt.get_gap_extend(),
+                                                                    clip_left,
+                                                                    clip_right);
+
+    aln_results.clip_begin = clip.first;
+    aln_results.clip_end = clip.second;
+
+    std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
+    aln_results.database_begin = db_begin_end.first;
+    aln_results.database_end = db_begin_end.second;
+  }
+  else
+  {
+    aln_results.clip_begin = aln_results.query_begin;
+    aln_results.clip_end = aln_results.query_end;
+
+    //std::pair<long, long> const & db_begin_end = aln_results.get_database_begin_end<Tuint>(aln_cache);
+    //aln_results.database_begin = db_begin_end.first;
+    //aln_results.database_end = db_begin_end.second;
+  }
+
   if (opt.get_aligned_strings)
   {
     aln_results.get_aligned_strings(aln_cache, seq1, seq2);
+  }
+
+  if (opt.get_cigar_string)
+  {
+    aln_results.get_cigar_string(aln_cache);
   }
 }
 

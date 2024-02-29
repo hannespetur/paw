@@ -19,6 +19,9 @@ target_link_libraries(align_ex6 shared)
 add_executable(align_ex7 align_ex7_ref_align.cpp)
 target_link_libraries(align_ex7 shared)
 
+add_executable(align_ex8 align_ex8_ext_tests.cpp)
+target_link_libraries(align_ex8 shared)
+
 
 # Search for clang-tidy
 find_program(
@@ -32,5 +35,5 @@ if(CLANG_TIDY_EXE)
   set(TIDY_CHECKS "clang-analyzer-*,clang-diagnostic-*,modernize-*,-clang-analyzer-alpha.*")
   set_target_properties(align_ex2 PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=${TIDY_CHECKS}")
 else()
-  message(STATUS "clang-tidy not found. Code diagnostics and statis analyzes will be skipped.")
+  message(STATUS "clang-tidy not found. Code diagnostics and static analyzes will be skipped.")
 endif()

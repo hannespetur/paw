@@ -69,11 +69,19 @@ public:
 
   template <typename TWork, typename ... Args>
   void inline
+  add_work_with_thread_id(TWork && work, Args ... args);
+
+  template <typename TWork, typename ... Args>
+  void inline
   add(TWork && work, Args ... args);
 
   template <typename TWork, typename ... Args>
   void inline
   add_to_thread(std::size_t const thread_id, TWork && work, Args ... args);
+
+  template <typename TWork, typename ... Args>
+  void inline
+  add_to_thread_with_thread_id(std::size_t const thread_id, TWork && work, Args ... args);
 
   Queues::const_iterator find_smallest_queue(std::size_t & smallest_size);
 
@@ -117,6 +125,58 @@ Station::add_work(TWork && work, Args ... args)
       work(args ...);   // If all queues are of maximum size, use the boss thread instead
       ++main_thread_work_count;
     }
+  }
+}
+
+
+template <typename TWork, typename ... Args>
+void inline
+Station::add_work_with_thread_id(TWork && work, Args ... args)
+{
+  if (workers.size() == 0)
+  {
+    work(options.num_threads - 1, args ...);
+    ++main_thread_work_count;
+  }
+  else
+  {
+    // We have some workers, so let's assign the work to the smallest worker queue
+    std::size_t smallest_size = -1;
+
+    // If we have any worker threads, check who has the smallest queue
+    Queues::const_iterator min_queue_it = find_smallest_queue(smallest_size);
+
+    if (smallest_size < options.max_queue_size)
+    {
+      long const thread_id = std::distance(queues.cbegin(), min_queue_it);
+      (*min_queue_it)->add_work_to_queue(std::bind(std::forward<TWork>(work), thread_id, args ...));
+    }
+    else
+    {
+      std::size_t const thread_count = options.num_threads;
+      work(thread_count - 1, args ...);   // If all queues are of maximum size, use the boss thread instead
+      ++main_thread_work_count;
+    }
+  }
+}
+
+template <typename TWork, typename ... Args>
+  void inline
+Station::add_to_thread_with_thread_id(std::size_t const thread_id, TWork && work, Args ... args)
+{
+  std::size_t const thread_count = options.num_threads;
+  std::size_t const low_thread_id = thread_id % thread_count;
+
+  if (low_thread_id == thread_count - 1)
+  {
+    work(thread_count - 1, args ...);
+    ++main_thread_work_count;
+  }
+  else
+  {
+    queues[low_thread_id]->add_work_to_queue(std::bind(std::forward<TWork>(work),
+                                                       low_thread_id,
+                                                       args ...));
   }
 }
 

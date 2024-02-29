@@ -20,7 +20,7 @@ namespace SIMDPP_ARCH_NAMESPACE
 {
 
 template <typename Tuint>
-struct AlignmentCache
+struct AlignmentExtCache
 {
   using Tarr_vec_pack = typename T<Tuint>::arr_vec_pack;
   using Tarr_uint = typename T<Tuint>::arr_uint;
@@ -28,22 +28,22 @@ struct AlignmentCache
 
   Tuint x_gain {0};
   Tuint y_gain {0};
-  long query_size {0}; // Size of query sequence, sometimes also noted as 'm'
-  long num_vectors {0}; // Number of SIMD vectors per row
+  int query_size {0}; // Size of query sequence, sometimes also noted as 'm'
+  int num_vectors {0}; // Number of SIMD vectors per row
   Tuint match_val {0};
   Tuint mismatch_val {0};
   Tuint gap_open_val {0};
   Tuint max_score_val {0};
   Tvec_pack vH_up{};
   Tvec_pack vF_up{};
+  Tvec_pack vX{}; // specifies the x_gain offsets
+  long reduction{0};
   Backtrack<Tuint> mB{};
   Tarr_vec_pack W_profile;
-  std::array<long, S / sizeof(Tuint)> reductions;
 
-  AlignmentCache()
+
+  AlignmentExtCache()
   {
-    //W_profile.fill(0);
-    reductions.fill(0);
   }
 
   template<typename Tseq>
@@ -78,13 +78,13 @@ struct AlignmentCache
         W.reserve(num_vectors);
 
         {
-          for (long v = 0; v < num_vectors; ++v)
+          for (long v{0}; v < num_vectors; ++v)
           {
             std::vector<Tuint> seq(T<Tuint>::pack::length, mismatch_val);
 
             for (long e = 0, j = v; j < query_size; j += num_vectors, ++e)
             {
-              assert(j < query_size);
+              assert(j < static_cast<long>(query.size()));
               char const query_dna_base = *(begin(query) + j);
 
               if (dna_base == query_dna_base)
@@ -131,20 +131,20 @@ struct AlignmentCache
     } /// Done calculating DNA W_profile
   }
 
+
   inline void
   reduce_every_element(long val)
   {
-    for (auto & reduction : reductions)
-      reduction += val;
+    reduction += val;
   }
 
   inline long
-  get_reduction(int e) const
+  get_reduction(int /*e*/) const
   {
-    return reductions[e];
+    return reduction;
   }
 
-
+/*
   inline void
   set_free_snps(std::set<Event2> const & events)
   {
@@ -152,12 +152,14 @@ struct AlignmentCache
       set_free_snp(e.pos, e.alt[0]);
   }
 
+
   inline void
   set_free_snp(long pos, char alt)
   {
-    assert(pos < query_size);
+    assert(pos < static_cast<long>(query.size()));
     //std::cerr << "Adding free SNP pos,alt = " << pos << ',' << alt << '\n';
     auto & W = W_profile[magic_function(alt)];
+    assert(pos < static_cast<long>(query.size()));
 
     long const v = pos % num_vectors;
     long const e = pos / num_vectors;
@@ -169,7 +171,7 @@ struct AlignmentCache
     vW[e] = match_val + 1;
     W[v] = simdpp::load_u(&vW[0]);
   }
-
+*/
 
 };
 

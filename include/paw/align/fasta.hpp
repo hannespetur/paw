@@ -52,15 +52,6 @@ public:
 #include <sstream>
 #include <vector>
 
-#if PAW_BOOST_FOUND
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-
-namespace io = boost::iostreams;
-#endif // PAW_BOOST_FOUND
 
 namespace paw
 {
@@ -104,19 +95,13 @@ Fasta::get_sequence(std::size_t const index) const
 void
 Fasta::load(std::string const & fn)
 {
-#if PAW_BOOST_FOUND
-  std::ifstream file(fn, std::ios_base::in | std::ios_base::binary);
-  io::filtering_istream in;
-
-  // If filename ends with ".gz", assume we should decompress with gzip
-  if (fn.size() >= 3 && fn.substr(fn.size() - 3, 3) == ".gz")
-    in.push(io::gzip_decompressor()); // gzip file
-
-  // Read file
-  in.push(file);
-#else
   std::ifstream in(fn, std::ios_base::in | std::ios_base::binary);
-#endif // PAW_BOOST_FOUND
+
+  if (!in)
+  {
+    std::cerr << "[paw::align::fasta] ERROR: Could not open " << fn;
+    std::exit(1);
+  }
 
   std::stringstream ss; // sequence stream
   //FastaRecord rec = {"", ""}; // Empty FASTA record
@@ -188,19 +173,8 @@ Fasta::store(std::string const & fn)
   }
   else
   {
-#if PAW_BOOST_FOUND
-    std::ofstream ofile(fn, std::ios_base::out | std::ios_base::binary);
-    io::filtering_streambuf<boost::iostreams::input> out;
-
-    if (boost::algorithm::ends_with(fn, ".gz"))
-      out.push(boost::iostreams::gzip_compressor());
-
-    out.push(ss);
-    boost::iostreams::copy(out, ofile);
-#else
     std::cerr << "ERROR: Cannot write a gz file without Boost." << std::endl;
     std::exit(1);
-#endif // PAW_BOOST_FOUND
   }
 }
 

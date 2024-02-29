@@ -45,6 +45,11 @@ public:
     return ref.size() == 0;
   }
 
+  inline bool
+  is_indel() const
+  {
+    return is_deletion() || is_insertion();
+  }
 
 };
 

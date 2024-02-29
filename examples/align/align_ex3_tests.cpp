@@ -22,8 +22,8 @@ struct Test
   Test() = default;
   ~Test() = default;
 
-  Test(std::string _seq1,
-       std::string _seq2,
+  Test(std::string const & _seq1,
+       std::string const & _seq2,
        long _expected_score = 0,
        long score_match = 2,
        long score_mismatch = 2,
@@ -277,7 +277,7 @@ main(int argc, char ** argv)
 
   std::string const current_archs = paw::get_current_arch();
   std::cout << "Current archs are: " << current_archs << "\n";
-  std::cout << "== global_alignment ==\n";
+  std::cout << "== pairwise_alignment ==\n";
   long num_passed_tests = 0;
   long num_tests = tests_to_run.size();
 
@@ -292,14 +292,18 @@ main(int argc, char ** argv)
       opts.get_aligned_strings = true;
 
       if (is_swapped)
+      {
+        // std::cout << "1,2=" << test.seq2 << ", " << test.seq1 << '\n';
         std::swap(opts.left_column_free, opts.right_column_free);
-
-      if (is_swapped)
-        paw::global_alignment(test.seq2, test.seq1, opts);
+        paw::pairwise_alignment(test.seq2, test.seq1, opts);
+      }
       else
-        paw::global_alignment(test.seq1, test.seq2, opts);
+      {
+        // std::cout << "1,2=" << test.seq1 << ", " << test.seq2 << '\n';
+        paw::pairwise_alignment(test.seq1, test.seq2, opts);
+      }
 
-      paw::AlignmentResults<uint8_t> const & ar = *opts.get_alignment_results();
+      paw::AlignmentResults const & ar = *opts.get_alignment_results();
       std::string test_suffix;
 
       if (is_swapped)
@@ -309,9 +313,9 @@ main(int argc, char ** argv)
 
       if (ar.score != test.expected_score)
       {
-        std::cout << "\nINCORRECT. Final score mismatch in test " << i << test_suffix
-                  << ". Got score " << ar.score
-                  << " but I expected " << test.expected_score << "\n" << std::endl;
+        // std::cout << "\nINCORRECT. Final score mismatch in test " << i << test_suffix
+        //           << ". Got score " << ar.score
+        //           << " but I expected " << test.expected_score << "\n" << std::endl;
         are_all_tests_ok = false;
       }
 
@@ -322,7 +326,7 @@ main(int argc, char ** argv)
       //else
       //  aligned_strings = ar.get_aligned_strings(test.seq1, test.seq2);
 
-      //std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n" << std::endl;
+      // std::cerr << aligned_strings.first << "\n" << aligned_strings.second << "\n" << std::endl;
       long score_aligned_strings = calculate_score_from_aligned_strings(opts, aligned_strings);
 
       if (score_aligned_strings != test.expected_score)
